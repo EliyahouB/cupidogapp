@@ -1,13 +1,13 @@
-// screens/MesChiens.js
+// screens/Likes.js
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
 
-export default function MesChiens({ navigation }) {
+export default function Likes({ navigation }) {
   return (
-    <ScreenLayout title="Mes Chiens" navigation={navigation}>
+    <ScreenLayout title="Favoris" navigation={navigation}>
       <View style={styles.container}>
-        <Text style={styles.text}>Mes Chiens (placeholder)</Text>
+        <Text style={styles.text}>Favoris (placeholder)</Text>
       </View>
     </ScreenLayout>
   );

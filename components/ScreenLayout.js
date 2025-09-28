@@ -12,7 +12,14 @@ export default function ScreenLayout({ children, title, navigation, showToolbar 
       <SafeAreaView style={styles.safe}>
         <Header title={title} onBack={showBack ? () => navigation?.goBack() : undefined} />
         <View style={styles.content}>{children}</View>
-        {showToolbar ? <Toolbar onHome={() => go("Home")} onPaws={() => go("MesChiens")} onChat={() => go("Chat")} onLikes={() => go("Likes")} /> : null}
+        {showToolbar ? (
+          <Toolbar
+            onHome={() => go("Home")}
+            onPaws={() => go("MesChiens")}
+            onChat={() => go("Chat")}
+            onLikes={() => go("Likes")}
+          />
+        ) : null}
       </SafeAreaView>
     </GradientBackground>
   );

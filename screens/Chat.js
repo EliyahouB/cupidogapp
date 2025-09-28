@@ -1,11 +1,19 @@
 // screens/Chat.js
 import React from "react";
-import { SafeAreaView, Text } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import ScreenLayout from "../components/ScreenLayout";
 
-export default function Chat() {
+export default function Chat({ navigation }) {
   return (
-    <SafeAreaView style={{ flex: 1, padding: 16 }}>
-      <Text>Chat (placeholder)</Text>
-    </SafeAreaView>
+    <ScreenLayout title="Rencontres" navigation={navigation}>
+      <View style={styles.container}>
+        <Text style={styles.text}>Écran Rencontre / Parc (placeholder)</Text>
+      </View>
+    </ScreenLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16 },
+  text: { color: "#fff" }
+});

@@ -1,54 +1,43 @@
 // screens/Home.js
 import React from "react";
-import { SafeAreaView, View, Text, Button, StyleSheet, ImageBackground, ScrollView } from "react-native";
-import { signOut } from "firebase/auth";
-import { auth } from "../config/firebase";
-import Vignette from "../components/Vignette";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import ScreenLayout from "../components/ScreenLayout";
 
-export default function Home({ navigation, user }) {
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-    } catch (e) {
-      console.warn("signOut error", e?.message ?? e);
-    }
-  };
+function Card({ title, onPress }) {
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
+      <Text style={styles.cardText}>{title}</Text>
+    </TouchableOpacity>
+  );
+}
 
+export default function Home({ navigation }) {
   const items = [
-    { id: "rencontre-parc", title: "Rencontres", route: "Rencontres" },
-    { id: "eleveur", title: "Éleveurs", route: "Eleveur" },
-    { id: "achat-vente", title: "Achat / Vente", route: "AchatVente" },
-    { id: "mes-chiens", title: "Mes Chiens", route: "MesChiens" }
+    { id: "mes-chiens", title: "Mes chiens", route: "MesChiens" },
+    { id: "rencontre", title: "Rencontre / Parc", route: "Chat" },
+    { id: "eleveur", title: "Éleveur / Saillie", route: "Likes" },
+    { id: "achat", title: "Achat / Vente", route: "Likes" }
   ];
 
   return (
-    <ImageBackground source={require("../assets/bg.png")} style={styles.bg}>
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Accueil</Text>
-          <Text style={styles.welcome}>Bonjour {user?.displayName ?? user?.email ?? "utilisateur"}</Text>
-        </View>
+    <ScreenLayout title="Accueil" navigation={navigation}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.welcome}>Bonjour, bienvenue sur CupiDog</Text>
 
-        <ScrollView contentContainerStyle={styles.grid} keyboardShouldPersistTaps="handled">
-          {items.map((it) => (
-            <Vignette key={it.id} id={it.id} title={it.title} onPress={() => navigation.navigate(it.route)} />
+        <View style={styles.grid}>
+          {items.map(it => (
+            <Card key={it.id} title={it.title} onPress={() => navigation.navigate(it.route)} />
           ))}
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <Button title="Se déconnecter" onPress={handleSignOut} />
         </View>
-      </SafeAreaView>
-    </ImageBackground>
+      </ScrollView>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  bg: { flex: 1, resizeMode: "cover" },
-  container: { flex: 1, padding: 14 },
-  header: { marginBottom: 6 },
-  title: { fontSize: 26, fontWeight: "800", color: "#042A5B" },
-  welcome: { fontSize: 14, color: "#223344", marginTop: 6 },
-  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", paddingTop: 12 },
-  footer: { paddingVertical: 12 }
+  container: { padding: 16, paddingBottom: 30 },
+  welcome: { fontSize: 16, color: "#fff", marginBottom: 12, textAlign: "center" },
+  grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  card: { width: "48%", height: 140, backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 12 },
+  cardText: { color: "#fff", fontWeight: "700", textAlign: "center" }
 });
