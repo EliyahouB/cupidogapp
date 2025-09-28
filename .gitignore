@@ -1,7 +1,8 @@
-node_modules
-.expo
-.expo-shared
-npm-debug.log*
-dist
-android
-ios
+node_modules/
+.expo/
+.expo-shared/
+npm-debug.log
+dist/
+build/
+web-build/
+.env
