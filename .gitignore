@@ -1,8 +1,8 @@
 node_modules/
 .expo/
 .expo-shared/
-npm-debug.log
-dist/
-build/
-web-build/
+android/
+ios/
 .env
+npm-debug.log*
+yarn-error.log*
