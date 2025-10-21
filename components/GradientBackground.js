@@ -7,7 +7,8 @@ export default function GradientBackground({ children, style }) {
   return (
     <View style={[styles.container, style]}>
       <LinearGradient
-        colors={['#FF8A65', '#FFB74D', '#FFD54F']}
+        colors={['#FFD54F', '#FFB74D', '#FF8A65']}
+
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
         style={styles.gradient}
