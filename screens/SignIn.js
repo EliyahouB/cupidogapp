@@ -1,8 +1,8 @@
-// screens/SignIn.js
 import React, { useState } from "react";
 import { SafeAreaView, View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
+import i18n from "../utils/i18n";
 
 export default function SignIn({ navigation }) {
   const [email, setEmail] = useState("");
@@ -10,23 +10,28 @@ export default function SignIn({ navigation }) {
 
   const handleSignIn = async () => {
     if (!email || !password) {
-      Alert.alert("Erreur", "Remplis email et mot de passe");
+      Alert.alert(i18n.t("error"), i18n.t("fillEmailPassword"));
       return;
     }
     try {
       await signInWithEmailAndPassword(auth, email, password);
+      navigation.replace("Home"); // Redirection après connexion
     } catch (e) {
-      Alert.alert("Connexion échouée", e?.message ?? String(e));
+      let message = i18n.t("loginFailed");
+      if (e.code === "auth/invalid-email") message = i18n.t("invalidEmail");
+      if (e.code === "auth/user-not-found") message = i18n.t("userNotFound");
+      if (e.code === "auth/wrong-password") message = i18n.t("wrongPassword");
+      Alert.alert(i18n.t("error"), message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Se connecter</Text>
+      <Text style={styles.title}>{i18n.t("signin")}</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={i18n.t("email")}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -34,18 +39,18 @@ export default function SignIn({ navigation }) {
       />
       <TextInput
         style={styles.input}
-        placeholder="Mot de passe"
+        placeholder={i18n.t("password")}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
 
       <View style={{ width: "80%", marginTop: 12 }}>
-        <Button title="Se connecter" onPress={handleSignIn} />
+        <Button title={i18n.t("login")} onPress={handleSignIn} />
       </View>
 
       <View style={{ marginTop: 12 }}>
-        <Button title="Retour" onPress={() => navigation.goBack()} />
+        <Button title={i18n.t("back")} onPress={() => navigation.goBack()} />
       </View>
     </SafeAreaView>
   );

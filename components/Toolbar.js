@@ -1,7 +1,6 @@
 import React from "react";
 import {
   SafeAreaView,
-  View,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -9,7 +8,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-export default function Toolbar({ onHome, onPaws, onChat, onLikes }) {
+export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile }) {
   const bottomPad = Platform.OS === "android" ? 12 : 0;
 
   return (
@@ -35,6 +34,10 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes }) {
         <TouchableOpacity style={styles.btn} onPress={onLikes}>
           <MaterialCommunityIcons name="heart-outline" size={36} color="#fff" />
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.btn} onPress={onProfile}>
+          <MaterialCommunityIcons name="account-outline" size={36} color="#fff" />
+        </TouchableOpacity>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -47,7 +50,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     flexDirection: "row",
-    alignItems: "center", // ✅ Centrage vertical
+    alignItems: "center",
     justifyContent: "space-around",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -56,7 +59,7 @@ const styles = StyleSheet.create({
   btn: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center", // ✅ Centrage vertical
+    justifyContent: "center",
     paddingVertical: 4,
   },
 });

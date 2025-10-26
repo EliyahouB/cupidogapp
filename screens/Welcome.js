@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import GradientBackground from '../components/GradientBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import i18n from '../utils/i18n'; // ✅ Import de la traduction
 
 export default function Welcome() {
   const navigation = useNavigation();
@@ -11,10 +12,10 @@ export default function Welcome() {
     <GradientBackground>
       <View style={styles.container}>
         <Image source={require('../assets/logo.png')} style={styles.logo} />
-        <Text style={styles.title}>Bienvenue sur CupiDog</Text>
+        <Text style={styles.title}>{i18n.t('welcome')}</Text>
 
         <TouchableOpacity style={styles.signupButton}>
-          <Text style={styles.signupText}>Inscription</Text>
+          <Text style={styles.signupText}>{i18n.t('signup')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -27,7 +28,7 @@ export default function Welcome() {
             end={{ x: 1, y: 0 }}
             style={styles.loginGradient}
           >
-            <Text style={styles.loginText}>Connexion</Text>
+            <Text style={styles.loginText}>{i18n.t('login')}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

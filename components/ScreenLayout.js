@@ -5,12 +5,22 @@ import GradientBackground from "./GradientBackground";
 import Header from "./Header";
 import Toolbar from "./Toolbar";
 
-export default function ScreenLayout({ children, title, navigation, showToolbar = true, showBack = false }) {
+export default function ScreenLayout({
+  children,
+  title,
+  navigation,
+  showToolbar = true,
+  showBack = false,
+}) {
   const go = (name) => navigation?.navigate?.(name);
+
   return (
     <GradientBackground>
       <SafeAreaView style={styles.safe}>
-        <Header title={title} onBack={showBack ? () => navigation?.goBack() : undefined} />
+        <Header
+          title={title}
+          onBack={showBack ? () => navigation?.goBack() : undefined}
+        />
         <View style={styles.content}>{children}</View>
         {showToolbar ? (
           <Toolbar
@@ -18,6 +28,7 @@ export default function ScreenLayout({ children, title, navigation, showToolbar 
             onPaws={() => go("MesChiens")}
             onChat={() => go("Chat")}
             onLikes={() => go("Likes")}
+            onProfile={() => go("Profile")} // ✅ Corrigé ici
           />
         ) : null}
       </SafeAreaView>
@@ -27,5 +38,5 @@ export default function ScreenLayout({ children, title, navigation, showToolbar 
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "transparent" },
-  content: { flex: 1 }
+  content: { flex: 1 },
 });

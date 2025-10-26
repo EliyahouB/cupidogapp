@@ -1,8 +1,8 @@
-// screens/SignUp.js
 import React, { useState } from "react";
 import { SafeAreaView, View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../config/firebase";
+import i18n from "../utils/i18n";
 
 export default function SignUp({ navigation }) {
   const [email, setEmail] = useState("");
@@ -11,7 +11,11 @@ export default function SignUp({ navigation }) {
 
   const handleSignUp = async () => {
     if (!email || !password) {
-      Alert.alert("Erreur", "Remplis email et mot de passe");
+      Alert.alert(i18n.t("error"), i18n.t("fillEmailPassword"));
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert(i18n.t("error"), i18n.t("passwordTooShort"));
       return;
     }
     try {
@@ -19,25 +23,29 @@ export default function SignUp({ navigation }) {
       if (displayName) {
         await updateProfile(cred.user, { displayName });
       }
+      navigation.replace("Home"); // Redirection après inscription
     } catch (e) {
-      Alert.alert("Inscription échouée", e?.message ?? String(e));
+      let message = i18n.t("signupFailed");
+      if (e.code === "auth/email-already-in-use") message = i18n.t("emailInUse");
+      if (e.code === "auth/invalid-email") message = i18n.t("invalidEmail");
+      Alert.alert(i18n.t("error"), message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>S'inscrire</Text>
+      <Text style={styles.title}>{i18n.t("signup")}</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Nom affiché (optionnel)"
+        placeholder={i18n.t("displayName")}
         value={displayName}
         onChangeText={setDisplayName}
         autoCapitalize="words"
       />
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={i18n.t("email")}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -45,18 +53,18 @@ export default function SignUp({ navigation }) {
       />
       <TextInput
         style={styles.input}
-        placeholder="Mot de passe"
+        placeholder={i18n.t("password")}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
 
       <View style={{ width: "80%", marginTop: 12 }}>
-        <Button title="S'inscrire" onPress={handleSignUp} />
+        <Button title={i18n.t("signup")} onPress={handleSignUp} />
       </View>
 
       <View style={{ marginTop: 12 }}>
-        <Button title="Retour" onPress={() => navigation.goBack()} />
+        <Button title={i18n.t("back")} onPress={() => navigation.goBack()} />
       </View>
     </SafeAreaView>
   );

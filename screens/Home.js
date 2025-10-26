@@ -1,8 +1,14 @@
 import React from "react";
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
 
-// 🔹 Vignette personnalisée avec image + texte + navigation
 function VignetteImage({ source, title, onPress }) {
   return (
     <TouchableOpacity style={styles.vignetteImage} onPress={onPress}>
@@ -14,14 +20,16 @@ function VignetteImage({ source, title, onPress }) {
 
 export default function Home({ navigation }) {
   return (
-    <ScreenLayout title="Accueil" navigation={navigation}>
+    <ScreenLayout
+      title="Accueil"
+      navigation={navigation}
+      onProfile={() => navigation.navigate("Profile")}
+    >
       <ScrollView contentContainerStyle={styles.container}>
-
         <Image
           source={require("../assets/placeholder.png")}
           style={styles.logo}
         />
-
         <View style={styles.grid}>
           <VignetteImage
             source={require("../assets/mes-chiens.png")}
@@ -55,12 +63,6 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
     alignItems: "center",
   },
-  welcome: {
-    fontSize: 16,
-    color: "#fff",
-    marginBottom: 12,
-    textAlign: "center",
-  },
   logo: {
     width: 260,
     height: 260,
@@ -74,8 +76,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: -44,
   },
-
-  // 🔹 Styles pour les vignettes avec image
   vignetteImage: {
     width: "42%",
     alignItems: "center",

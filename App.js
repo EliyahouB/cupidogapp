@@ -8,6 +8,7 @@ import Home from "./screens/Home";
 import Chat from "./screens/Chat";
 import MesChiens from "./screens/MesChiens";
 import Likes from "./screens/Likes";
+import Profile from "./screens/Profile";
 import { LogBox } from "react-native";
 
 LogBox.ignoreAllLogs(true);
@@ -18,16 +19,18 @@ export default function App() {
   const [ready, setReady] = useState(true);
 
   useEffect(() => {
-    // Si tu as du code d'initialisation (firebase, fonts, splash), place-le ici.
-    // Exemple: charger les fonts et initialiser Firebase.
-    // setReady(true) une fois fini.
+    // Initialisation éventuelle
   }, []);
 
   if (!ready) return null;
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar
+        barStyle="light-content"
+        translucent
+        backgroundColor="transparent"
+      />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Welcome" component={Welcome} />
@@ -35,6 +38,7 @@ export default function App() {
           <Stack.Screen name="Chat" component={Chat} />
           <Stack.Screen name="MesChiens" component={MesChiens} />
           <Stack.Screen name="Likes" component={Likes} />
+          <Stack.Screen name="Profile" component={Profile} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
