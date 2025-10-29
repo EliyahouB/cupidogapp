@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import GradientBackground from '../components/GradientBackground';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import i18n from '../utils/i18n'; // ✅ Import de la traduction
+import i18n from '../utils/i18n';
 
 export default function Welcome() {
   const navigation = useNavigation();
@@ -14,13 +14,16 @@ export default function Welcome() {
         <Image source={require('../assets/logo.png')} style={styles.logo} />
         <Text style={styles.title}>{i18n.t('welcome')}</Text>
 
-        <TouchableOpacity style={styles.signupButton}>
+        <TouchableOpacity
+          style={styles.signupButton}
+          onPress={() => navigation.navigate('SignUp')}
+        >
           <Text style={styles.signupText}>{i18n.t('signup')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.loginButton}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.navigate('SignIn')}
         >
           <LinearGradient
             colors={['#0D47A1', '#42A5F5']}

@@ -28,7 +28,7 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile }) 
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onChat}>
-          <MaterialCommunityIcons name="message-text-outline" size={36} color="#fff" />
+          <MaterialCommunityIcons name="chat-outline" size={36} color="#fff" />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onLikes}>

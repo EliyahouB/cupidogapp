@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   SafeAreaView,
   View,
@@ -11,9 +11,24 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc } from "firebase/firestore";
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  addDoc,
+} from "firebase/firestore";
 import { db, storage } from "../config/firebase";
+import { signOut } from "firebase/auth";
+import { auth } from "../config/firebase";
+import { useNavigation } from "@react-navigation/native";
 
 export default function Profile() {
   const [name, setName] = useState("");
@@ -22,7 +37,35 @@ export default function Profile() {
   const [bio, setBio] = useState("");
   const [purpose, setPurpose] = useState("Saillie");
   const [imageUri, setImageUri] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [profileId, setProfileId] = useState(null);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const q = query(collection(db, "profiles"), where("uid", "==", user.uid));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const docData = snapshot.docs[0];
+        const data = docData.data();
+        setProfileId(docData.id);
+        setName(data.name || "");
+        setCity(data.city || "");
+        setGender(data.gender || "Homme");
+        setBio(data.bio || "");
+        setPurpose(data.purpose || "Saillie");
+        setPhotoUrl(data.photoUrl || null);
+        setImageUri(data.photoUrl || null);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -39,35 +82,52 @@ export default function Profile() {
 
   const handleSave = async () => {
     setLoading(true);
-    let photoUrl = null;
+    let uploadedPhotoUrl = photoUrl;
 
     try {
-      if (imageUri) {
+      if (imageUri && !imageUri.startsWith("https://")) {
         const response = await fetch(imageUri);
         const blob = await response.blob();
         const filename = `profilePhotos/${Date.now()}.jpg`;
         const storageRef = ref(storage, filename);
         await uploadBytes(storageRef, blob);
-        photoUrl = await getDownloadURL(storageRef);
+        uploadedPhotoUrl = await getDownloadURL(storageRef);
       }
 
-      await addDoc(collection(db, "profiles"), {
+      const user = auth.currentUser;
+      const data = {
+        uid: user.uid,
         name,
         city,
         gender,
         bio,
         purpose,
-        photoUrl,
-        createdAt: new Date(),
-      });
+        photoUrl: uploadedPhotoUrl,
+        updatedAt: new Date(),
+      };
 
-      alert("Profil enregistré !");
+      if (profileId) {
+        const docRef = doc(db, "profiles", profileId);
+        await updateDoc(docRef, data);
+        alert("Profil mis à jour !");
+      } else {
+        await addDoc(collection(db, "profiles"), {
+          ...data,
+          createdAt: new Date(),
+        });
+        alert("Profil enregistré !");
+      }
     } catch (error) {
       console.error("Erreur d'enregistrement :", error);
       alert("Erreur lors de l'enregistrement.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    navigation.replace("Welcome");
   };
 
   return (
@@ -126,6 +186,10 @@ export default function Profile() {
             {loading ? "Enregistrement..." : "Enregistrer"}
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Se déconnecter</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -183,5 +247,17 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  logoutButton: {
+    backgroundColor: "#444",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    alignItems: "center",
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "bold",
   },
 });

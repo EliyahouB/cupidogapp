@@ -9,37 +9,87 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
 import { registerForPushNotificationsAsync } from "../utils/Notifications";
 import { db } from "../config/firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  addDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  deleteDoc,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 export default function Chat({ route, navigation }) {
+  if (!route.params || !route.params.ownerId || !route.params.dogName) {
+    return (
+      <ScreenLayout title="Erreur" navigation={navigation}>
+        <Text style={styles.error}>Paramètres manquants pour ouvrir la discussion.</Text>
+      </ScreenLayout>
+    );
+  }
+
   const { ownerId, dogName } = route.params;
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+
   useEffect(() => {
     const askPermission = async () => {
       const token = await registerForPushNotificationsAsync();
-      if (!token) return;
+      if (!token || !currentUser) return;
 
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-
-      if (currentUser) {
-        const userRef = doc(db, "users", currentUser.uid);
-        await setDoc(userRef, { pushToken: token }, { merge: true });
-        console.log("Token enregistré dans Firestore :", token);
-      } else {
-        console.log("Utilisateur non connecté, impossible d’enregistrer le token.");
-      }
+      const userRef = doc(db, "users", currentUser.uid);
+      await setDoc(userRef, { pushToken: token }, { merge: true });
     };
 
     askPermission();
   }, []);
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      if (!currentUser) return;
+
+      try {
+        const messagesRef = collection(db, "messages");
+        const messagesQuery = query(
+          messagesRef,
+          where("participants", "array-contains", currentUser.uid),
+          orderBy("createdAt")
+        );
+        const snap = await getDocs(messagesQuery);
+
+        const filtered = snap.docs
+          .map((doc) => ({ ...doc.data(), docId: doc.id }))
+          .filter(
+            (msg) =>
+              (msg.fromUserId === currentUser.uid && msg.toUserId === ownerId) ||
+              (msg.fromUserId === ownerId && msg.toUserId === currentUser.uid)
+          )
+          .map((msg) => ({
+            id: msg.docId,
+            text: msg.text,
+            fromMe: msg.fromUserId === currentUser.uid,
+          }));
+
+        setMessages(filtered);
+      } catch (error) {
+        console.log("Erreur lors du chargement des messages :", error);
+      }
+    };
+
+    fetchMessages();
+  }, [ownerId]);
 
   const sendPushNotification = async (token, title, body) => {
     await fetch("https://fcm.googleapis.com/fcm/send", {
@@ -60,41 +110,73 @@ export default function Chat({ route, navigation }) {
   };
 
   const handleSend = async () => {
-    if (message.trim() === "") return;
+    if (message.trim() === "" || !currentUser) return;
 
     const newMessage = {
-      id: Date.now().toString(),
       text: message,
-      fromMe: true,
+      fromUserId: currentUser.uid,
+      toUserId: ownerId,
+      dogName,
+      createdAt: new Date(),
+      participants: [currentUser.uid, ownerId],
     };
 
-    setMessages((prev) => [...prev, newMessage]);
-    setMessage("");
+    try {
+      const docRef = await addDoc(collection(db, "messages"), newMessage);
 
-    const ownerRef = doc(db, "users", ownerId);
-    const ownerSnap = await getDoc(ownerRef);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: docRef.id,
+          text: message,
+          fromMe: true,
+        },
+      ]);
+      setMessage("");
 
-    if (ownerSnap.exists()) {
-      const token = ownerSnap.data().pushToken;
-      if (token) {
-        await sendPushNotification(token, i18n.t("newMessageTitle"), message);
-      } else {
-        console.log("Pas de token enregistré pour ce propriétaire.");
+      const ownerRef = doc(db, "users", ownerId);
+      const ownerSnap = await getDoc(ownerRef);
+
+      if (ownerSnap.exists()) {
+        const token = ownerSnap.data().pushToken;
+        if (token) {
+          await sendPushNotification(token, i18n.t("newMessageTitle"), message);
+        }
       }
-    } else {
-      console.log("Propriétaire introuvable dans Firestore.");
+    } catch (error) {
+      console.log("Erreur lors de l'envoi du message :", error);
     }
   };
 
+  const handleDelete = async (id) => {
+    Alert.alert("Supprimer le message", "Confirmer la suppression ?", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "messages", id));
+            setMessages((prev) => prev.filter((msg) => msg.id !== id));
+          } catch (error) {
+            console.log("Erreur lors de la suppression :", error);
+          }
+        },
+      },
+    ]);
+  };
+
   const renderItem = ({ item }) => (
-    <View
+    <TouchableOpacity
+      onLongPress={() => item.fromMe && handleDelete(item.id)}
       style={[
         styles.messageBubble,
         item.fromMe ? styles.fromMe : styles.fromThem,
       ]}
     >
       <Text style={styles.messageText}>{item.text}</Text>
-    </View>
+      {item.fromMe && <Text style={styles.deleteHint}>🗑️</Text>}
+    </TouchableOpacity>
   );
 
   return (
@@ -142,6 +224,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 4,
     maxWidth: "80%",
+    position: "relative",
   },
   fromMe: {
     backgroundColor: "#ff914d",
@@ -152,6 +235,13 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   messageText: {
+    color: "#fff",
+  },
+  deleteHint: {
+    position: "absolute",
+    top: 4,
+    right: 6,
+    fontSize: 12,
     color: "#fff",
   },
   inputContainer: {
@@ -179,5 +269,11 @@ const styles = StyleSheet.create({
   sendText: {
     color: "#fff",
     fontWeight: "bold",
+  },
+  error: {
+    color: "#fff",
+    textAlign: "center",
+    marginTop: 40,
+    fontSize: 16,
   },
 });

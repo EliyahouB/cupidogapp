@@ -32,6 +32,7 @@ export default function MesChiens({ navigation }) {
   const [result, setResult] = useState("");
   const [imageUri, setImageUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [dogIdToLike, setDogIdToLike] = useState("");
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -107,6 +108,26 @@ export default function MesChiens({ navigation }) {
     }
   };
 
+  const handleLike = async () => {
+    const user = auth.currentUser;
+    if (!user || !dogIdToLike) {
+      alert("Sélectionnez un chien à liker.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "likes"), {
+        fromUserId: user.uid,
+        toDogId: dogIdToLike,
+        createdAt: new Date(),
+      });
+
+      alert("Like enregistré !");
+    } catch (error) {
+      alert("Erreur lors du like.");
+    }
+  };
+
   return (
     <ScreenLayout title="Mes Chiens" navigation={navigation}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -172,6 +193,17 @@ export default function MesChiens({ navigation }) {
           <Text style={styles.buttonText}>
             {loading ? "Enregistrement..." : "Enregistrer"}
           </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.title}>Liker un chien</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="ID du chien à liker"
+          value={dogIdToLike}
+          onChangeText={setDogIdToLike}
+        />
+        <TouchableOpacity style={styles.button} onPress={handleLike}>
+          <Text style={styles.buttonText}>Liker</Text>
         </TouchableOpacity>
       </ScrollView>
     </ScreenLayout>

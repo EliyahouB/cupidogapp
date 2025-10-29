@@ -24,6 +24,7 @@ export default function Home({ navigation }) {
       title="Accueil"
       navigation={navigation}
       onProfile={() => navigation.navigate("Profile")}
+      onChat={() => navigation.navigate("Conversations")}
     >
       <ScrollView contentContainerStyle={styles.container}>
         <Image
@@ -39,17 +40,17 @@ export default function Home({ navigation }) {
           <VignetteImage
             source={require("../assets/rencontre-parc.png")}
             title="Rencontre / Parc"
-            onPress={() => navigation.navigate("Chat")}
+            onPress={() => navigation.navigate("ChiensParBut", { purpose: "Rencontre" })}
           />
           <VignetteImage
             source={require("../assets/achat-vente.png")}
             title="Achat / Vente"
-            onPress={() => navigation.navigate("Likes")}
+            onPress={() => navigation.navigate("ChiensParBut", { purpose: "Vente" })}
           />
           <VignetteImage
             source={require("../assets/eleveur.png")}
             title="Éleveur / Saillie"
-            onPress={() => navigation.navigate("Likes")}
+            onPress={() => navigation.navigate("ChiensParBut", { purpose: "Saillie" })}
           />
         </View>
       </ScrollView>
