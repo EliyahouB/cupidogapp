@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   TextInput,
@@ -8,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Switch,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
@@ -29,6 +29,7 @@ import { db, storage } from "../config/firebase";
 import { signOut } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { useNavigation } from "@react-navigation/native";
+import ScreenLayout from "../components/ScreenLayout";
 
 export default function Profile() {
   const [name, setName] = useState("");
@@ -40,6 +41,8 @@ export default function Profile() {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [profileId, setProfileId] = useState(null);
+  const [nomadMode, setNomadMode] = useState(false);
+  const [hideProfile, setHideProfile] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -61,11 +64,25 @@ export default function Profile() {
         setPurpose(data.purpose || "Saillie");
         setPhotoUrl(data.photoUrl || null);
         setImageUri(data.photoUrl || null);
+        setNomadMode(data.nomadMode || false);
+        setHideProfile(data.hideProfile || false);
       }
     };
 
     loadProfile();
   }, []);
+
+  const updateSetting = async (field, value) => {
+    if (!profileId) return;
+
+    try {
+      const profileRef = doc(db, "profiles", profileId);
+      await updateDoc(profileRef, { [field]: value });
+    } catch (error) {
+      console.error("Erreur de mise à jour :", error);
+      alert("Erreur lors de la mise à jour du paramètre.");
+    }
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -81,6 +98,11 @@ export default function Profile() {
   };
 
   const handleSave = async () => {
+    if (!name.trim() || !city.trim()) {
+      alert("Veuillez remplir au moins le nom et la ville.");
+      return;
+    }
+
     setLoading(true);
     let uploadedPhotoUrl = photoUrl;
 
@@ -103,12 +125,14 @@ export default function Profile() {
         bio,
         purpose,
         photoUrl: uploadedPhotoUrl,
+        nomadMode,
+        hideProfile,
         updatedAt: new Date(),
       };
 
       if (profileId) {
-        const docRef = doc(db, "profiles", profileId);
-        await updateDoc(docRef, data);
+        const profileRef = doc(db, "profiles", profileId);
+        await updateDoc(profileRef, data);
         alert("Profil mis à jour !");
       } else {
         await addDoc(collection(db, "profiles"), {
@@ -131,8 +155,8 @@ export default function Profile() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
+    <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Mon Profil</Text>
 
         <Text style={styles.label}>Photo de profil</Text>
@@ -145,20 +169,33 @@ export default function Profile() {
         </TouchableOpacity>
 
         <Text style={styles.label}>Prénom / Nom</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} />
+        <TextInput 
+          style={styles.input} 
+          value={name} 
+          onChangeText={setName}
+          placeholder="Votre nom"
+          placeholderTextColor="#999"
+        />
 
         <Text style={styles.label}>Ville</Text>
-        <TextInput style={styles.input} value={city} onChangeText={setCity} />
+        <TextInput 
+          style={styles.inputSmall} 
+          value={city} 
+          onChangeText={setCity}
+          placeholder="Votre ville"
+          placeholderTextColor="#999"
+        />
 
         <Text style={styles.label}>Sexe</Text>
-        <Picker
-          selectedValue={gender}
-          style={styles.input}
-          onValueChange={(itemValue) => setGender(itemValue)}
-        >
-          <Picker.Item label="Homme" value="Homme" />
-          <Picker.Item label="Femme" value="Femme" />
-        </Picker>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={gender}
+            onValueChange={(itemValue) => setGender(itemValue)}
+          >
+            <Picker.Item label="Homme" value="Homme" />
+            <Picker.Item label="Femme" value="Femme" />
+          </Picker>
+        </View>
 
         <Text style={styles.label}>Bio / Description</Text>
         <TextInput
@@ -166,20 +203,49 @@ export default function Profile() {
           value={bio}
           onChangeText={setBio}
           multiline
+          placeholder="Parlez-nous de vous..."
+          placeholderTextColor="#999"
         />
 
         <Text style={styles.label}>But de l'inscription</Text>
-        <Picker
-          selectedValue={purpose}
-          style={styles.input}
-          onValueChange={(itemValue) => setPurpose(itemValue)}
-        >
-          <Picker.Item label="Saillie" value="Saillie" />
-          <Picker.Item label="Adoption" value="Adoption" />
-          <Picker.Item label="Rencontre" value="Rencontre" />
-          <Picker.Item label="Vente" value="Vente" />
-          <Picker.Item label="Échange" value="Échange" />
-        </Picker>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={purpose}
+            onValueChange={(itemValue) => setPurpose(itemValue)}
+          >
+            <Picker.Item label="Saillie" value="Saillie" />
+            <Picker.Item label="Adoption" value="Adoption" />
+            <Picker.Item label="Rencontre" value="Rencontre" />
+            <Picker.Item label="Vente" value="Vente" />
+            <Picker.Item label="Échange" value="Échange" />
+          </Picker>
+        </View>
+
+        <View style={styles.switchContainer}>
+          <Text style={styles.label}>Mode nomade</Text>
+          <Switch
+            value={nomadMode}
+            onValueChange={(value) => {
+              setNomadMode(value);
+              updateSetting("nomadMode", value);
+            }}
+            trackColor={{ false: "#767577", true: "#ff914d" }}
+            thumbColor={nomadMode ? "#fff" : "#f4f3f4"}
+          />
+        </View>
+
+        <View style={styles.switchContainer}>
+          <Text style={styles.label}>Masquer mon profil</Text>
+          <Switch
+            value={hideProfile}
+            onValueChange={(value) => {
+              setHideProfile(value);
+              updateSetting("hideProfile", value);
+            }}
+            trackColor={{ false: "#767577", true: "#ff914d" }}
+            thumbColor={hideProfile ? "#fff" : "#f4f3f4"}
+          />
+        </View>
 
         <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
           <Text style={styles.buttonText}>
@@ -191,15 +257,14 @@ export default function Profile() {
           <Text style={styles.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 16,
-    backgroundColor: "#1c1c1c",
+    paddingBottom: 100,
   },
   title: {
     fontSize: 22,
@@ -210,18 +275,35 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: "#ccc",
+    color: "#1a1a1a",
     marginBottom: 4,
     marginTop: 12,
   },
   input: {
-    backgroundColor: "#333",
-    color: "#fff",
+    backgroundColor: "#fff",
+    color: "#1a1a1a",
     padding: 10,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  inputSmall: {
+    backgroundColor: "#fff",
+    color: "#1a1a1a",
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    width: "60%",
+  },
+  pickerWrapper: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
   },
   imagePicker: {
-    backgroundColor: "#333",
+    backgroundColor: "#eee",
     borderRadius: 8,
     height: 140,
     justifyContent: "center",
@@ -229,16 +311,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   imageText: {
-    color: "#aaa",
+    color: "#333",
   },
   profileImage: {
     width: 140,
     height: 140,
     borderRadius: 70,
   },
+  switchContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingVertical: 8,
+  },
   button: {
     backgroundColor: "#ff914d",
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     borderRadius: 8,
     marginTop: 24,
     alignItems: "center",

@@ -7,7 +7,10 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
+import { removeUserId } from "../utils/authStorage";
 
 function VignetteImage({ source, title, onPress }) {
   return (
@@ -19,11 +22,17 @@ function VignetteImage({ source, title, onPress }) {
 }
 
 export default function Home({ navigation }) {
+  const handleLogout = async () => {
+    await removeUserId();
+    navigation.replace("SignIn");
+  };
+
   return (
     <ScreenLayout
       title="Accueil"
       navigation={navigation}
-      onProfile={() => navigation.navigate("Profile")}
+      active="home"
+      onProfile={() => navigation.navigate("ProfileMenu")}
       onChat={() => navigation.navigate("Conversations")}
     >
       <ScrollView contentContainerStyle={styles.container}>
@@ -54,6 +63,17 @@ export default function Home({ navigation }) {
           />
         </View>
       </ScrollView>
+
+      <TouchableOpacity style={styles.logoutWrapper} onPress={handleLogout}>
+        <LinearGradient
+          colors={["#007AFF", "#0051A8"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.logoutButton}
+        >
+          <Text style={styles.logoutText}>{i18n.t("logout")}</Text>
+        </LinearGradient>
+      </TouchableOpacity>
     </ScreenLayout>
   );
 }
@@ -93,5 +113,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
+  },
+  logoutWrapper: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    zIndex: 10,
+  },
+  logoutButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    elevation: 3,
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

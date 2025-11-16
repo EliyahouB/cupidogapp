@@ -8,7 +8,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile }) {
+export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, active }) {
   const bottomPad = Platform.OS === "android" ? 12 : 0;
 
   return (
@@ -20,23 +20,43 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile }) 
         style={[styles.bar, { paddingBottom: 10 + bottomPad }]}
       >
         <TouchableOpacity style={styles.btn} onPress={onHome}>
-          <MaterialCommunityIcons name="home-outline" size={36} color="#fff" />
+          <MaterialCommunityIcons
+            name="home-outline"
+            size={36}
+            color={active === "home" ? "#FFD700" : "#fff"}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onPaws}>
-          <MaterialCommunityIcons name="paw" size={36} color="#fff" />
+          <MaterialCommunityIcons
+            name="paw"
+            size={36}
+            color={active === "paw" ? "#FFD700" : "#fff"}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onChat}>
-          <MaterialCommunityIcons name="chat-outline" size={36} color="#fff" />
+          <MaterialCommunityIcons
+            name="chat-outline"
+            size={36}
+            color={active === "chat" ? "#FFD700" : "#fff"}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onLikes}>
-          <MaterialCommunityIcons name="heart-outline" size={36} color="#fff" />
+          <MaterialCommunityIcons
+            name="heart-outline"
+            size={36}
+            color={active === "likes" ? "#FFD700" : "#fff"}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onProfile}>
-          <MaterialCommunityIcons name="account-outline" size={36} color="#fff" />
+          <MaterialCommunityIcons
+            name="account-outline"
+            size={36}
+            color={active === "profile" ? "#FFD700" : "#fff"}
+          />
         </TouchableOpacity>
       </LinearGradient>
     </SafeAreaView>

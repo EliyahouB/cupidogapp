@@ -7,6 +7,7 @@ export default {
   login: "ログイン",
   hello: "こんにちは",
   signin: "ログイン",
+  logout: "ログアウト",
 email: "メールアドレス",
 password: "パスワード",
 displayName: "表示名（任意）",

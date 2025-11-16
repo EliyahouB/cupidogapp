@@ -1,11 +1,10 @@
-// screens/Likes.js
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
 
 export default function Likes({ navigation }) {
   return (
-    <ScreenLayout title="Favoris" navigation={navigation}>
+    <ScreenLayout title="Favoris" navigation={navigation} active="likes">
       <View style={styles.container}>
         <Text style={styles.text}>Favoris (placeholder)</Text>
       </View>

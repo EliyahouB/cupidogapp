@@ -7,6 +7,7 @@ export default {
   login: "Inloggen",
   hello: "Hallo",
   signin: "Inloggen",
+  logout: "Afmelden",
 email: "E-mail",
 password: "Wachtwoord",
 displayName: "Weergavenaam (optioneel)",

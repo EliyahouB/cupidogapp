@@ -7,6 +7,7 @@ export default {
   login: "تسجيل الدخول",
   hello: "مرحبًا",
   signin: "تسجيل الدخول",
+  logout: "تسجيل الخروج",
 email: "البريد الإلكتروني",
 password: "كلمة المرور",
 displayName: "الاسم الظاهر (اختياري)",

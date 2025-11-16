@@ -7,6 +7,7 @@ export default {
   login: "登录",
   hello: "你好",
   signin: "登录",
+  logout: "退出",
 email: "电子邮件",
 password: "密码",
 displayName: "显示名称（可选）",

@@ -7,6 +7,7 @@ export default {
   login: "Log in",
   hello: "Hello",
   signin: "Sign in",
+  logout: "Logout",
 email: "Email",
 password: "Password",
 displayName: "Display name (optional)",

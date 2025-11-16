@@ -7,6 +7,7 @@ export default {
   login: "Iniciar sesión",
   hello: "Hola",
   signin: "Iniciar sesión",
+  logout: "Cerrar sesión",
 email: "Correo electrónico",
 password: "Contraseña",
 displayName: "Nombre visible (opcional)",

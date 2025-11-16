@@ -26,13 +26,13 @@ export default function MesChiens({ navigation }) {
   const [breed, setBreed] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("Mâle");
+  const [purpose, setPurpose] = useState("Rencontre");
   const [description, setDescription] = useState("");
   const [pedigree, setPedigree] = useState("");
   const [contest, setContest] = useState("Non");
   const [result, setResult] = useState("");
   const [imageUri, setImageUri] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [dogIdToLike, setDogIdToLike] = useState("");
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -92,6 +92,7 @@ export default function MesChiens({ navigation }) {
         breed,
         age,
         gender,
+        purpose,
         description,
         pedigree,
         contest,
@@ -108,28 +109,8 @@ export default function MesChiens({ navigation }) {
     }
   };
 
-  const handleLike = async () => {
-    const user = auth.currentUser;
-    if (!user || !dogIdToLike) {
-      alert("Sélectionnez un chien à liker.");
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "likes"), {
-        fromUserId: user.uid,
-        toDogId: dogIdToLike,
-        createdAt: new Date(),
-      });
-
-      alert("Like enregistré !");
-    } catch (error) {
-      alert("Erreur lors du like.");
-    }
-  };
-
   return (
-    <ScreenLayout title="Mes Chiens" navigation={navigation}>
+    <ScreenLayout title="Mes Chiens" navigation={navigation} active="paw">
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Ajouter un chien</Text>
 
@@ -149,17 +130,35 @@ export default function MesChiens({ navigation }) {
         <TextInput style={styles.input} value={breed} onChangeText={setBreed} />
 
         <Text style={styles.label}>Âge</Text>
-        <TextInput style={styles.input} value={age} onChangeText={setAge} keyboardType="numeric" />
+        <TextInput
+          style={styles.inputSmall}
+          value={age}
+          onChangeText={setAge}
+          keyboardType="numeric"
+        />
 
         <Text style={styles.label}>Sexe</Text>
-        <Picker
-          selectedValue={gender}
-          style={styles.input}
-          onValueChange={(itemValue) => setGender(itemValue)}
-        >
-          <Picker.Item label="Mâle" value="Mâle" />
-          <Picker.Item label="Femelle" value="Femelle" />
-        </Picker>
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={gender}
+            onValueChange={(itemValue) => setGender(itemValue)}
+          >
+            <Picker.Item label="Mâle" value="Mâle" />
+            <Picker.Item label="Femelle" value="Femelle" />
+          </Picker>
+        </View>
+
+        <Text style={styles.label}>But</Text>
+        <View style={styles.pickerWrapperSmall}>
+          <Picker
+            selectedValue={purpose}
+            onValueChange={(itemValue) => setPurpose(itemValue)}
+          >
+            <Picker.Item label="Rencontre" value="Rencontre" />
+            <Picker.Item label="Vente" value="Vente" />
+            <Picker.Item label="Saillie" value="Saillie" />
+          </Picker>
+        </View>
 
         <Text style={styles.label}>Description</Text>
         <TextInput
@@ -173,14 +172,15 @@ export default function MesChiens({ navigation }) {
         <TextInput style={styles.input} value={pedigree} onChangeText={setPedigree} />
 
         <Text style={styles.label}>Concours</Text>
-        <Picker
-          selectedValue={contest}
-          style={styles.input}
-          onValueChange={(itemValue) => setContest(itemValue)}
-        >
-          <Picker.Item label="Oui" value="Oui" />
-          <Picker.Item label="Non" value="Non" />
-        </Picker>
+        <View style={styles.pickerWrapperSmall}>
+          <Picker
+            selectedValue={contest}
+            onValueChange={(itemValue) => setContest(itemValue)}
+          >
+            <Picker.Item label="Oui" value="Oui" />
+            <Picker.Item label="Non" value="Non" />
+          </Picker>
+        </View>
 
         {contest === "Oui" && (
           <>
@@ -193,17 +193,6 @@ export default function MesChiens({ navigation }) {
           <Text style={styles.buttonText}>
             {loading ? "Enregistrement..." : "Enregistrer"}
           </Text>
-        </TouchableOpacity>
-
-        <Text style={styles.title}>Liker un chien</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="ID du chien à liker"
-          value={dogIdToLike}
-          onChangeText={setDogIdToLike}
-        />
-        <TouchableOpacity style={styles.button} onPress={handleLike}>
-          <Text style={styles.buttonText}>Liker</Text>
         </TouchableOpacity>
       </ScrollView>
     </ScreenLayout>
@@ -224,18 +213,42 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: "#ccc",
+    color: "#1a1a1a",
     marginBottom: 4,
     marginTop: 12,
   },
   input: {
-    backgroundColor: "#333",
-    color: "#fff",
+    backgroundColor: "#fff",
+    color: "#1a1a1a",
     padding: 10,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  inputSmall: {
+    backgroundColor: "#fff",
+    color: "#1a1a1a",
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    width: "50%",
+  },
+  pickerWrapper: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  pickerWrapperSmall: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    width: "60%",
   },
   imagePicker: {
-    backgroundColor: "#333",
+    backgroundColor: "#eee",
     borderRadius: 8,
     height: 140,
     justifyContent: "center",
@@ -243,7 +256,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   imageText: {
-    color: "#aaa",
+    color: "#333",
   },
   dogImage: {
     width: 140,
@@ -252,7 +265,8 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#ff914d",
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
     borderRadius: 8,
     marginTop: 24,
     alignItems: "center",

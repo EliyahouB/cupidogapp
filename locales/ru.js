@@ -7,6 +7,7 @@ export default {
   login: "Войти",
   hello: "Здравствуйте",
   signin: "Войти",
+  logout: "Выйти",
 email: "Эл. почта",
 password: "Пароль",
 displayName: "Отображаемое имя (необязательно)",

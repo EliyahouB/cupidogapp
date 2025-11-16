@@ -31,7 +31,7 @@ import { getAuth } from "firebase/auth";
 export default function Chat({ route, navigation }) {
   if (!route.params || !route.params.ownerId || !route.params.dogName) {
     return (
-      <ScreenLayout title="Erreur" navigation={navigation}>
+      <ScreenLayout title="Erreur" navigation={navigation} active="chat">
         <Text style={styles.error}>Paramètres manquants pour ouvrir la discussion.</Text>
       </ScreenLayout>
     );
@@ -180,7 +180,7 @@ export default function Chat({ route, navigation }) {
   );
 
   return (
-    <ScreenLayout title={`Discussion - ${dogName}`} navigation={navigation}>
+    <ScreenLayout title={`Discussion - ${dogName}`} navigation={navigation} active="chat">
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

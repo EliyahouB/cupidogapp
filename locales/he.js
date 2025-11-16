@@ -7,6 +7,7 @@ export default {
   login: "התחברות",
   hello: "שלום",
   signin: "התחברות",
+  logout: "התנתקות",
 email: "אימייל",
 password: "סיסמה",
 displayName: "שם תצוגה (אופציונלי)",
