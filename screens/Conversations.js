@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  Image,
 } from "react-native";
 import { auth, db } from "../config/firebase";
 import {
@@ -23,44 +24,55 @@ export default function Conversations({ navigation }) {
 
   useEffect(() => {
     const fetchConversations = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
 
       try {
         const messagesRef = collection(db, "messages");
-        const sentQuery = query(messagesRef, where("fromUserId", "==", user.uid));
-        const receivedQuery = query(messagesRef, where("toUserId", "==", user.uid));
+        const q = query(
+          messagesRef,
+          where("participants", "array-contains", currentUser.uid)
+        );
 
-        const [sentSnap, receivedSnap] = await Promise.all([
-          getDocs(sentQuery),
-          getDocs(receivedQuery),
-        ]);
+        const snap = await getDocs(q);
 
-        const userMap = new Map();
+        // Grouper par conversation (par paire d'utilisateurs)
+        const convMap = {};
 
-        sentSnap.docs.forEach((doc) => {
-          const data = doc.data();
-          userMap.set(data.toUserId, {
-            userId: data.toUserId,
-            lastMessage: data.text,
-            dogName: data.dogName || "Chien",
-          });
-        });
+        snap.forEach((doc) => {
+          const msg = doc.data();
+          const otherUserId =
+            msg.fromUserId === currentUser.uid
+              ? msg.toUserId
+              : msg.fromUserId;
 
-        receivedSnap.docs.forEach((doc) => {
-          const data = doc.data();
-          if (!userMap.has(data.fromUserId)) {
-            userMap.set(data.fromUserId, {
-              userId: data.fromUserId,
-              lastMessage: data.text,
-              dogName: data.dogName || "Chien",
-            });
+          if (!convMap[otherUserId]) {
+            convMap[otherUserId] = {
+              otherUserId,
+              dogName: msg.dogName,
+              lastMessage: msg.text,
+              lastMessageDate: msg.createdAt,
+            };
+          } else {
+            // Garder le message le plus récent
+            if (
+              msg.createdAt.seconds >
+              convMap[otherUserId].lastMessageDate.seconds
+            ) {
+              convMap[otherUserId].lastMessage = msg.text;
+              convMap[otherUserId].lastMessageDate = msg.createdAt;
+            }
           }
         });
 
-        setConversations(Array.from(userMap.values()));
+        // Convertir en array et trier par date
+        const convArray = Object.values(convMap).sort(
+          (a, b) => b.lastMessageDate.seconds - a.lastMessageDate.seconds
+        );
+
+        setConversations(convArray);
       } catch (error) {
-        alert("Erreur lors du chargement des conversations.");
+        console.error("Erreur chargement conversations :", error);
       } finally {
         setLoading(false);
       }
@@ -74,27 +86,36 @@ export default function Conversations({ navigation }) {
       style={styles.card}
       onPress={() =>
         navigation.navigate("Chat", {
-          ownerId: item.userId,
+          ownerId: item.otherUserId,
           dogName: item.dogName,
         })
       }
     >
-      <Text style={styles.name}>👤 Utilisateur : {item.userId}</Text>
-      <Text style={styles.dog}>🐶 Chien : {item.dogName}</Text>
-      <Text style={styles.message}>💬 Dernier message : {item.lastMessage}</Text>
+      <View style={styles.info}>
+        <Text style={styles.name}>{item.dogName}</Text>
+        <Text style={styles.lastMessage} numberOfLines={1}>
+          {item.lastMessage}
+        </Text>
+      </View>
+      <Text style={styles.arrow}>→</Text>
     </TouchableOpacity>
   );
 
   return (
-    <ScreenLayout title="Mes Conversations" navigation={navigation}>
+    <ScreenLayout title="Conversations" navigation={navigation} active="chat">
       {loading ? (
         <Text style={styles.loading}>Chargement...</Text>
       ) : conversations.length === 0 ? (
-        <Text style={styles.loading}>Aucune conversation trouvée</Text>
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>Aucune conversation</Text>
+          <Text style={styles.emptySubtext}>
+            Commencez à discuter avec d'autres propriétaires !
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={conversations}
-          keyExtractor={(item) => item.userId}
+          keyExtractor={(item) => item.otherUserId}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
         />
@@ -110,15 +131,36 @@ const styles = StyleSheet.create({
     marginTop: 40,
     fontSize: 16,
   },
+  empty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#ccc",
+  },
   list: {
-    padding: 12,
+    padding: 16,
     paddingBottom: 100,
   },
   card: {
-    backgroundColor: "#333",
+    flexDirection: "row",
+    backgroundColor: "#222",
     borderRadius: 12,
-    padding: 12,
-    marginVertical: 8,
+    padding: 16,
+    marginBottom: 12,
+    alignItems: "center",
+  },
+  info: {
+    flex: 1,
   },
   name: {
     fontSize: 16,
@@ -126,13 +168,12 @@ const styles = StyleSheet.create({
     color: "#fff",
     marginBottom: 4,
   },
-  dog: {
+  lastMessage: {
     fontSize: 14,
     color: "#ccc",
-    marginBottom: 2,
   },
-  message: {
-    fontSize: 14,
-    color: "#aaa",
+  arrow: {
+    fontSize: 24,
+    color: "#ff914d",
   },
 });

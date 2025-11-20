@@ -8,9 +8,12 @@ import {
   ScrollView,
   Image,
   Switch,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   ref,
   uploadBytes,
@@ -40,6 +43,7 @@ export default function Profile() {
   const [imageUri, setImageUri] = useState(null);
   const [photoUrl, setPhotoUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [profileId, setProfileId] = useState(null);
   const [nomadMode, setNomadMode] = useState(false);
   const [hideProfile, setHideProfile] = useState(false);
@@ -48,24 +52,36 @@ export default function Profile() {
   useEffect(() => {
     const loadProfile = async () => {
       const user = auth.currentUser;
-      if (!user) return;
+      
+      if (!user) {
+        setInitialLoading(false);
+        Alert.alert("Erreur", "Vous devez être connecté pour voir votre profil.");
+        return;
+      }
 
-      const q = query(collection(db, "profiles"), where("uid", "==", user.uid));
-      const snapshot = await getDocs(q);
+      try {
+        const q = query(collection(db, "profiles"), where("uid", "==", user.uid));
+        const snapshot = await getDocs(q);
 
-      if (!snapshot.empty) {
-        const docData = snapshot.docs[0];
-        const data = docData.data();
-        setProfileId(docData.id);
-        setName(data.name || "");
-        setCity(data.city || "");
-        setGender(data.gender || "Homme");
-        setBio(data.bio || "");
-        setPurpose(data.purpose || "Saillie");
-        setPhotoUrl(data.photoUrl || null);
-        setImageUri(data.photoUrl || null);
-        setNomadMode(data.nomadMode || false);
-        setHideProfile(data.hideProfile || false);
+        if (!snapshot.empty) {
+          const docData = snapshot.docs[0];
+          const data = docData.data();
+          setProfileId(docData.id);
+          setName(data.name || "");
+          setCity(data.city || "");
+          setGender(data.gender || "Homme");
+          setBio(data.bio || "");
+          setPurpose(data.purpose || "Saillie");
+          setPhotoUrl(data.photoUrl || null);
+          setImageUri(data.photoUrl || null);
+          setNomadMode(data.nomadMode || false);
+          setHideProfile(data.hideProfile || false);
+        }
+      } catch (error) {
+        console.error("Erreur chargement profil :", error);
+        Alert.alert("Erreur", "Impossible de charger votre profil.");
+      } finally {
+        setInitialLoading(false);
       }
     };
 
@@ -80,26 +96,31 @@ export default function Profile() {
       await updateDoc(profileRef, { [field]: value });
     } catch (error) {
       console.error("Erreur de mise à jour :", error);
-      alert("Erreur lors de la mise à jour du paramètre.");
+      Alert.alert("Erreur", "Erreur lors de la mise à jour du paramètre.");
     }
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      if (!result.canceled) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Erreur sélection image :", error);
+      Alert.alert("Erreur", "Impossible de sélectionner l'image.");
     }
   };
 
   const handleSave = async () => {
     if (!name.trim() || !city.trim()) {
-      alert("Veuillez remplir au moins le nom et la ville.");
+      Alert.alert("Champs requis", "Veuillez remplir au moins le nom et la ville.");
       return;
     }
 
@@ -133,26 +154,58 @@ export default function Profile() {
       if (profileId) {
         const profileRef = doc(db, "profiles", profileId);
         await updateDoc(profileRef, data);
-        alert("Profil mis à jour !");
+        Alert.alert("Succès", "Profil mis à jour !");
       } else {
-        await addDoc(collection(db, "profiles"), {
+        const docRef = await addDoc(collection(db, "profiles"), {
           ...data,
           createdAt: new Date(),
         });
-        alert("Profil enregistré !");
+        setProfileId(docRef.id);
+        Alert.alert("Succès", "Profil enregistré !");
       }
     } catch (error) {
       console.error("Erreur d'enregistrement :", error);
-      alert("Erreur lors de l'enregistrement.");
+      Alert.alert("Erreur", "Erreur lors de l'enregistrement.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    navigation.replace("Welcome");
+    Alert.alert(
+      "Déconnexion",
+      "Voulez-vous vraiment vous déconnecter ?",
+      [
+        {
+          text: "Annuler",
+          style: "cancel"
+        },
+        {
+          text: "Oui",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await signOut(auth);
+            } catch (error) {
+              console.error("Erreur déconnexion :", error);
+              Alert.alert("Erreur", "Impossible de se déconnecter.");
+            }
+          }
+        }
+      ]
+    );
   };
+
+  if (initialLoading) {
+    return (
+      <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#ff914d" />
+          <Text style={styles.loadingText}>Chargement du profil...</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
 
   return (
     <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
@@ -164,11 +217,14 @@ export default function Profile() {
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.profileImage} />
           ) : (
-            <Text style={styles.imageText}>Choisir une image</Text>
+            <View style={styles.placeholderContainer}>
+              <MaterialCommunityIcons name="camera-plus" size={48} color="#999" />
+              <Text style={styles.imageText}>Ajouter une photo</Text>
+            </View>
           )}
         </TouchableOpacity>
 
-        <Text style={styles.label}>Prénom / Nom</Text>
+        <Text style={styles.label}>Prénom / Nom *</Text>
         <TextInput 
           style={styles.input} 
           value={name} 
@@ -177,9 +233,9 @@ export default function Profile() {
           placeholderTextColor="#999"
         />
 
-        <Text style={styles.label}>Ville</Text>
+        <Text style={styles.label}>Ville *</Text>
         <TextInput 
-          style={styles.inputSmall} 
+          style={styles.input} 
           value={city} 
           onChangeText={setCity}
           placeholder="Votre ville"
@@ -199,12 +255,13 @@ export default function Profile() {
 
         <Text style={styles.label}>Bio / Description</Text>
         <TextInput
-          style={[styles.input, { height: 80 }]}
+          style={[styles.input, styles.bioInput]}
           value={bio}
           onChangeText={setBio}
           multiline
           placeholder="Parlez-nous de vous..."
           placeholderTextColor="#999"
+          textAlignVertical="top"
         />
 
         <Text style={styles.label}>But de l'inscription</Text>
@@ -222,7 +279,12 @@ export default function Profile() {
         </View>
 
         <View style={styles.switchContainer}>
-          <Text style={styles.label}>Mode nomade</Text>
+          <View style={styles.switchLabelContainer}>
+            <Text style={styles.label}>Mode nomade</Text>
+            <Text style={styles.switchDescription}>
+              Afficher votre profil dans plusieurs villes
+            </Text>
+          </View>
           <Switch
             value={nomadMode}
             onValueChange={(value) => {
@@ -235,7 +297,12 @@ export default function Profile() {
         </View>
 
         <View style={styles.switchContainer}>
-          <Text style={styles.label}>Masquer mon profil</Text>
+          <View style={styles.switchLabelContainer}>
+            <Text style={styles.label}>Masquer mon profil</Text>
+            <Text style={styles.switchDescription}>
+              Votre profil ne sera plus visible par les autres
+            </Text>
+          </View>
           <Switch
             value={hideProfile}
             onValueChange={(value) => {
@@ -247,13 +314,18 @@ export default function Profile() {
           />
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleSave} disabled={loading}>
+        <TouchableOpacity 
+          style={[styles.button, loading && styles.buttonDisabled]} 
+          onPress={handleSave} 
+          disabled={loading}
+        >
           <Text style={styles.buttonText}>
             {loading ? "Enregistrement..." : "Enregistrer"}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <MaterialCommunityIcons name="logout" size={20} color="#fff" style={styles.logoutIcon} />
           <Text style={styles.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -262,39 +334,46 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#fff",
+    marginTop: 12,
+    fontSize: 16,
+  },
   container: {
     padding: 16,
     paddingBottom: 100,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#fff",
-    marginBottom: 16,
+    marginBottom: 24,
     textAlign: "center",
   },
   label: {
     fontSize: 16,
-    color: "#1a1a1a",
-    marginBottom: 4,
+    color: "#fff",
+    marginBottom: 6,
     marginTop: 12,
+    fontWeight: "600",
   },
   input: {
     backgroundColor: "#fff",
     color: "#1a1a1a",
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#ccc",
+    fontSize: 15,
   },
-  inputSmall: {
-    backgroundColor: "#fff",
-    color: "#1a1a1a",
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    width: "60%",
+  bioInput: {
+    height: 100,
+    paddingTop: 12,
   },
   pickerWrapper: {
     backgroundColor: "#fff",
@@ -303,51 +382,84 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
   },
   imagePicker: {
-    backgroundColor: "#eee",
-    borderRadius: 8,
-    height: 140,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+    height: 160,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
+    borderWidth: 2,
+    borderColor: "#ddd",
+    borderStyle: "dashed",
+  },
+  placeholderContainer: {
+    alignItems: "center",
   },
   imageText: {
-    color: "#333",
+    color: "#666",
+    marginTop: 8,
+    fontSize: 14,
   },
   profileImage: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
   },
   switchContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
-    paddingVertical: 8,
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 8,
+  },
+  switchLabelContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  switchDescription: {
+    fontSize: 12,
+    color: "#ccc",
+    marginTop: 2,
   },
   button: {
     backgroundColor: "#ff914d",
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    borderRadius: 8,
-    marginTop: 24,
+    borderRadius: 12,
+    marginTop: 32,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  buttonDisabled: {
+    backgroundColor: "#999",
   },
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 17,
   },
   logoutButton: {
-    backgroundColor: "#444",
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: "row",
+    backgroundColor: "#d32f2f",
+    padding: 14,
+    borderRadius: 12,
     marginTop: 16,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  logoutIcon: {
+    marginRight: 8,
   },
   logoutText: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

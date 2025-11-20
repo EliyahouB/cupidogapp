@@ -8,12 +8,11 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import ScreenLayout from "./ScreenLayout";
 import { auth, db } from "../config/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
-export default function ProfileMenu() {
-  const navigation = useNavigation();
+export default function ProfileMenu({ navigation }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,55 +41,72 @@ export default function ProfileMenu() {
 
   if (loading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#ff914d" />
-      </View>
+      <ScreenLayout title="Profil" navigation={navigation}>
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color="#ff914d" />
+        </View>
+      </ScreenLayout>
     );
   }
 
   if (!profile) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.errorText}>Profil introuvable</Text>
-        <TouchableOpacity onPress={() => navigation.replace("Profile")}>
-          <Text style={styles.link}>Créer mon profil</Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenLayout title="Profil" navigation={navigation}>
+        <View style={styles.loading}>
+          <Text style={styles.errorText}>Profil introuvable</Text>
+          <TouchableOpacity 
+            style={styles.createButton}
+            onPress={() => navigation.replace("Profile")}
+          >
+            <Text style={styles.createButtonText}>Créer mon profil</Text>
+          </TouchableOpacity>
+        </View>
+      </ScreenLayout>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.profileHeader}>
-        <Image source={{ uri: profile.photoUrl }} style={styles.avatar} />
-        <Text style={styles.name}>{profile.name}</Text>
-        <Text style={styles.status}>Statut : {profile.subscription || "Gratuit"}</Text>
-        <TouchableOpacity style={styles.subscribeButton}>
-          <Text style={styles.subscribeText}>Gérer mon abonnement</Text>
-        </TouchableOpacity>
-      </View>
+    <ScreenLayout title="Profil" navigation={navigation}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.profileHeader}>
+          {profile.photoUrl ? (
+            <Image source={{ uri: profile.photoUrl }} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.avatarPlaceholderText}>
+                {profile.name ? profile.name.charAt(0).toUpperCase() : "?"}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.name}>{profile.name}</Text>
+          <Text style={styles.status}>Statut : {profile.subscription || "Gratuit"}</Text>
+          <TouchableOpacity style={styles.subscribeButton}>
+            <Text style={styles.subscribeText}>Gérer mon abonnement</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.banner}>
-        <Text style={styles.bannerTitle}>Souscrire à Cupidog Premium</Text>
-        <Text style={styles.bannerText}>
-          Les membres Premium trouvent plus vite leur compagnon idéal 🐶
-        </Text>
-        <TouchableOpacity style={styles.bannerButton}>
-          <Text style={styles.bannerButtonText}>Souscrire</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.banner}>
+          <Text style={styles.bannerTitle}>Souscrire à Cupidog Premium</Text>
+          <Text style={styles.bannerText}>
+            Les membres Premium trouvent plus vite leur compagnon idéal 🐶
+          </Text>
+          <TouchableOpacity style={styles.bannerButton}>
+            <Text style={styles.bannerButtonText}>Souscrire</Text>
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.menu}>
-        <MenuItem
-          label="Modifier mon profil"
-          onPress={() => navigation.navigate("Profile", { mode: "edit" })}
-        />
-        <MenuItem label="Réglages" onPress={() => navigation.navigate("Settings")} />
-        <MenuItem label="Centre d’aide" onPress={() => navigation.navigate("HelpCenter")} />
-        <MenuItem label="Support" onPress={() => navigation.navigate("Support")} />
-        <MenuItem label="Inviter des amis" onPress={() => navigation.navigate("InviteFriends")} />
-      </View>
-    </ScrollView>
+        <View style={styles.menu}>
+          <MenuItem
+            label="Modifier mon profil"
+            onPress={() => navigation.navigate("Profile", { mode: "edit" })}
+          />
+          <MenuItem label="Réglages" onPress={() => navigation.navigate("Settings")} />
+          <MenuItem label="Centre d'aide" onPress={() => navigation.navigate("HelpCenter")} />
+          <MenuItem label="Support" onPress={() => navigation.navigate("Support")} />
+          <MenuItem label="Inviter des amis" onPress={() => navigation.navigate("InviteFriends")} />
+        </View>
+      </ScrollView>
+    </ScreenLayout>
   );
 }
 
@@ -98,6 +114,7 @@ function MenuItem({ label, onPress }) {
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <Text style={styles.menuText}>{label}</Text>
+      <Text style={styles.arrow}>›</Text>
     </TouchableOpacity>
   );
 }
@@ -105,7 +122,7 @@ function MenuItem({ label, onPress }) {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: "#fff",
+    paddingBottom: 100,
   },
   loading: {
     flex: 1,
@@ -115,13 +132,19 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: "#333",
-    marginBottom: 12,
+    color: "#fff",
+    marginBottom: 16,
   },
-  link: {
-    fontSize: 16,
-    color: "#007AFF",
+  createButton: {
+    backgroundColor: "#ff914d",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: "#fff",
     fontWeight: "bold",
+    fontSize: 16,
   },
   profileHeader: {
     alignItems: "center",
@@ -131,22 +154,39 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 8,
+    marginBottom: 12,
+    borderWidth: 3,
+    borderColor: "#ff914d",
+  },
+  avatarPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#ff914d",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  avatarPlaceholderText: {
+    fontSize: 40,
+    fontWeight: "bold",
+    color: "#fff",
   },
   name: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
-    color: "#003366",
+    color: "#fff",
+    marginBottom: 4,
   },
   status: {
     fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
+    color: "#ccc",
+    marginBottom: 12,
   },
   subscribeButton: {
     backgroundColor: "#ff914d",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
   },
   subscribeText: {
@@ -154,24 +194,27 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   banner: {
-    backgroundColor: "#fce4ec",
+    backgroundColor: "#2a2a2a",
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
+    borderWidth: 2,
+    borderColor: "#ff914d",
   },
   bannerTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#d81b60",
-    marginBottom: 4,
+    color: "#ff914d",
+    marginBottom: 8,
   },
   bannerText: {
     fontSize: 14,
-    color: "#333",
-    marginBottom: 8,
+    color: "#fff",
+    marginBottom: 12,
+    lineHeight: 20,
   },
   bannerButton: {
-    backgroundColor: "#d81b60",
+    backgroundColor: "#ff914d",
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
@@ -182,16 +225,24 @@ const styles = StyleSheet.create({
   },
   menu: {
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: "#444",
     paddingTop: 16,
   },
   menuItem: {
-    paddingVertical: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#444",
   },
   menuText: {
     fontSize: 16,
-    color: "#003366",
+    color: "#fff",
+  },
+  arrow: {
+    fontSize: 24,
+    color: "#ff914d",
+    fontWeight: "bold",
   },
 });

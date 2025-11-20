@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { signOut } from "firebase/auth";
 import ScreenLayout from "../components/ScreenLayout";
 import i18n from "../utils/i18n";
+import { auth } from "../config/firebase";
 import { removeUserId } from "../utils/authStorage";
 
 function VignetteImage({ source, title, onPress }) {
@@ -23,8 +25,12 @@ function VignetteImage({ source, title, onPress }) {
 
 export default function Home({ navigation }) {
   const handleLogout = async () => {
-    await removeUserId();
-    navigation.replace("SignIn");
+    try {
+      await removeUserId();
+      await signOut(auth);
+    } catch (error) {
+      console.error("Erreur déconnexion:", error);
+    }
   };
 
   return (
@@ -42,9 +48,9 @@ export default function Home({ navigation }) {
         />
         <View style={styles.grid}>
           <VignetteImage
-            source={require("../assets/mes-chiens.png")}
-            title="Mes chiens"
-            onPress={() => navigation.navigate("MesChiens")}
+            source={require("../assets/cupidogshop.png")}
+            title="CupiDog Shop"
+            onPress={() => navigation.navigate("Marketplace")}
           />
           <VignetteImage
             source={require("../assets/rencontre-parc.png")}

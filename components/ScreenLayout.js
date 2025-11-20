@@ -41,9 +41,9 @@ export default function ScreenLayout({
           <Toolbar
             onHome={() => go("Home")}
             onPaws={() => go("MesChiens")}
-            onChat={() => go("Chat")}
+            onChat={() => go("Conversations")}
             onLikes={() => go("Likes")}
-            onProfile={onProfile || (() => go("Profile"))}
+            onProfile={onProfile || (() => go("ProfileMenu"))}
             active={active}
           />
         ) : null}
