@@ -73,14 +73,18 @@ export default function MesMatchs({ navigation }) {
           if (!profileSnap.empty) {
             const profileData = profileSnap.docs[0].data();
 
-            const reverseLikesRef = collection(db, "likes");
-            const reverseLikesQuery = query(
-              reverseLikesRef,
+            const fromUserDogsRef = collection(db, "users", likeData.fromUserId, "dogs");
+            const fromUserDogsSnap = await getDocs(fromUserDogsRef);
+            const fromUserDogIds = fromUserDogsSnap.docs.map((doc) => doc.id);
+
+            const myLikesRef = collection(db, "likes");
+            const myLikesQuery = query(
+              myLikesRef,
               where("fromUserId", "==", currentUser.uid),
-              where("toUserId", "==", likeData.fromUserId)
+              where("toOwnerId", "==", likeData.fromUserId)
             );
-            const reverseLikesSnap = await getDocs(reverseLikesQuery);
-            const hasLikedBack = !reverseLikesSnap.empty;
+            const myLikesSnap = await getDocs(myLikesQuery);
+            const hasLikedBack = !myLikesSnap.empty;
 
             allLikes.push({
               id: likeDoc.id,
@@ -88,6 +92,7 @@ export default function MesMatchs({ navigation }) {
               fromUserName: profileData.name,
               fromUserPhoto: profileData.photoUrl,
               fromUserCity: profileData.city,
+              fromUserDogIds: fromUserDogIds,
               likedDogName: myDogsData[dogId]?.dogName || "Chien",
               likedDogId: dogId,
               likedDogPhoto: myDogsData[dogId]?.photoUrl,
@@ -131,14 +136,22 @@ export default function MesMatchs({ navigation }) {
 
   const handleLikeBack = async (item) => {
     try {
+      if (!item.fromUserDogIds || item.fromUserDogIds.length === 0) {
+        Alert.alert("Erreur", "Cet utilisateur n a pas de chien à liker.");
+        return;
+      }
+
+      const firstDogId = item.fromUserDogIds[0];
+
       await addDoc(collection(db, "likes"), {
         fromUserId: auth.currentUser.uid,
-        toUserId: item.fromUserId,
+        toOwnerId: item.fromUserId,
+        toDogId: firstDogId,
         createdAt: new Date(),
         isRead: false,
       });
 
-      Alert.alert("Succès", "Like en retour envoyé !");
+      Alert.alert("Succes", "Like en retour envoye !");
 
       setLikes((prev) =>
         prev.map((like) =>
@@ -147,14 +160,14 @@ export default function MesMatchs({ navigation }) {
       );
     } catch (error) {
       console.error("Erreur like en retour :", error);
-      Alert.alert("Erreur", "Impossible d'envoyer le like.");
+      Alert.alert("Erreur", "Impossible d envoyer le like.");
     }
   };
 
   const handleDeleteLike = async (likeId) => {
     Alert.alert(
       "Supprimer ce like ?",
-      "Cette action est irréversible.",
+      "Cette action est irreversible.",
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -164,7 +177,7 @@ export default function MesMatchs({ navigation }) {
             try {
               await deleteDoc(doc(db, "likes", likeId));
               setLikes((prev) => prev.filter((like) => like.id !== likeId));
-              Alert.alert("Succès", "Like supprimé.");
+              Alert.alert("Succes", "Like supprime.");
             } catch (error) {
               console.error("Erreur suppression :", error);
               Alert.alert("Erreur", "Impossible de supprimer.");
@@ -212,7 +225,7 @@ export default function MesMatchs({ navigation }) {
       onPress={() => {
         Alert.alert(
           item.dogName,
-          item.likesCount + " personne(s) ont liké ce chien"
+          item.likesCount + " personne(s) ont like ce chien"
         );
       }}
     >
@@ -226,7 +239,7 @@ export default function MesMatchs({ navigation }) {
       <View style={styles.groupedInfo}>
         <Text style={styles.groupedDogName}>{item.dogName}</Text>
         <Text style={styles.groupedCount}>
-          {item.likesCount} {item.likesCount > 1 ? "personnes intéressées" : "personne intéressée"}
+          {item.likesCount} {item.likesCount > 1 ? "personnes interessees" : "personne interessee"}
         </Text>
         {item.unreadCount > 0 && (
           <View style={styles.unreadBadge}>
@@ -266,7 +279,7 @@ export default function MesMatchs({ navigation }) {
         <Text style={styles.name}>{item.fromUserName}</Text>
         <Text style={styles.city}>{item.fromUserCity}</Text>
         <View style={styles.likedDogContainer}>
-          <Text style={styles.likedDog}>A liké : </Text>
+          <Text style={styles.likedDog}>A like : </Text>
           <Text style={styles.dogName}>{item.likedDogName}</Text>
         </View>
       </View>
@@ -304,7 +317,7 @@ export default function MesMatchs({ navigation }) {
   const groupedLikes = getGroupedLikes();
   const unreadCount = likes.filter((l) => !l.isRead).length;
 
-  const titleText = "Intéressés" + (unreadCount > 0 ? " (" + unreadCount + ")" : "");
+  const titleText = "Interesses" + (unreadCount > 0 ? " (" + unreadCount + ")" : "");
 
   return (
     <ScreenLayout

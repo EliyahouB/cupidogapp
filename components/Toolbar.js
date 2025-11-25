@@ -9,7 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, active }) {
-  const bottomPad = Platform.OS === "android" ? 12 : 0;
+  const bottomPad = Platform.OS === "android" ? 8 : 0;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -17,12 +17,12 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, ac
         colors={["#0D47A1", "#42A5F5"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={[styles.bar, { paddingBottom: 10 + bottomPad }]}
+        style={[styles.bar, { paddingBottom: 6 + bottomPad }]}
       >
         <TouchableOpacity style={styles.btn} onPress={onHome}>
           <MaterialCommunityIcons
             name="home-outline"
-            size={36}
+            size={28}
             color={active === "home" ? "#FFD700" : "#fff"}
           />
         </TouchableOpacity>
@@ -30,7 +30,7 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, ac
         <TouchableOpacity style={styles.btn} onPress={onPaws}>
           <MaterialCommunityIcons
             name="paw"
-            size={36}
+            size={28}
             color={active === "paw" ? "#FFD700" : "#fff"}
           />
         </TouchableOpacity>
@@ -38,7 +38,7 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, ac
         <TouchableOpacity style={styles.btn} onPress={onChat}>
           <MaterialCommunityIcons
             name="chat-outline"
-            size={36}
+            size={28}
             color={active === "chat" ? "#FFD700" : "#fff"}
           />
         </TouchableOpacity>
@@ -46,7 +46,7 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, ac
         <TouchableOpacity style={styles.btn} onPress={onLikes}>
           <MaterialCommunityIcons
             name="heart-outline"
-            size={36}
+            size={28}
             color={active === "likes" ? "#FFD700" : "#fff"}
           />
         </TouchableOpacity>
@@ -54,7 +54,7 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, ac
         <TouchableOpacity style={styles.btn} onPress={onProfile}>
           <MaterialCommunityIcons
             name="account-outline"
-            size={36}
+            size={28}
             color={active === "profile" ? "#FFD700" : "#fff"}
           />
         </TouchableOpacity>
@@ -74,12 +74,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    height: 59,
+    height: 50,
   },
   btn: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
 });
