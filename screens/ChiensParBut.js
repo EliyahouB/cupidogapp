@@ -14,8 +14,7 @@ import {
   query,
   where,
   addDoc,
-  getDoc,
-  doc,
+  collectionGroup,
 } from "firebase/firestore";
 import * as Location from "expo-location";
 import ScreenLayout from "../components/ScreenLayout";
@@ -44,39 +43,58 @@ export default function ChiensParBut({ route, navigation }) {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
+      console.log("=== DEBUT fetchDogs, purpose:", purpose, "===");
+      
       try {
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setAbonnement(userSnap.data().abonnement || "gratuit");
+        console.log("1. Recherche abonnement...");
+        const profilesRef = collection(db, "profiles");
+        const q = query(profilesRef, where("uid", "==", currentUser.uid));
+        const profileSnap = await getDocs(q);
+        
+        if (!profileSnap.empty) {
+          const userAbonnement = profileSnap.docs[0].data().abonnement || "gratuit";
+          setAbonnement(userAbonnement);
+          console.log("2. Abonnement:", userAbonnement);
         }
 
-        const profilesRef = collection(db, "profiles");
-        const profilesQuery = query(profilesRef, where("purpose", "==", purpose));
-        const profilesSnap = await getDocs(profilesQuery);
-
-        const userIds = profilesSnap.docs
-          .map((doc) => doc.id)
-          .filter((id) => id !== currentUser.uid);
-
+        console.log("3. Chargement des chiens avec purpose:", purpose);
+        
+        // Charge TOUS les chiens de TOUS les users via collectionGroup
+        const dogsQuery = query(
+          collectionGroup(db, "dogs"),
+          where("purpose", "==", purpose)
+        );
+        const dogsSnap = await getDocs(dogsQuery);
+        
+        console.log("   Total chiens trouvés dans Firebase:", dogsSnap.size);
+        
         const allDogs = [];
 
-        for (const uid of userIds) {
-          const dogsRef = collection(db, "users", uid, "dogs");
-          const dogsSnap = await getDocs(dogsRef);
-
-          dogsSnap.forEach((dogDoc) => {
-            allDogs.push({
-              id: dogDoc.id,
-              ownerId: uid,
-              ...dogDoc.data(),
-            });
+        dogsSnap.forEach((dogDoc) => {
+          const dogData = dogDoc.data();
+          // Extrait l'UID du propriétaire depuis le path
+          const ownerId = dogDoc.ref.parent.parent.id;
+          
+          console.log("      → Chien:", dogData.dogName, "owner:", ownerId);
+          
+          // Ignore ses propres chiens
+          if (ownerId === currentUser.uid) {
+            console.log("         (skipping: c'est mon chien)");
+            return;
+          }
+          
+          allDogs.push({
+            id: dogDoc.id,
+            ownerId: ownerId,
+            ...dogData,
           });
-        }
+        });
 
+        console.log("4. TOTAL chiens affichés (hors les miens):", allDogs.length);
         setDogs(allDogs);
         setFilteredDogs(allDogs);
       } catch (error) {
+        console.log("Erreur chargement chiens:", error);
         alert("Erreur lors du chargement des chiens.");
       } finally {
         setLoading(false);
@@ -107,7 +125,7 @@ export default function ChiensParBut({ route, navigation }) {
         dog.breed === filters.breed ||
         dog.breed?.toLowerCase().includes(filters.breedText.toLowerCase());
 
-      const pedigreeMatch = !filters.pedigreeOnly || dog.pedigree;
+      const pedigreeMatch = !filters.pedigreeOnly || dog.pedigree === "Oui";
 
       const ageMatch = age >= filters.minAge && age <= filters.maxAge;
 
@@ -142,11 +160,13 @@ export default function ChiensParBut({ route, navigation }) {
       await addDoc(collection(db, "likes"), {
         fromUserId: user.uid,
         toDogId: dogId,
+        toOwnerId: ownerId,
         createdAt: new Date(),
       });
 
       alert("Like enregistré !");
     } catch (error) {
+      console.log("Erreur like:", error);
       alert("Erreur lors du like.");
     }
   };
@@ -165,7 +185,7 @@ export default function ChiensParBut({ route, navigation }) {
       )}
       <Text style={styles.name}>{item.dogName}</Text>
       <Text style={styles.detail}>Race : {item.breed}</Text>
-      <Text style={styles.detail}>Âge : {item.age}</Text>
+      <Text style={styles.detail}>Âge : {item.age} ans</Text>
 
       <TouchableOpacity
         style={styles.likeButton}
@@ -192,6 +212,7 @@ export default function ChiensParBut({ route, navigation }) {
     <ScreenLayout
       title={`Chiens - ${purpose}`}
       navigation={navigation}
+      showBack={true}
       rightIcon="filter"
       onRightPress={() => setShowFilters(true)}
     >

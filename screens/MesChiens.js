@@ -67,30 +67,49 @@ export default function MesChiens({ navigation }) {
   };
 
   const renderDog = ({ item }) => (
-    <View style={styles.dogCard}>
-      {item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={styles.dogCardImage} />
-      ) : (
-        <View style={styles.dogCardPlaceholder}>
-          <MaterialCommunityIcons name="dog" size={40} color="#aaa" />
+    <TouchableOpacity
+      style={styles.dogCard}
+      onPress={() => navigation.navigate("DetailsChien", { dog: item })}
+      activeOpacity={0.7}
+    >
+      <View style={styles.dogCardMain}>
+        {item.photoUrl ? (
+          <Image source={{ uri: item.photoUrl }} style={styles.dogCardImage} />
+        ) : (
+          <View style={styles.dogCardPlaceholder}>
+            <MaterialCommunityIcons name="dog" size={40} color="#aaa" />
+          </View>
+        )}
+        <View style={styles.dogCardInfo}>
+          <Text style={styles.dogCardName}>{item.dogName}</Text>
+          <Text style={styles.dogCardDetail}>
+            {item.breed} - {item.age} ans
+          </Text>
+          <Text style={styles.dogCardDetail}>{item.purpose}</Text>
         </View>
-      )}
-      <View style={styles.dogCardInfo}>
-        <Text style={styles.dogCardName}>{item.dogName}</Text>
-        <Text style={styles.dogCardDetail}>
-          {item.breed} - {item.age} ans
-        </Text>
-        <Text style={styles.dogCardDetail}>{item.purpose}</Text>
       </View>
-      <View style={styles.dogCardLocation}>
-        <MaterialCommunityIcons
-          name="map-marker"
-          size={20}
-          color="#ff914d"
-        />
-        <Text style={styles.dogCardCity}>{userCity || "Ville"}</Text>
+
+      <View style={styles.dogCardFooter}>
+        <View style={styles.dogCardLocation}>
+          <MaterialCommunityIcons
+            name="map-marker"
+            size={18}
+            color="#ff914d"
+          />
+          <Text style={styles.dogCardCity}>{userCity || "Ville"}</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            navigation.navigate("ModifierChien", { dog: item });
+          }}
+        >
+          <MaterialCommunityIcons name="pencil" size={18} color="#999" />
+        </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -101,7 +120,7 @@ export default function MesChiens({ navigation }) {
         ) : myDogs.length === 0 ? (
           <View style={styles.empty}>
             <MaterialCommunityIcons name="dog" size={80} color="#444" />
-            <Text style={styles.emptyText}>Aucun chien enregistre</Text>
+            <Text style={styles.emptyText}>Aucun chien enregistré</Text>
             <Text style={styles.emptySubtext}>
               Ajoutez votre premier compagnon !
             </Text>
@@ -159,12 +178,15 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   dogCard: {
-    flexDirection: "row",
     backgroundColor: "#2a2a2a",
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
+  },
+  dogCardMain: {
+    flexDirection: "row",
     alignItems: "center",
+    marginBottom: 8,
   },
   dogCardImage: {
     width: 80,
@@ -196,14 +218,25 @@ const styles = StyleSheet.create({
     color: "#ccc",
     marginBottom: 2,
   },
-  dogCardLocation: {
+  dogCardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginLeft: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#444",
+  },
+  dogCardLocation: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   dogCardCity: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#ff914d",
-    marginTop: 2,
+    marginLeft: 4,
+  },
+  editButton: {
+    padding: 6,
   },
   addButton: {
     position: "absolute",

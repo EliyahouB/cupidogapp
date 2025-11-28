@@ -11,7 +11,8 @@ import Welcome from "./screens/Welcome";
 import Home from "./screens/Home";
 import Chat from "./screens/Chat";
 import MesChiens from "./screens/MesChiens";
-import AjouterChien from "./screens/AjouterChien";
+import AjouterChien from "./screens/AjouterChien.js";
+import ModifierChien from "./screens/ModifierChien.js";
 import Likes from "./screens/Likes";
 import Profile from "./screens/Profile";
 import SignUp from "./screens/SignUp";
@@ -66,6 +67,7 @@ export default function App() {
               <Stack.Screen name="Chat" component={Chat} />
               <Stack.Screen name="MesChiens" component={MesChiens} />
               <Stack.Screen name="AjouterChien" component={AjouterChien} />
+              <Stack.Screen name="ModifierChien" component={ModifierChien} />
               <Stack.Screen name="Likes" component={Likes} />
               <Stack.Screen name="Profile" component={Profile} />
               <Stack.Screen name="MesMatchs" component={MesMatchs} />

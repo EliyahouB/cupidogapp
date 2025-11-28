@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,8 +14,8 @@ import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db, storage } from "../config/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc, getDoc, getDocs, doc, query, where } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 
 const DOG_BREEDS = [
   "Akita Inu",
@@ -71,19 +71,39 @@ const DOG_BREEDS = [
   "Yorkshire Terrier",
 ].sort().concat(["Autre"]);
 
-export default function AjouterChien({ navigation }) {
-  const [dogName, setDogName] = useState("");
-  const [breed, setBreed] = useState(DOG_BREEDS[0]);
+export default function ModifierChien({ route, navigation }) {
+  const { dog } = route.params;
+  const [dogName, setDogName] = useState(dog.dogName || "");
+  const [breed, setBreed] = useState(dog.breed || DOG_BREEDS[0]);
   const [customBreed, setCustomBreed] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("Male");
-  const [purpose, setPurpose] = useState("Rencontre");
-  const [description, setDescription] = useState("");
-  const [pedigree, setPedigree] = useState("Non");
-  const [contest, setContest] = useState("Non");
-  const [result, setResult] = useState("");
-  const [imageUris, setImageUris] = useState([null, null, null, null]); // 4 photos
+  const [age, setAge] = useState(dog.age?.toString() || "");
+  const [gender, setGender] = useState(dog.gender || "Male");
+  const [purpose, setPurpose] = useState(dog.purpose || "Rencontre");
+  const [description, setDescription] = useState(dog.description || "");
+  const [pedigree, setPedigree] = useState(dog.pedigree || "Non");
+  const [contest, setContest] = useState(dog.contest || "Non");
+  const [result, setResult] = useState(dog.result || "");
+  const [imageUris, setImageUris] = useState([null, null, null, null]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Charge les photos existantes
+    if (dog.photoUrls && dog.photoUrls.length > 0) {
+      const existingPhotos = [...dog.photoUrls];
+      while (existingPhotos.length < 4) {
+        existingPhotos.push(null);
+      }
+      setImageUris(existingPhotos.slice(0, 4));
+    } else if (dog.photoUrl) {
+      setImageUris([dog.photoUrl, null, null, null]);
+    }
+
+    // Si la race est "Autre", charge le nom personnalisé
+    if (!DOG_BREEDS.includes(dog.breed) && dog.breed) {
+      setBreed("Autre");
+      setCustomBreed(dog.breed);
+    }
+  }, []);
 
   const chooseImageSource = (index) => {
     Alert.alert(
@@ -168,66 +188,32 @@ export default function AjouterChien({ navigation }) {
     const photoUrls = [];
 
     try {
-      // Cherche l'abonnement dans PROFILES
-      console.log("1. Recherche du profil...");
-      const profilesRef = collection(db, "profiles");
-      const q = query(profilesRef, where("uid", "==", user.uid));
-      const profileSnap = await getDocs(q);
+      console.log("1. Upload des nouvelles photos...");
       
-      let abonnement = "gratuit";
-      if (!profileSnap.empty) {
-        const profileData = profileSnap.docs[0].data();
-        abonnement = profileData.abonnement || "gratuit";
-        console.log("2. Abonnement trouvé:", abonnement);
-      } else {
-        console.log("2. Profil non trouvé, abonnement par défaut: gratuit");
-      }
-
-      const dogsRef = collection(db, "users", user.uid, "dogs");
-      const dogsSnap = await getDocs(dogsRef);
-      const dogCount = dogsSnap.size;
-      console.log("3. Nombre de chiens actuels:", dogCount);
-
-      const limites = {
-        gratuit: 1,
-        lite: 3,
-        premium: Infinity,
-      };
-
-      console.log("4. Limite pour", abonnement, ":", limites[abonnement]);
-
-      if (dogCount >= limites[abonnement]) {
-        Alert.alert(
-          "Limite atteinte",
-          "Abonnement " +
-            abonnement +
-            " autorise " +
-            limites[abonnement] +
-            " chien(s)."
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Upload toutes les photos
-      console.log("5. Upload des photos...");
       for (let i = 0; i < imageUris.length; i++) {
         if (imageUris[i]) {
-          const response = await fetch(imageUris[i]);
-          const blob = await response.blob();
-          const filename = "dogs/" + user.uid + "/" + Date.now() + "_" + i + ".jpg";
-          const storageRef = ref(storage, filename);
-          await uploadBytes(storageRef, blob);
-          const url = await getDownloadURL(storageRef);
-          photoUrls.push(url);
-          console.log("   Photo", i + 1, "uploadée");
+          // Si c'est une URL existante (commence par https://), on la garde
+          if (imageUris[i].startsWith("https://")) {
+            photoUrls.push(imageUris[i]);
+          } else {
+            // Sinon, c'est une nouvelle photo locale, on l'upload
+            const response = await fetch(imageUris[i]);
+            const blob = await response.blob();
+            const filename = "dogs/" + user.uid + "/" + Date.now() + "_" + i + ".jpg";
+            const storageRef = ref(storage, filename);
+            await uploadBytes(storageRef, blob);
+            const url = await getDownloadURL(storageRef);
+            photoUrls.push(url);
+            console.log("   Photo", i + 1, "uploadée");
+          }
         }
       }
 
       const finalBreed = breed === "Autre" ? customBreed : breed;
 
-      console.log("6. Enregistrement du chien...");
-      await addDoc(dogsRef, {
+      console.log("2. Mise à jour du chien...");
+      const dogRef = doc(db, "users", user.uid, "dogs", dog.id);
+      await updateDoc(dogRef, {
         dogName,
         breed: finalBreed,
         age,
@@ -237,13 +223,12 @@ export default function AjouterChien({ navigation }) {
         pedigree,
         contest,
         result: contest === "Oui" ? result : "",
-        photoUrl: photoUrls[0] || null, // Photo principale (rétrocompatibilité)
-        photoUrls: photoUrls, // Tableau de toutes les photos
-        createdAt: new Date(),
+        photoUrl: photoUrls[0] || null,
+        photoUrls: photoUrls,
       });
 
-      console.log("7. Chien enregistré avec succès !");
-      Alert.alert("Succes", "Chien enregistre !", [
+      console.log("3. Chien modifié avec succès !");
+      Alert.alert("Succes", "Chien modifie !", [
         {
           text: "OK",
           onPress: () => navigation.goBack(),
@@ -251,15 +236,56 @@ export default function AjouterChien({ navigation }) {
       ]);
     } catch (error) {
       console.log("ERREUR:", error);
-      Alert.alert("Erreur", "Erreur lors de l enregistrement.");
+      Alert.alert("Erreur", "Erreur lors de la modification.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDelete = () => {
+    Alert.alert(
+      "Supprimer ce chien ?",
+      "Cette action est irreversible.",
+      [
+        {
+          text: "Annuler",
+          style: "cancel",
+        },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            setLoading(true);
+            try {
+              console.log("1. Suppression du chien...");
+              const dogRef = doc(db, "users", user.uid, "dogs", dog.id);
+              await deleteDoc(dogRef);
+
+              console.log("2. Chien supprimé !");
+              Alert.alert("Succès", "Chien supprimé", [
+                {
+                  text: "OK",
+                  onPress: () => navigation.navigate("MesChiens"),
+                },
+              ]);
+            } catch (error) {
+              console.log("ERREUR:", error);
+              Alert.alert("Erreur", "Erreur lors de la suppression.");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScreenLayout
-      title="Ajouter un chien"
+      title="Modifier le chien"
       navigation={navigation}
       showBack={true}
     >
@@ -402,8 +428,16 @@ export default function AjouterChien({ navigation }) {
           disabled={loading}
         >
           <Text style={styles.buttonText}>
-            {loading ? "Enregistrement..." : "Enregistrer"}
+            {loading ? "Enregistrement..." : "Enregistrer les modifications"}
           </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          disabled={loading}
+        >
+          <Text style={styles.deleteButtonText}>🗑️ Supprimer ce chien</Text>
         </TouchableOpacity>
       </ScrollView>
     </ScreenLayout>
@@ -500,6 +534,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  deleteButton: {
+    backgroundColor: "#ff4444",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 16,
+    alignItems: "center",
+  },
+  deleteButtonText: {
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
