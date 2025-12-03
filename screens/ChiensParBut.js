@@ -6,7 +6,10 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { auth, db } from "../config/firebase";
 import {
   collection,
@@ -15,10 +18,13 @@ import {
   where,
   addDoc,
   collectionGroup,
+  serverTimestamp,
 } from "firebase/firestore";
 import * as Location from "expo-location";
 import ScreenLayout from "../components/ScreenLayout";
 import FiltreModal from "../components/FiltreModal";
+
+const { width } = Dimensions.get("window");
 
 export default function ChiensParBut({ route, navigation }) {
   const { purpose } = route.params;
@@ -43,10 +49,7 @@ export default function ChiensParBut({ route, navigation }) {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
-      console.log("=== DEBUT fetchDogs, purpose:", purpose, "===");
-      
       try {
-        console.log("1. Recherche abonnement...");
         const profilesRef = collection(db, "profiles");
         const q = query(profilesRef, where("uid", "==", currentUser.uid));
         const profileSnap = await getDocs(q);
@@ -54,34 +57,21 @@ export default function ChiensParBut({ route, navigation }) {
         if (!profileSnap.empty) {
           const userAbonnement = profileSnap.docs[0].data().abonnement || "gratuit";
           setAbonnement(userAbonnement);
-          console.log("2. Abonnement:", userAbonnement);
         }
 
-        console.log("3. Chargement des chiens avec purpose:", purpose);
-        
-        // Charge TOUS les chiens de TOUS les users via collectionGroup
         const dogsQuery = query(
           collectionGroup(db, "dogs"),
           where("purpose", "==", purpose)
         );
         const dogsSnap = await getDocs(dogsQuery);
         
-        console.log("   Total chiens trouvés dans Firebase:", dogsSnap.size);
-        
         const allDogs = [];
 
         dogsSnap.forEach((dogDoc) => {
           const dogData = dogDoc.data();
-          // Extrait l'UID du propriétaire depuis le path
           const ownerId = dogDoc.ref.parent.parent.id;
           
-          console.log("      → Chien:", dogData.dogName, "owner:", ownerId);
-          
-          // Ignore ses propres chiens
-          if (ownerId === currentUser.uid) {
-            console.log("         (skipping: c'est mon chien)");
-            return;
-          }
+          if (ownerId === currentUser.uid) return;
           
           allDogs.push({
             id: dogDoc.id,
@@ -90,7 +80,6 @@ export default function ChiensParBut({ route, navigation }) {
           });
         });
 
-        console.log("4. TOTAL chiens affichés (hors les miens):", allDogs.length);
         setDogs(allDogs);
         setFilteredDogs(allDogs);
       } catch (error) {
@@ -126,7 +115,6 @@ export default function ChiensParBut({ route, navigation }) {
         dog.breed?.toLowerCase().includes(filters.breedText.toLowerCase());
 
       const pedigreeMatch = !filters.pedigreeOnly || dog.pedigree === "Oui";
-
       const ageMatch = age >= filters.minAge && age <= filters.maxAge;
 
       let distanceMatch = true;
@@ -163,8 +151,7 @@ export default function ChiensParBut({ route, navigation }) {
         toOwnerId: ownerId,
         createdAt: new Date(),
       });
-
-      alert("Like enregistré !");
+      alert("Ajouté aux favoris !");
     } catch (error) {
       console.log("Erreur like:", error);
       alert("Erreur lors du like.");
@@ -172,40 +159,49 @@ export default function ChiensParBut({ route, navigation }) {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("DetailsChien", { dog: item })}
-    >
-      {item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={styles.image} />
-      ) : (
-        <View style={styles.imagePlaceholder}>
-          <Text style={styles.imageText}>Pas d'image</Text>
-        </View>
-      )}
-      <Text style={styles.name}>{item.dogName}</Text>
-      <Text style={styles.detail}>Race : {item.breed}</Text>
-      <Text style={styles.detail}>Âge : {item.age} ans</Text>
-
+    <View style={styles.card}>
+      {/* CŒUR STYLE INSTAGRAM */}
       <TouchableOpacity
-        style={styles.likeButton}
+        style={styles.likeButtonTop}
         onPress={() => handleLike(item.id, item.ownerId)}
       >
-        <Text style={styles.likeText}>❤️ Liker</Text>
+        <LinearGradient
+          colors={['#FF8A5B', '#FF6B35', '#E85D2A']}
+          style={styles.likeGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <MaterialCommunityIcons name="heart" size={22} color="#FFF" />
+        </LinearGradient>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.chatButton}
-        onPress={() =>
-          navigation.navigate("Chat", {
-            ownerId: item.ownerId,
-            dogName: item.dogName,
-          })
-        }
+        style={styles.cardContent}
+        onPress={() => navigation.navigate("DetailsChien", { dog: item })}
       >
-        <Text style={styles.chatText}>💬 Contacter</Text>
+        {item.photoUrl ? (
+          <Image source={{ uri: item.photoUrl }} style={styles.image} />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <MaterialCommunityIcons name="dog" size={40} color="#999" />
+          </View>
+        )}
+
+        <View style={styles.info}>
+          <Text style={styles.name}>{item.dogName}</Text>
+          
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="dog" size={16} color="#6B7280" />
+            <Text style={styles.detail}>{item.breed}</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
+            <Text style={styles.detail}>{item.age} ans</Text>
+          </View>
+        </View>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -227,7 +223,6 @@ export default function ChiensParBut({ route, navigation }) {
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
             contentContainerStyle={styles.list}
-            numColumns={2}
           />
         )}
 
@@ -246,7 +241,7 @@ export default function ChiensParBut({ route, navigation }) {
 
 const styles = StyleSheet.create({
   loading: {
-    color: "#fff",
+    color: "#1A1A1D",
     textAlign: "center",
     marginTop: 40,
     fontSize: 16,
@@ -256,62 +251,76 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   card: {
-    backgroundColor: "#222",
+    backgroundColor: "#F5F5F7",
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+    position: "relative",
+  },
+  likeButtonTop: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 48,
+    height: 48,
     borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#FF6B35",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  likeGradient: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+  },
+  cardContent: {
+    flexDirection: "row",
     padding: 12,
-    margin: 8,
-    width: "45%",
     alignItems: "center",
   },
   image: {
-    width: 120,
-    height: 120,
+    width: 80,
+    height: 80,
     borderRadius: 12,
-    marginBottom: 8,
+    marginRight: 12,
   },
   imagePlaceholder: {
-    width: 120,
-    height: 120,
+    width: 80,
+    height: 80,
     borderRadius: 12,
-    backgroundColor: "#444",
+    backgroundColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginRight: 12,
   },
-  imageText: {
-    color: "#aaa",
+  info: {
+    flex: 1,
   },
   name: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1A1A1D",
+    marginBottom: 6,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
+    gap: 6,
   },
   detail: {
     fontSize: 14,
-    color: "#ccc",
-    marginBottom: 2,
-  },
-  likeButton: {
-    backgroundColor: "#ff914d",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  likeText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  chatButton: {
-    backgroundColor: "#42A5F5",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  chatText: {
-    color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "600",
+    color: "#6B7280",
   },
 });

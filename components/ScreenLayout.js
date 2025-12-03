@@ -70,7 +70,7 @@ export default function ScreenLayout({
                 onHome={() => go("Home")}
                 onPaws={() => go("MesChiens")}
                 onChat={() => go("Conversations")}
-                onLikes={() => go("Likes")}
+                onLikes={() => go("LikesHub")}
                 onProfile={onProfile || (() => go("ProfileMenu"))}
                 active={active}
               />

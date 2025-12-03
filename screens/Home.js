@@ -10,7 +10,6 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { signOut } from "firebase/auth";
 import ScreenLayout from "../components/ScreenLayout";
-import i18n from "../utils/i18n";
 import { auth } from "../config/firebase";
 import { removeUserId } from "../utils/authStorage";
 
@@ -77,7 +76,7 @@ export default function Home({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={styles.logoutButton}
         >
-          <Text style={styles.logoutText}>{i18n.t("logout")}</Text>
+          <Text style={styles.logoutText}>Déconnexion</Text>
         </LinearGradient>
       </TouchableOpacity>
     </ScreenLayout>

@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import i18n from "../utils/i18n";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,47 +11,49 @@ import {
   Alert,
 } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
+import { auth, db } from "../config/firebase";
 import { registerForPushNotificationsAsync } from "../utils/Notifications";
-import { db } from "../config/firebase";
 import {
   doc,
-  setDoc,
-  getDoc,
+  updateDoc,
   addDoc,
   collection,
   query,
-  where,
   orderBy,
+  onSnapshot,
+  serverTimestamp,
+  increment,
+  setDoc,
+  getDoc,
   getDocs,
+  where,
   deleteDoc,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 
 export default function Chat({ route, navigation }) {
-  if (!route.params || !route.params.ownerId || !route.params.dogName) {
+  if (!route.params || !route.params.conversationId || !route.params.otherUserId) {
     return (
       <ScreenLayout title="Erreur" navigation={navigation} active="chat">
         <Text style={styles.error}>
-          Parametres manquants pour ouvrir la discussion.
+          Paramètres manquants pour ouvrir la discussion.
         </Text>
       </ScreenLayout>
     );
   }
 
-  const { ownerId, dogName } = route.params;
+  const { conversationId, otherUserId, dogName } = route.params;
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [abonnement, setAbonnement] = useState("gratuit");
-  const [conversationsCount, setConversationsCount] = useState(0);
-  const [canSendMessage, setCanSendMessage] = useState(true);
-
-  const auth = getAuth();
   const currentUser = auth.currentUser;
+  const flatListRef = useRef(null);
 
   useEffect(() => {
     const askPermission = async () => {
+      if (!currentUser) return;
+      
       const token = await registerForPushNotificationsAsync();
-      if (!token || !currentUser) return;
+      if (!token) return;
 
       const userRef = doc(db, "users", currentUser.uid);
       await setDoc(userRef, { pushToken: token }, { merge: true });
@@ -62,121 +63,73 @@ export default function Chat({ route, navigation }) {
   }, []);
 
   useEffect(() => {
-    const checkConversationLimit = async () => {
+    const loadUserSubscription = async () => {
       if (!currentUser) return;
 
       try {
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        const userAbonnement = userSnap.exists()
-          ? userSnap.data().abonnement || "gratuit"
-          : "gratuit";
-
-        setAbonnement(userAbonnement);
-
-        const messagesRef = collection(db, "messages");
-        const q = query(
-          messagesRef,
-          where("participants", "array-contains", currentUser.uid)
-        );
-        const snap = await getDocs(q);
-
-        const uniqueConversations = new Set();
-        snap.forEach((doc) => {
-          const msg = doc.data();
-          const otherUserId =
-            msg.fromUserId === currentUser.uid
-              ? msg.toUserId
-              : msg.fromUserId;
-          uniqueConversations.add(otherUserId);
-        });
-
-        setConversationsCount(uniqueConversations.size);
-
-        const isExistingConversation = uniqueConversations.has(ownerId);
-
-        if (!isExistingConversation) {
-          let limit = 10;
-          if (userAbonnement === "lite") limit = 20;
-          if (userAbonnement === "premium") limit = null;
-
-          if (limit !== null && uniqueConversations.size >= limit) {
-            setCanSendMessage(false);
-            Alert.alert(
-              "Limite atteinte",
-              "Vous avez atteint votre limite de conversations. Passez a Lite ou Premium pour continuer.",
-              [
-                {
-                  text: "OK",
-                  onPress: () => navigation.goBack(),
-                },
-              ]
-            );
-          }
+        const profilesRef = collection(db, "profiles");
+        const profileQuery = query(profilesRef, where("uid", "==", currentUser.uid));
+        const profileSnap = await getDocs(profileQuery);
+        
+        if (!profileSnap.empty) {
+          const userData = profileSnap.docs[0].data();
+          setAbonnement(userData.abonnement || "gratuit");
+          console.log("Abonnement utilisateur:", userData.abonnement || "gratuit");
         }
       } catch (error) {
-        console.log("Erreur verification limite :", error);
+        console.log("Erreur chargement abonnement:", error);
       }
     };
 
-    checkConversationLimit();
+    loadUserSubscription();
   }, []);
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      if (!currentUser) return;
+    if (!conversationId || !currentUser) return;
 
-      try {
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        const userAbonnement = userSnap.exists()
-          ? userSnap.data().abonnement || "gratuit"
-          : "gratuit";
+    console.log("=== CHARGEMENT MESSAGES ===");
+    console.log("Conversation ID:", conversationId);
 
-        const messagesRef = collection(db, "messages");
-        const messagesQuery = query(
-          messagesRef,
-          where("participants", "array-contains", currentUser.uid),
-          orderBy("createdAt")
-        );
-        const snap = await getDocs(messagesQuery);
+    const messagesRef = collection(db, "conversations", conversationId, "messages");
+    const q = query(messagesRef, orderBy("createdAt", "asc"));
 
-        let filtered = snap.docs
-          .map((doc) => ({ ...doc.data(), docId: doc.id }))
-          .filter(
-            (msg) =>
-              (msg.fromUserId === currentUser.uid &&
-                msg.toUserId === ownerId) ||
-              (msg.fromUserId === ownerId && msg.toUserId === currentUser.uid)
-          );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log("Messages reçus:", snapshot.size);
 
-        if (userAbonnement === "gratuit") {
-          const sixtyDaysAgo = new Date();
-          sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+      let msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-          filtered = filtered.filter((msg) => {
-            const msgDate = msg.createdAt?.toDate
-              ? msg.createdAt.toDate()
-              : new Date(msg.createdAt.seconds * 1000);
-            return msgDate >= sixtyDaysAgo;
-          });
-        }
+      if (abonnement === "gratuit") {
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
-        const mappedMessages = filtered.map((msg) => ({
-          id: msg.docId,
-          text: msg.text,
-          fromMe: msg.fromUserId === currentUser.uid,
-          createdAt: msg.createdAt,
-        }));
+        msgs = msgs.filter((msg) => {
+          if (!msg.createdAt || !msg.createdAt.seconds) return true;
+          const msgDate = new Date(msg.createdAt.seconds * 1000);
+          return msgDate >= sixtyDaysAgo;
+        });
 
-        setMessages(mappedMessages);
-      } catch (error) {
-        console.log("Erreur lors du chargement des messages :", error);
+        console.log(`Messages filtrés (60 jours) : ${msgs.length}`);
       }
-    };
 
-    fetchMessages();
-  }, [ownerId]);
+      setMessages(msgs);
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const conversationRef = doc(db, "conversations", conversationId);
+    updateDoc(conversationRef, {
+      [`unreadCount.${currentUser.uid}`]: 0,
+    }).catch((error) => {
+      console.log("Erreur reset unreadCount:", error);
+    });
+
+    return () => unsubscribe();
+  }, [conversationId, abonnement]);
 
   const sendPushNotification = async (token, title, body) => {
     try {
@@ -195,65 +148,52 @@ export default function Chat({ route, navigation }) {
           },
         }),
       });
+      console.log("Push notification envoyée");
     } catch (error) {
-      console.log("Erreur notification push :", error);
+      console.log("Erreur notification push:", error);
     }
   };
 
   const handleSend = async () => {
     if (message.trim() === "" || !currentUser) return;
 
-    if (!canSendMessage) {
-      Alert.alert(
-        "Limite atteinte",
-        "Vous avez atteint votre limite de conversations."
-      );
-      return;
-    }
-
-    const newMessage = {
-      text: message,
-      fromUserId: currentUser.uid,
-      toUserId: ownerId,
-      dogName,
-      createdAt: new Date(),
-      participants: [currentUser.uid, ownerId],
-      isRead: false,
-    };
+    const messageText = message.trim();
+    setMessage("");
 
     try {
-      const docRef = await addDoc(collection(db, "messages"), newMessage);
+      const messagesRef = collection(db, "conversations", conversationId, "messages");
+      await addDoc(messagesRef, {
+        text: messageText,
+        senderId: currentUser.uid,
+        createdAt: serverTimestamp(),
+        read: false,
+      });
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: docRef.id,
-          text: message,
-          fromMe: true,
-          createdAt: new Date(),
-        },
-      ]);
-      setMessage("");
+      const conversationRef = doc(db, "conversations", conversationId);
+      await updateDoc(conversationRef, {
+        lastMessage: messageText,
+        lastMessageTime: serverTimestamp(),
+        [`unreadCount.${otherUserId}`]: increment(1),
+      });
 
-      const ownerRef = doc(db, "users", ownerId);
+      const ownerRef = doc(db, "users", otherUserId);
       const ownerSnap = await getDoc(ownerRef);
 
       if (ownerSnap.exists()) {
         const token = ownerSnap.data().pushToken;
         if (token) {
-          await sendPushNotification(
-            token,
-            i18n.t("newMessageTitle"),
-            message
-          );
+          await sendPushNotification(token, `Nouveau message - ${dogName}`, messageText);
         }
       }
+
+      console.log("Message envoyé");
     } catch (error) {
-      console.log("Erreur lors de l envoi du message :", error);
+      console.log("Erreur envoi message:", error);
+      Alert.alert("Erreur", "Impossible d'envoyer le message");
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (messageId) => {
     Alert.alert("Supprimer le message", "Confirmer la suppression ?", [
       { text: "Annuler", style: "cancel" },
       {
@@ -261,87 +201,103 @@ export default function Chat({ route, navigation }) {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteDoc(doc(db, "messages", id));
-            setMessages((prev) => prev.filter((msg) => msg.id !== id));
+            const messageRef = doc(
+              db,
+              "conversations",
+              conversationId,
+              "messages",
+              messageId
+            );
+            await deleteDoc(messageRef);
+            console.log("Message supprimé");
           } catch (error) {
-            console.log("Erreur lors de la suppression :", error);
+            console.log("Erreur suppression:", error);
           }
         },
       },
     ]);
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      onLongPress={() => item.fromMe && handleDelete(item.id)}
-      style={[
-        styles.messageBubble,
-        item.fromMe ? styles.fromMe : styles.fromThem,
-      ]}
-    >
-      <Text style={styles.messageText}>{item.text}</Text>
-      {item.fromMe && <Text style={styles.deleteHint}>🗑️</Text>}
-    </TouchableOpacity>
-  );
+  const formatTime = (timestamp) => {
+    if (!timestamp || !timestamp.seconds) return "";
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-  const getLimitText = () => {
-    if (abonnement === "premium") return null;
-    const limit = abonnement === "lite" ? 20 : 10;
-    const remaining = limit - conversationsCount;
-    if (remaining <= 0) return "Limite atteinte";
-    return "Encore " + remaining + " conversation(s)";
+  const renderItem = ({ item }) => {
+    const fromMe = item.senderId === currentUser.uid;
+
+    return (
+      <TouchableOpacity
+        onLongPress={() => fromMe && handleDelete(item.id)}
+        style={[
+          styles.messageBubble,
+          fromMe ? styles.fromMe : styles.fromThem,
+        ]}
+      >
+        <Text style={styles.messageText}>{item.text}</Text>
+        <Text style={styles.timeText}>{formatTime(item.createdAt)}</Text>
+        {fromMe && <Text style={styles.deleteHint}>🗑️</Text>}
+      </TouchableOpacity>
+    );
   };
 
   return (
     <ScreenLayout
-      title={"Discussion - " + dogName}
+      title={dogName || "Discussion"}
       navigation={navigation}
       active="chat"
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={90}
-      >
-        {abonnement !== "premium" && (
+      <View style={styles.container}>
+        {abonnement === "gratuit" && (
           <View style={styles.limitBanner}>
-            <Text style={styles.limitText}>{getLimitText()}</Text>
-            {abonnement === "gratuit" && (
-              <Text style={styles.historyText}>
-                Historique : 60 jours
-              </Text>
-            )}
+            <Text style={styles.historyText}>
+              📅 Historique : 60 jours (Gratuit)
+            </Text>
           </View>
         )}
 
         <FlatList
+          ref={flatListRef}
           data={messages}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContainer}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: false })
+          }
         />
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={message}
-            onChangeText={setMessage}
-            placeholder={i18n.t("messagePlaceholder")}
-            placeholderTextColor="#aaa"
-            editable={canSendMessage}
-          />
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              !canSendMessage && styles.sendButtonDisabled,
-            ]}
-            onPress={handleSend}
-            disabled={!canSendMessage}
-          >
-            <Text style={styles.sendText}>{i18n.t("send")}</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        >
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={message}
+              onChangeText={setMessage}
+              placeholder="Envoyer un message..."
+              placeholderTextColor="#999"
+              multiline
+              maxLength={500}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendButton,
+                message.trim() === "" && styles.sendButtonDisabled,
+              ]}
+              onPress={handleSend}
+              disabled={message.trim() === ""}
+            >
+              <Text style={styles.sendText}>➤</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
     </ScreenLayout>
   );
 }
@@ -349,83 +305,93 @@ export default function Chat({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#FFF",
   },
   limitBanner: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#F5F5F7",
     padding: 8,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  limitText: {
-    color: "#ff914d",
-    fontSize: 12,
-    fontWeight: "bold",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
   },
   historyText: {
-    color: "#aaa",
-    fontSize: 11,
+    color: "#6B7280",
+    fontSize: 12,
   },
   messagesContainer: {
     padding: 12,
-    flexGrow: 1,
-    justifyContent: "flex-end",
+    paddingBottom: 20,
   },
   messageBubble: {
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 16,
     marginVertical: 4,
-    maxWidth: "80%",
+    maxWidth: "75%",
     position: "relative",
   },
   fromMe: {
-    backgroundColor: "#ff914d",
+    backgroundColor: "#42A5F5",
     alignSelf: "flex-end",
+    borderBottomRightRadius: 4,
   },
   fromThem: {
-    backgroundColor: "#444",
+    backgroundColor: "#E5E7EB",
     alignSelf: "flex-start",
+    borderBottomLeftRadius: 4,
   },
   messageText: {
     color: "#fff",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  timeText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 11,
+    alignSelf: "flex-end",
   },
   deleteHint: {
     position: "absolute",
     top: 4,
-    right: 6,
+    right: 8,
     fontSize: 12,
-    color: "#fff",
+    opacity: 0.5,
   },
   inputContainer: {
     flexDirection: "row",
-    padding: 10,
+    padding: 12,
     borderTopWidth: 1,
-    borderTopColor: "#333",
-    backgroundColor: "#222",
+    borderTopColor: "#E0E0E0",
+    backgroundColor: "#FFF",
+    alignItems: "flex-end",
   },
   input: {
     flex: 1,
-    backgroundColor: "#333",
-    color: "#fff",
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: "#F5F5F7",
+    color: "#1A1A1D",
+    padding: 12,
+    borderRadius: 20,
+    maxHeight: 100,
+    fontSize: 16,
   },
   sendButton: {
     marginLeft: 8,
-    backgroundColor: "#ff914d",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: "#42A5F5",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
+    alignItems: "center",
   },
   sendButtonDisabled: {
-    backgroundColor: "#666",
+    backgroundColor: "#D1D5DB",
   },
   sendText: {
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 20,
   },
   error: {
-    color: "#fff",
+    color: "#1A1A1D",
     textAlign: "center",
     marginTop: 40,
     fontSize: 16,

@@ -6,11 +6,15 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
+  Dimensions,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
-import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
+
+const { width } = Dimensions.get("window");
 
 export default function MesChiens({ navigation }) {
   const [myDogs, setMyDogs] = useState([]);
@@ -35,12 +39,11 @@ export default function MesChiens({ navigation }) {
 
     try {
       const profilesRef = collection(db, "profiles");
-      const profilesSnap = await getDocs(profilesRef);
-      const profileDoc = profilesSnap.docs.find(
-        (doc) => doc.data().uid === user.uid
-      );
-      if (profileDoc) {
-        setUserCity(profileDoc.data().city || "");
+      const q = query(profilesRef, where("uid", "==", user.uid));
+      const profileSnap = await getDocs(q);
+      
+      if (!profileSnap.empty) {
+        setUserCity(profileSnap.docs[0].data().city || "");
       }
     } catch (error) {
       console.log("Erreur chargement ville:", error);
@@ -77,37 +80,47 @@ export default function MesChiens({ navigation }) {
           <Image source={{ uri: item.photoUrl }} style={styles.dogCardImage} />
         ) : (
           <View style={styles.dogCardPlaceholder}>
-            <MaterialCommunityIcons name="dog" size={40} color="#aaa" />
+            <MaterialCommunityIcons name="dog" size={50} color="#999" />
           </View>
         )}
+        
         <View style={styles.dogCardInfo}>
           <Text style={styles.dogCardName}>{item.dogName}</Text>
-          <Text style={styles.dogCardDetail}>
-            {item.breed} - {item.age} ans
-          </Text>
-          <Text style={styles.dogCardDetail}>{item.purpose}</Text>
+          
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="dog" size={14} color="#6B7280" />
+            <Text style={styles.dogCardDetail}>{item.breed}</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="cake-variant" size={14} color="#6B7280" />
+            <Text style={styles.dogCardDetail}>{item.age} ans</Text>
+          </View>
+          
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="heart-outline" size={14} color="#FF6B35" />
+            <Text style={styles.dogCardPurpose}>{item.purpose}</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.dogCardFooter}>
-        <View style={styles.dogCardLocation}>
-          <MaterialCommunityIcons
-            name="map-marker"
-            size={18}
-            color="#ff914d"
-          />
-          <Text style={styles.dogCardCity}>{userCity || "Ville"}</Text>
+        <View style={styles.dogCardActions}>
+          <View style={styles.locationContainer}>
+            <MaterialCommunityIcons name="map-marker" size={16} color="#FF6B35" />
+            <Text style={styles.dogCardCity}>{userCity || "Ville"}</Text>
+          </View>
+          
+          <View style={styles.separatorVertical} />
+          
+          <TouchableOpacity
+            style={styles.actionIcon}
+            onPress={(e) => {
+              e.stopPropagation();
+              navigation.navigate("ModifierChien", { dog: item });
+            }}
+          >
+            <MaterialCommunityIcons name="pencil" size={20} color="#6B7280" />
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            navigation.navigate("ModifierChien", { dog: item });
-          }}
-        >
-          <MaterialCommunityIcons name="pencil" size={18} color="#999" />
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -119,7 +132,7 @@ export default function MesChiens({ navigation }) {
           <Text style={styles.loadingText}>Chargement...</Text>
         ) : myDogs.length === 0 ? (
           <View style={styles.empty}>
-            <MaterialCommunityIcons name="dog" size={80} color="#444" />
+            <MaterialCommunityIcons name="dog" size={80} color="#D1D5DB" />
             <Text style={styles.emptyText}>Aucun chien enregistré</Text>
             <Text style={styles.emptySubtext}>
               Ajoutez votre premier compagnon !
@@ -135,11 +148,18 @@ export default function MesChiens({ navigation }) {
         )}
 
         <TouchableOpacity
-          style={styles.addButton}
+          style={styles.addButtonContainer}
           onPress={() => navigation.navigate("AjouterChien")}
         >
-          <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-          <Text style={styles.addButtonText}>Ajouter un nouveau chien</Text>
+          <LinearGradient
+            colors={['#FF6B35', '#E85D2A']}
+            style={styles.addButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+            <Text style={styles.addButtonText}>Ajouter un nouveau chien</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </ScreenLayout>
@@ -152,9 +172,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   loadingText: {
-    color: "#ccc",
+    color: "#6B7280",
     textAlign: "center",
     marginTop: 40,
+    fontSize: 16,
   },
   empty: {
     flex: 1,
@@ -165,90 +186,116 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1A1A1D",
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#6B7280",
     textAlign: "center",
   },
   list: {
     paddingBottom: 100,
   },
   dogCard: {
-    backgroundColor: "#2a2a2a",
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: "#F5F5F7",
+    borderRadius: 16,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   dogCardMain: {
     flexDirection: "row",
+    padding: 12,
     alignItems: "center",
-    marginBottom: 8,
   },
   dogCardImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+    width: 100,
+    height: 100,
+    borderRadius: 12,
     marginRight: 12,
   },
   dogCardPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: "#444",
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   dogCardInfo: {
     flex: 1,
-    justifyContent: "center",
   },
   dogCardName: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1A1A1D",
+    marginBottom: 6,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 4,
+    gap: 6,
   },
   dogCardDetail: {
-    fontSize: 14,
-    color: "#ccc",
-    marginBottom: 2,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
   },
-  dogCardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#444",
+  dogCardPurpose: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#FF6B35",
   },
-  dogCardLocation: {
-    flexDirection: "row",
+  dogCardActions: {
+    flexDirection: "column",
     alignItems: "center",
+    marginLeft: 8,
+  },
+  locationContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    paddingVertical: 4,
   },
   dogCardCity: {
-    fontSize: 13,
-    color: "#ff914d",
-    marginLeft: 4,
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#FF6B35",
+    marginTop: 2,
   },
-  editButton: {
-    padding: 6,
+  separatorVertical: {
+    width: 24,
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 6,
   },
-  addButton: {
+  actionIcon: {
+    padding: 8,
+  },
+  addButtonContainer: {
     position: "absolute",
     bottom: 20,
     left: 16,
     right: 16,
-    backgroundColor: "#ff914d",
+    borderRadius: 28,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
     gap: 8,
   },
   addButtonText: {

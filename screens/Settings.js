@@ -102,6 +102,17 @@ export default function Settings() {
   return (
     <ScreenLayout title="Réglages" navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
+        
+        {/* BOUTON PREVIEW NOUVEAU DESIGN */}
+        <TouchableOpacity
+          style={styles.previewButton}
+          onPress={() => navigation.navigate("StylePreview")}
+        >
+          <Text style={styles.previewButtonText}>
+            🎨 Aperçu du Nouveau Design
+          </Text>
+        </TouchableOpacity>
+
         <SettingSwitch
           label="Notifications"
           description="Active les notifications pour recevoir les mises à jour de tes conversations et des likes."
@@ -182,6 +193,23 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 100,
+  },
+  previewButton: {
+    backgroundColor: '#FF6B35',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  previewButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   settingBlock: {
     flexDirection: "row",

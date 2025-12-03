@@ -24,7 +24,7 @@ import {
 import ScreenLayout from "../components/ScreenLayout";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-export default function MesMatchs({ navigation }) {
+export default function MesMatchs({ navigation, embedded = false }) {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("list");
@@ -316,15 +316,97 @@ export default function MesMatchs({ navigation }) {
   const filteredLikes = getFilteredLikes();
   const groupedLikes = getGroupedLikes();
   const unreadCount = likes.filter((l) => !l.isRead).length;
-
   const titleText = "Interesses" + (unreadCount > 0 ? " (" + unreadCount + ")" : "");
 
+  // MODE EMBEDDED (dans LikesHub)
+  if (embedded) {
+    return (
+      <>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#ff914d" />
+            <Text style={[styles.loadingText, { color: "#6B7280" }]}>Chargement...</Text>
+          </View>
+        ) : likes.length === 0 ? (
+          <View style={styles.empty}>
+            <MaterialCommunityIcons name="heart-outline" size={80} color="#D1D5DB" />
+            <Text style={[styles.emptyText, { color: "#1A1A1D" }]}>Aucun like pour le moment</Text>
+            <Text style={[styles.emptySubtext, { color: "#6B7280" }]}>
+              Partagez vos chiens pour recevoir des likes !
+            </Text>
+          </View>
+        ) : (
+          <>
+            <View style={styles.controls}>
+              <View style={styles.filterButtons}>
+                <TouchableOpacity
+                  style={[styles.filterButton, filter === "all" && styles.filterButtonActive]}
+                  onPress={() => setFilter("all")}
+                >
+                  <Text style={[styles.filterText, filter === "all" && styles.filterTextActive]}>
+                    Tous ({likes.length})
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.filterButton, filter === "unread" && styles.filterButtonActive]}
+                  onPress={() => setFilter("unread")}
+                >
+                  <Text style={[styles.filterText, filter === "unread" && styles.filterTextActive]}>
+                    Non lus ({unreadCount})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.viewModeButtons}>
+                <TouchableOpacity
+                  style={[styles.viewModeButton, viewMode === "list" && styles.viewModeButtonActive]}
+                  onPress={() => setViewMode("list")}
+                >
+                  <MaterialCommunityIcons
+                    name="view-list"
+                    size={24}
+                    color={viewMode === "list" ? "#ff914d" : "#aaa"}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.viewModeButton, viewMode === "grouped" && styles.viewModeButtonActive]}
+                  onPress={() => setViewMode("grouped")}
+                >
+                  <MaterialCommunityIcons
+                    name="view-grid"
+                    size={24}
+                    color={viewMode === "grouped" ? "#ff914d" : "#aaa"}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {viewMode === "list" ? (
+              <FlatList
+                data={filteredLikes}
+                keyExtractor={(item) => item.id}
+                renderItem={renderListItem}
+                contentContainerStyle={styles.list}
+              />
+            ) : (
+              <FlatList
+                data={groupedLikes}
+                keyExtractor={(item) => item.dogId}
+                renderItem={renderGroupedItem}
+                contentContainerStyle={styles.list}
+              />
+            )}
+          </>
+        )}
+      </>
+    );
+  }
+
+  // MODE STANDALONE (écran indépendant)
   return (
-    <ScreenLayout
-      title={titleText}
-      navigation={navigation}
-      active="likes"
-    >
+    <ScreenLayout title={titleText} navigation={navigation} active="likes">
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#ff914d" />
@@ -343,35 +425,19 @@ export default function MesMatchs({ navigation }) {
           <View style={styles.controls}>
             <View style={styles.filterButtons}>
               <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  filter === "all" && styles.filterButtonActive,
-                ]}
+                style={[styles.filterButton, filter === "all" && styles.filterButtonActive]}
                 onPress={() => setFilter("all")}
               >
-                <Text
-                  style={[
-                    styles.filterText,
-                    filter === "all" && styles.filterTextActive,
-                  ]}
-                >
+                <Text style={[styles.filterText, filter === "all" && styles.filterTextActive]}>
                   Tous ({likes.length})
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  filter === "unread" && styles.filterButtonActive,
-                ]}
+                style={[styles.filterButton, filter === "unread" && styles.filterButtonActive]}
                 onPress={() => setFilter("unread")}
               >
-                <Text
-                  style={[
-                    styles.filterText,
-                    filter === "unread" && styles.filterTextActive,
-                  ]}
-                >
+                <Text style={[styles.filterText, filter === "unread" && styles.filterTextActive]}>
                   Non lus ({unreadCount})
                 </Text>
               </TouchableOpacity>
@@ -379,10 +445,7 @@ export default function MesMatchs({ navigation }) {
 
             <View style={styles.viewModeButtons}>
               <TouchableOpacity
-                style={[
-                  styles.viewModeButton,
-                  viewMode === "list" && styles.viewModeButtonActive,
-                ]}
+                style={[styles.viewModeButton, viewMode === "list" && styles.viewModeButtonActive]}
                 onPress={() => setViewMode("list")}
               >
                 <MaterialCommunityIcons
@@ -393,10 +456,7 @@ export default function MesMatchs({ navigation }) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[
-                  styles.viewModeButton,
-                  viewMode === "grouped" && styles.viewModeButtonActive,
-                ]}
+                style={[styles.viewModeButton, viewMode === "grouped" && styles.viewModeButtonActive]}
                 onPress={() => setViewMode("grouped")}
               >
                 <MaterialCommunityIcons

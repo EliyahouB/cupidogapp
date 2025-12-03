@@ -6,16 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
 } from "react-native";
 import { auth, db } from "../config/firebase";
 import {
   collection,
   query,
   where,
+  onSnapshot,
   getDocs,
-  doc,
-  getDoc,
+  orderBy,
 } from "firebase/firestore";
 import ScreenLayout from "../components/ScreenLayout";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -23,99 +22,106 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 export default function Conversations({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userProfiles, setUserProfiles] = useState({});
   const [abonnement, setAbonnement] = useState("gratuit");
 
   useEffect(() => {
-    fetchConversations();
-  }, []);
-
-  const fetchConversations = async () => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
-    try {
-      const userRef = doc(db, "users", currentUser.uid);
-      const userSnap = await getDoc(userRef);
-      if (userSnap.exists()) {
-        setAbonnement(userSnap.data().abonnement || "gratuit");
+    console.log("=== CHARGEMENT CONVERSATIONS ===");
+
+    // Charge l'abonnement de l'utilisateur
+    const loadUserSubscription = async () => {
+      try {
+        const profilesRef = collection(db, "profiles");
+        const profileQuery = query(profilesRef, where("uid", "==", currentUser.uid));
+        const profileSnap = await getDocs(profileQuery);
+        
+        if (!profileSnap.empty) {
+          const userData = profileSnap.docs[0].data();
+          setAbonnement(userData.abonnement || "gratuit");
+          console.log("Abonnement utilisateur:", userData.abonnement || "gratuit");
+        }
+      } catch (error) {
+        console.log("Erreur chargement abonnement:", error);
       }
+    };
 
-      const messagesRef = collection(db, "messages");
-      const q = query(
-        messagesRef,
-        where("participants", "array-contains", currentUser.uid)
-      );
+    loadUserSubscription();
 
-      const snap = await getDocs(q);
+    // Query conversations où l'utilisateur est participant
+    const conversationsRef = collection(db, "conversations");
+    const q = query(
+      conversationsRef,
+      where("participants", "array-contains", currentUser.uid),
+      orderBy("lastMessageTime", "desc")
+    );
 
-      const convMap = {};
+    // Écoute en temps réel
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      console.log("Conversations reçues:", snapshot.size);
 
-      for (const msgDoc of snap.docs) {
-        const msg = msgDoc.data();
-        const otherUserId =
-          msg.fromUserId === currentUser.uid
-            ? msg.toUserId
-            : msg.fromUserId;
+      const convs = [];
+      const userIds = new Set();
 
-        if (!convMap[otherUserId]) {
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        convs.push({
+          id: doc.id,
+          ...data,
+        });
+
+        // Récupère l'ID de l'autre utilisateur
+        const otherUserId = data.participants.find(
+          (uid) => uid !== currentUser.uid
+        );
+        if (otherUserId) userIds.add(otherUserId);
+      });
+
+      // Charge les profils des autres utilisateurs
+      const profiles = {};
+      for (const uid of userIds) {
+        if (!userProfiles[uid]) {
           const profilesRef = collection(db, "profiles");
-          const profileQuery = query(
-            profilesRef,
-            where("uid", "==", otherUserId)
-          );
+          const profileQuery = query(profilesRef, where("uid", "==", uid));
           const profileSnap = await getDocs(profileQuery);
 
-          let otherUserName = "Utilisateur";
-          let otherUserPhoto = null;
-
           if (!profileSnap.empty) {
-            const profileData = profileSnap.docs[0].data();
-            otherUserName = profileData.name || "Utilisateur";
-            otherUserPhoto = profileData.photoUrl || null;
+            profiles[uid] = profileSnap.docs[0].data();
+          } else {
+            profiles[uid] = { name: "Utilisateur", photoUrl: null };
           }
-
-          convMap[otherUserId] = {
-            otherUserId,
-            otherUserName,
-            otherUserPhoto,
-            dogName: msg.dogName,
-            lastMessage: msg.text,
-            lastMessageDate: msg.createdAt,
-            isRead: msg.isRead !== false,
-          };
         } else {
-          if (
-            msg.createdAt.seconds >
-            convMap[otherUserId].lastMessageDate.seconds
-          ) {
-            convMap[otherUserId].lastMessage = msg.text;
-            convMap[otherUserId].lastMessageDate = msg.createdAt;
-            convMap[otherUserId].isRead = msg.isRead !== false;
-          }
+          profiles[uid] = userProfiles[uid];
         }
       }
 
-      const convArray = Object.values(convMap).sort(
-        (a, b) => b.lastMessageDate.seconds - a.lastMessageDate.seconds
-      );
-
-      setConversations(convArray);
-    } catch (error) {
-      console.error("Erreur chargement conversations :", error);
-    } finally {
+      setUserProfiles((prev) => ({ ...prev, ...profiles }));
+      setConversations(convs);
       setLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      // Refresh conversations quand on revient sur l'écran
+      setLoading(true);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const getConversationLimit = () => {
-    if (abonnement === "premium") return null;
+    if (abonnement === "premium") return null; // Illimité
     if (abonnement === "lite") return 20;
-    return 10;
+    return 10; // Gratuit
   };
 
   const canStartNewConversation = () => {
     const limit = getConversationLimit();
-    if (limit === null) return true;
+    if (limit === null) return true; // Premium = illimité
     return conversations.length < limit;
   };
 
@@ -143,43 +149,58 @@ export default function Conversations({ navigation }) {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.card, !item.isRead && styles.cardUnread]}
-      onPress={() =>
-        navigation.navigate("Chat", {
-          ownerId: item.otherUserId,
-          dogName: item.otherUserName,
-        })
-      }
-    >
-      <View style={styles.leftSection}>
-        {item.otherUserPhoto ? (
-          <Image
-            source={{ uri: item.otherUserPhoto }}
-            style={styles.profileImage}
-          />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <MaterialCommunityIcons name="account" size={30} color="#aaa" />
-          </View>
-        )}
-        {!item.isRead && <View style={styles.unreadIndicator} />}
-      </View>
+  const renderItem = ({ item }) => {
+    const currentUser = auth.currentUser;
+    const otherUserId = item.participants.find((uid) => uid !== currentUser.uid);
+    const otherUserProfile = userProfiles[otherUserId] || {};
+    const unreadCount = item.unreadCount?.[currentUser.uid] || 0;
 
-      <View style={styles.info}>
-        <View style={styles.nameRow}>
-          <Text style={styles.name}>{item.otherUserName}</Text>
-          <Text style={styles.time}>{formatTime(item.lastMessageDate)}</Text>
+    return (
+      <TouchableOpacity
+        style={[styles.card, unreadCount > 0 && styles.cardUnread]}
+        onPress={() =>
+          navigation.navigate("Chat", {
+            conversationId: item.id,
+            otherUserId: otherUserId,
+            dogName: item.dogName,
+            dogPhotoUrl: item.dogPhotoUrl,
+          })
+        }
+      >
+        <View style={styles.leftSection}>
+          {item.dogPhotoUrl ? (
+            <Image
+              source={{ uri: item.dogPhotoUrl }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="dog" size={30} color="#aaa" />
+            </View>
+          )}
+          {unreadCount > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadText}>{unreadCount}</Text>
+            </View>
+          )}
         </View>
-        <Text style={styles.lastMessage} numberOfLines={1}>
-          {item.lastMessage}
-        </Text>
-      </View>
 
-      <MaterialCommunityIcons name="chevron-right" size={24} color="#ff914d" />
-    </TouchableOpacity>
-  );
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>
+              {item.dogName} • {otherUserProfile.name || "Utilisateur"}
+            </Text>
+            <Text style={styles.time}>{formatTime(item.lastMessageTime)}</Text>
+          </View>
+          <Text style={styles.lastMessage} numberOfLines={1}>
+            {item.lastMessage || "Nouvelle conversation"}
+          </Text>
+        </View>
+
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#ff914d" />
+      </TouchableOpacity>
+    );
+  };
 
   const limit = getConversationLimit();
   const remainingConversations = limit ? limit - conversations.length : null;
@@ -201,10 +222,8 @@ export default function Conversations({ navigation }) {
               />
               <Text style={styles.limitText}>
                 {remainingConversations > 0
-                  ? "Encore " +
-                    remainingConversations +
-                    " conversation(s) disponible(s)"
-                  : "Limite atteinte. Passez a Lite ou Premium pour plus."}
+                  ? `Encore ${remainingConversations} conversation(s) disponible(s)`
+                  : "Limite atteinte. Passez à Lite ou Premium pour plus."}
               </Text>
             </View>
           )}
@@ -218,13 +237,13 @@ export default function Conversations({ navigation }) {
               />
               <Text style={styles.emptyText}>Aucune conversation</Text>
               <Text style={styles.emptySubtext}>
-                Commencez a discuter avec d autres proprietaires !
+                Commencez à discuter avec d'autres propriétaires !
               </Text>
             </View>
           ) : (
             <FlatList
               data={conversations}
-              keyExtractor={(item) => item.otherUserId}
+              keyExtractor={(item) => item.id}
               renderItem={renderItem}
               contentContainerStyle={styles.list}
             />
@@ -310,16 +329,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  unreadIndicator: {
+  unreadBadge: {
     position: "absolute",
-    top: 0,
-    right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    top: -4,
+    right: -4,
     backgroundColor: "#ff914d",
-    borderWidth: 2,
-    borderColor: "#222",
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  unreadText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
   info: {
     flex: 1,
@@ -334,10 +359,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
+    flex: 1,
   },
   time: {
     fontSize: 12,
     color: "#aaa",
+    marginLeft: 8,
   },
   lastMessage: {
     fontSize: 14,

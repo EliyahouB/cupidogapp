@@ -13,7 +13,9 @@ import Chat from "./screens/Chat";
 import MesChiens from "./screens/MesChiens";
 import AjouterChien from "./screens/AjouterChien.js";
 import ModifierChien from "./screens/ModifierChien.js";
-import Likes from "./screens/Likes";
+import StylePreview from "./screens/StylePreview.js";
+import LikesHub from "./screens/LikesHub";
+import Favoris from "./screens/Favoris";
 import Profile from "./screens/Profile";
 import SignUp from "./screens/SignUp";
 import SignIn from "./screens/SignIn";
@@ -68,7 +70,9 @@ export default function App() {
               <Stack.Screen name="MesChiens" component={MesChiens} />
               <Stack.Screen name="AjouterChien" component={AjouterChien} />
               <Stack.Screen name="ModifierChien" component={ModifierChien} />
-              <Stack.Screen name="Likes" component={Likes} />
+              <Stack.Screen name="StylePreview" component={StylePreview} />
+              <Stack.Screen name="LikesHub" component={LikesHub} />
+              <Stack.Screen name="Favoris" component={Favoris} />
               <Stack.Screen name="Profile" component={Profile} />
               <Stack.Screen name="MesMatchs" component={MesMatchs} />
               <Stack.Screen name="Conversations" component={Conversations} />
