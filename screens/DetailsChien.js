@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   FlatList,
+  SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ import {
   where,
   serverTimestamp,
 } from "firebase/firestore";
+import PremiumBadge from "../components/PremiumBadge";
 
 const { width } = Dimensions.get("window");
 
@@ -28,6 +30,7 @@ export default function DetailsChien({ route, navigation }) {
   const user = auth.currentUser;
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [ownerAbonnement, setOwnerAbonnement] = useState("gratuit");
   const flatListRef = useRef(null);
 
   const photos = dog.photoUrls && dog.photoUrls.length > 0 
@@ -53,8 +56,26 @@ export default function DetailsChien({ route, navigation }) {
       }
     };
 
+    const loadOwnerAbonnement = async () => {
+      if (!dog.ownerId) return;
+
+      try {
+        const profilesRef = collection(db, "profiles");
+        const q = query(profilesRef, where("uid", "==", dog.ownerId));
+        const profileSnap = await getDocs(q);
+        
+        if (!profileSnap.empty) {
+          const profileData = profileSnap.docs[0].data();
+          setOwnerAbonnement(profileData.abonnement || "gratuit");
+        }
+      } catch (error) {
+        console.log("Erreur chargement abonnement proprio:", error);
+      }
+    };
+
     checkFavorite();
-  }, [dog.id]);
+    loadOwnerAbonnement();
+  }, [dog.id, dog.ownerId]);
 
   const handleFavorite = async () => {
     if (!user) return;
@@ -86,8 +107,6 @@ export default function DetailsChien({ route, navigation }) {
     }
 
     try {
-      console.log("1. Recherche conversation existante...");
-      
       const conversationsRef = collection(db, "conversations");
       const q = query(
         conversationsRef,
@@ -101,12 +120,10 @@ export default function DetailsChien({ route, navigation }) {
         const data = doc.data();
         if (data.participants.includes(dog.ownerId)) {
           conversationId = doc.id;
-          console.log("2. Conversation existante trouvée:", conversationId);
         }
       });
 
       if (!conversationId) {
-        console.log("2. Création nouvelle conversation...");
         const newConvDoc = await addDoc(conversationsRef, {
           participants: [user.uid, dog.ownerId],
           dogId: dog.id,
@@ -121,14 +138,12 @@ export default function DetailsChien({ route, navigation }) {
           createdAt: serverTimestamp(),
         });
         conversationId = newConvDoc.id;
-        console.log("3. Nouvelle conversation créée:", conversationId);
       }
 
       navigation.navigate("Chat", {
         conversationId: conversationId,
         otherUserId: dog.ownerId,
         dogName: dog.dogName,
-        dogPhotoUrl: photos[0] || null,
       });
     } catch (error) {
       console.log("Erreur création conversation:", error);
@@ -153,142 +168,201 @@ export default function DetailsChien({ route, navigation }) {
   );
 
   return (
-    <LinearGradient
-      colors={['#F5D547', '#FF9966']}
-      style={styles.gradient}
-    >
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.card}>
-          {photos.length > 0 ? (
-            <View style={styles.carouselContainer}>
-              <FlatList
-                ref={flatListRef}
-                data={photos}
-                renderItem={renderPhoto}
-                keyExtractor={(item, index) => index.toString()}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onViewableItemsChanged={onViewableItemsChanged}
-                viewabilityConfig={viewabilityConfig}
-              />
-              
-              {photos.length > 1 && (
-                <View style={styles.photoIndicator}>
-                  <Text style={styles.photoIndicatorText}>
-                    {currentPhotoIndex + 1} / {photos.length}
-                  </Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#F5D547', '#FF9966']}
+        style={styles.gradient}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          {/* HEADER AVEC BOUTON RETOUR */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{dog.dogName}</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.card}>
+              {photos.length > 0 ? (
+                <View style={styles.carouselContainer}>
+                  <FlatList
+                    ref={flatListRef}
+                    data={photos}
+                    renderItem={renderPhoto}
+                    keyExtractor={(item, index) => index.toString()}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onViewableItemsChanged={onViewableItemsChanged}
+                    viewabilityConfig={viewabilityConfig}
+                  />
+                  
+                  {photos.length > 1 && (
+                    <View style={styles.photoIndicator}>
+                      <Text style={styles.photoIndicatorText}>
+                        {currentPhotoIndex + 1} / {photos.length}
+                      </Text>
+                    </View>
+                  )}
+
+                  <TouchableOpacity style={styles.favoriteIcon} onPress={handleFavorite}>
+                    <MaterialCommunityIcons 
+                      name={isFavorite ? "heart" : "heart-outline"} 
+                      size={28} 
+                      color={isFavorite ? "#FF6B35" : "#666"} 
+                    />
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View>
+                  <View style={styles.imagePlaceholder}>
+                    <MaterialCommunityIcons name="dog" size={60} color="#999" />
+                    <Text style={styles.imageText}>Pas d'image</Text>
+                  </View>
+                  <TouchableOpacity style={styles.favoriteIcon} onPress={handleFavorite}>
+                    <MaterialCommunityIcons 
+                      name={isFavorite ? "heart" : "heart-outline"} 
+                      size={28} 
+                      color={isFavorite ? "#FF6B35" : "#666"} 
+                    />
+                  </TouchableOpacity>
                 </View>
               )}
 
-              <TouchableOpacity style={styles.favoriteIcon} onPress={handleFavorite}>
-                <MaterialCommunityIcons 
-                  name={isFavorite ? "heart" : "heart-outline"} 
-                  size={28} 
-                  color={isFavorite ? "#FF6B35" : "#666"} 
-                />
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View>
-              <View style={styles.imagePlaceholder}>
-                <MaterialCommunityIcons name="dog" size={60} color="#999" />
-                <Text style={styles.imageText}>Pas d'image</Text>
+              {/* BADGES */}
+              <View style={styles.badgesContainer}>
+                <View style={styles.badge}>
+                  <MaterialCommunityIcons name="check-decagram" size={14} color="#06D6A0" />
+                  <Text style={styles.badgeText}>Vérifié</Text>
+                </View>
+                <PremiumBadge abonnement={ownerAbonnement} size="small" />
               </View>
-              <TouchableOpacity style={styles.favoriteIcon} onPress={handleFavorite}>
-                <MaterialCommunityIcons 
-                  name={isFavorite ? "heart" : "heart-outline"} 
-                  size={28} 
-                  color={isFavorite ? "#FF6B35" : "#666"} 
-                />
-              </TouchableOpacity>
-            </View>
-          )}
 
-          {/* BADGES */}
-          <View style={styles.badgesContainer}>
-            <View style={styles.badge}>
-              <MaterialCommunityIcons name="check-decagram" size={14} color="#06D6A0" />
-              <Text style={styles.badgeText}>Vérifié</Text>
-            </View>
-          </View>
+              {/* INFOS AVEC ICÔNES */}
+              <View style={styles.dogInfo}>
+                <Text style={styles.dogName}>{dog.dogName}</Text>
+                
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="dog" size={18} color="#6B7280" />
+                  <Text style={styles.infoText}>{dog.breed}</Text>
+                </View>
+                
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="cake-variant" size={18} color="#6B7280" />
+                  <Text style={styles.infoText}>{dog.age}</Text>
+                </View>
+                
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="gender-male-female" size={18} color="#6B7280" />
+                  <Text style={styles.infoText}>{dog.gender}</Text>
+                </View>
+                
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="heart-outline" size={18} color="#FF6B35" />
+                  <Text style={styles.infoPurpose}>{dog.purpose}</Text>
+                </View>
 
-          {/* INFOS AVEC ICÔNES */}
-          <View style={styles.dogInfo}>
-            <Text style={styles.dogName}>{dog.dogName}</Text>
-            
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="dog" size={18} color="#6B7280" />
-              <Text style={styles.infoText}>{dog.breed}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="cake-variant" size={18} color="#6B7280" />
-              <Text style={styles.infoText}>{dog.age}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="gender-male-female" size={18} color="#6B7280" />
-              <Text style={styles.infoText}>{dog.gender}</Text>
-            </View>
-            
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="heart-outline" size={18} color="#FF6B35" />
-              <Text style={styles.infoPurpose}>{dog.purpose}</Text>
-            </View>
+                {dog.pedigree && dog.pedigree !== "Non précisé" && (
+                  <View style={styles.infoRow}>
+                    <MaterialCommunityIcons name="certificate" size={18} color="#6B7280" />
+                    <Text style={styles.infoText}>Pedigree: {dog.pedigree}</Text>
+                  </View>
+                )}
 
-            {dog.pedigree && dog.pedigree !== "Non précisé" && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="certificate" size={18} color="#6B7280" />
-                <Text style={styles.infoText}>Pedigree: {dog.pedigree}</Text>
+                {dog.contest === "Oui" && (
+                  <View style={styles.infoRow}>
+                    <MaterialCommunityIcons name="trophy" size={18} color="#FFB84D" />
+                    <Text style={styles.infoText}>{dog.result || "Concours"}</Text>
+                  </View>
+                )}
+
+                {dog.description && (
+                  <Text style={styles.description}>{dog.description}</Text>
+                )}
               </View>
-            )}
 
-            {dog.contest === "Oui" && (
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="trophy" size={18} color="#FFB84D" />
-                <Text style={styles.infoText}>{dog.result || "Concours"}</Text>
+              {/* BOUTONS */}
+              <View style={styles.dogActions}>
+                <TouchableOpacity 
+                  style={styles.likeButtonOutline} 
+                  onPress={handleFavorite}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={isFavorite ? ["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"] : ["#E5E7EB", "#E5E7EB"]}
+                    style={styles.likeButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <MaterialCommunityIcons 
+                      name="heart" 
+                      size={24} 
+                      color={isFavorite ? "#FFF" : "#9CA3AF"} 
+                    />
+                  </LinearGradient>
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.chatButtonContainer} onPress={handleContact}>
+                  <LinearGradient
+                    colors={['#06D6A0', '#059669']}
+                    style={styles.chatButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <MaterialCommunityIcons name="message-text-outline" size={18} color="#FFF" />
+                    <Text style={styles.chatText}>Contacter</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
-            )}
-
-            {dog.description && (
-              <Text style={styles.description}>{dog.description}</Text>
-            )}
-          </View>
-
-          {/* BOUTONS */}
-          <View style={styles.dogActions}>
-            <TouchableOpacity style={styles.likeButtonOutline} onPress={handleFavorite}>
-              <MaterialCommunityIcons 
-                name={isFavorite ? "heart" : "heart-outline"} 
-                size={22} 
-                color="#FF6B35" 
-              />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.chatButtonContainer} onPress={handleContact}>
-              <LinearGradient
-                colors={['#06D6A0', '#059669']}
-                style={styles.chatButtonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <MaterialCommunityIcons name="message-text-outline" size={18} color="#FFF" />
-                <Text style={styles.chatText}>Contacter</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </ScrollView>
-    </LinearGradient>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   gradient: {
     flex: 1,
   },
-  container: {
+  safeArea: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFF",
+    flex: 1,
+    textAlign: "center",
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  scrollContent: {
     padding: 16,
     paddingBottom: 100,
   },
@@ -420,11 +494,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    borderWidth: 2,
-    borderColor: "#FF6B35",
+    overflow: "hidden",
+  },
+  likeButtonGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFF",
   },
   chatButtonContainer: {
     flex: 1,

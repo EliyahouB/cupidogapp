@@ -22,12 +22,14 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import ScreenLayout from "../components/ScreenLayout";
+import PremiumBadge from "../components/PremiumBadge";
 
 const { width } = Dimensions.get("window");
 
 export default function Favoris({ navigation, embedded = false }) {
   const [favoriteDogs, setFavoriteDogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ownersAbonnements, setOwnersAbonnements] = useState({});
 
   useEffect(() => {
     loadFavorites();
@@ -87,6 +89,21 @@ export default function Favoris({ navigation, embedded = false }) {
       const dogs = await Promise.all(dogsPromises);
       const validDogs = dogs.filter((dog) => dog !== null);
       
+      // Charger les abonnements des propriétaires
+      const ownerIds = [...new Set(validDogs.map(dog => dog.ownerId))];
+      const ownersAbonnementsMap = {};
+      
+      const profilesRef = collection(db, "profiles");
+      const allProfiles = await getDocs(profilesRef);
+      
+      allProfiles.forEach((profileDoc) => {
+        const profileData = profileDoc.data();
+        if (ownerIds.includes(profileData.uid)) {
+          ownersAbonnementsMap[profileData.uid] = profileData.abonnement || "gratuit";
+        }
+      });
+
+      setOwnersAbonnements(ownersAbonnementsMap);
       console.log("TOTAL chiens favoris:", validDogs.length);
       setFavoriteDogs(validDogs);
     } catch (error) {
@@ -154,55 +171,62 @@ export default function Favoris({ navigation, embedded = false }) {
     }
   };
 
-  const renderDog = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("DetailsChien", { dog: item })}
-    >
-      <View style={styles.cardContent}>
-        {item.photoUrl ? (
-          <Image source={{ uri: item.photoUrl }} style={styles.image} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <MaterialCommunityIcons name="dog" size={40} color="#999" />
-          </View>
-        )}
+  const renderDog = ({ item }) => {
+    const ownerAbonnement = ownersAbonnements[item.ownerId] || "gratuit";
 
-        <View style={styles.info}>
-          <Text style={styles.name}>{item.dogName}</Text>
-          
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="dog" size={16} color="#6B7280" />
-            <Text style={styles.detail}>{item.breed}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
-            <Text style={styles.detail}>{item.age} ans</Text>
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => navigation.navigate("DetailsChien", { dog: item })}
+      >
+        <View style={styles.cardContent}>
+          {item.photoUrl ? (
+            <Image source={{ uri: item.photoUrl }} style={styles.image} />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="dog" size={40} color="#999" />
+            </View>
+          )}
+
+          <View style={styles.info}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{item.dogName}</Text>
+              <PremiumBadge abonnement={ownerAbonnement} size="small" />
+            </View>
+            
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="dog" size={16} color="#6B7280" />
+              <Text style={styles.detail}>{item.breed}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
+              <Text style={styles.detail}>{item.age} ans</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="heart-outline" size={16} color="#FF6B35" />
+              <Text style={styles.detailPurpose}>{item.purpose}</Text>
+            </View>
           </View>
 
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="heart-outline" size={16} color="#FF6B35" />
-            <Text style={styles.detailPurpose}>{item.purpose}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.chatButtonContainer}
-          onPress={() => handleContact(item)}
-        >
-          <LinearGradient
-            colors={['#06D6A0', '#059669']}
-            style={styles.chatButtonGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          <TouchableOpacity
+            style={styles.chatButtonContainer}
+            onPress={() => handleContact(item)}
           >
-            <MaterialCommunityIcons name="message-text-outline" size={16} color="#FFF" />
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+            <LinearGradient
+              colors={['#06D6A0', '#059669']}
+              style={styles.chatButtonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialCommunityIcons name="message-text-outline" size={16} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // MODE EMBEDDED (dans LikesHub)
   if (embedded) {
@@ -323,11 +347,16 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
   name: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#1A1A1D",
-    marginBottom: 6,
   },
   infoRow: {
     flexDirection: "row",

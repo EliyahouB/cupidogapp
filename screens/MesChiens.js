@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
+import PremiumBadge from "../components/PremiumBadge";
 
 const { width } = Dimensions.get("window");
 
@@ -20,15 +21,18 @@ export default function MesChiens({ navigation }) {
   const [myDogs, setMyDogs] = useState([]);
   const [loadingDogs, setLoadingDogs] = useState(true);
   const [userCity, setUserCity] = useState("");
+  const [abonnement, setAbonnement] = useState("gratuit");
 
   useEffect(() => {
     loadMyDogs();
     loadUserCity();
+    loadUserAbonnement();
   }, []);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       loadMyDogs();
+      loadUserAbonnement();
     });
     return unsubscribe;
   }, [navigation]);
@@ -47,6 +51,23 @@ export default function MesChiens({ navigation }) {
       }
     } catch (error) {
       console.log("Erreur chargement ville:", error);
+    }
+  };
+
+  const loadUserAbonnement = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const profilesRef = collection(db, "profiles");
+      const q = query(profilesRef, where("uid", "==", user.uid));
+      const profileSnap = await getDocs(q);
+      
+      if (!profileSnap.empty) {
+        setAbonnement(profileSnap.docs[0].data().abonnement || "gratuit");
+      }
+    } catch (error) {
+      console.log("Erreur chargement abonnement:", error);
     }
   };
 
@@ -85,7 +106,10 @@ export default function MesChiens({ navigation }) {
         )}
         
         <View style={styles.dogCardInfo}>
-          <Text style={styles.dogCardName}>{item.dogName}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.dogCardName}>{item.dogName}</Text>
+            <PremiumBadge abonnement={abonnement} size="small" />
+          </View>
           
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="dog" size={14} color="#6B7280" />
@@ -152,7 +176,7 @@ export default function MesChiens({ navigation }) {
           onPress={() => navigation.navigate("AjouterChien")}
         >
           <LinearGradient
-            colors={['#FF6B35', '#E85D2A']}
+            colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
             style={styles.addButton}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -231,11 +255,16 @@ const styles = StyleSheet.create({
   dogCardInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
   dogCardName: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#1A1A1D",
-    marginBottom: 6,
   },
   infoRow: {
     flexDirection: "row",

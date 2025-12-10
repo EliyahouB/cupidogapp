@@ -10,6 +10,8 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
 import { registerForPushNotificationsAsync } from "../utils/Notifications";
@@ -48,6 +50,60 @@ export default function Chat({ route, navigation }) {
   const currentUser = auth.currentUser;
   const flatListRef = useRef(null);
 
+  // CHARGEMENT ABONNEMENT (1 FOIS)
+  useEffect(() => {
+    const loadUserSubscription = async () => {
+      if (!currentUser) return;
+
+      try {
+        const profilesRef = collection(db, "profiles");
+        const profileQuery = query(profilesRef, where("uid", "==", currentUser.uid));
+        const profileSnap = await getDocs(profileQuery);
+        
+        if (!profileSnap.empty) {
+          const userData = profileSnap.docs[0].data();
+          setAbonnement(userData.abonnement || "gratuit");
+        }
+      } catch (error) {
+        console.log("Erreur chargement abonnement:", error);
+      }
+    };
+
+    loadUserSubscription();
+  }, []); // ← PAS DE DÉPENDANCE
+
+  // CHARGEMENT MESSAGES (1 FOIS)
+  useEffect(() => {
+    if (!conversationId || !currentUser) return;
+
+    const messagesRef = collection(db, "conversations", conversationId, "messages");
+    const q = query(messagesRef, orderBy("createdAt", "asc"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setMessages(msgs);
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    // RESET UNREAD COUNT
+    const conversationRef = doc(db, "conversations", conversationId);
+    updateDoc(conversationRef, {
+      [`unreadCount.${currentUser.uid}`]: 0,
+    }).catch((error) => {
+      console.log("Erreur reset unreadCount:", error);
+    });
+
+    return () => unsubscribe();
+  }, [conversationId]); // ← SEULEMENT conversationId
+
+  // PUSH NOTIFICATIONS
   useEffect(() => {
     const askPermission = async () => {
       if (!currentUser) return;
@@ -61,75 +117,6 @@ export default function Chat({ route, navigation }) {
 
     askPermission();
   }, []);
-
-  useEffect(() => {
-    const loadUserSubscription = async () => {
-      if (!currentUser) return;
-
-      try {
-        const profilesRef = collection(db, "profiles");
-        const profileQuery = query(profilesRef, where("uid", "==", currentUser.uid));
-        const profileSnap = await getDocs(profileQuery);
-        
-        if (!profileSnap.empty) {
-          const userData = profileSnap.docs[0].data();
-          setAbonnement(userData.abonnement || "gratuit");
-          console.log("Abonnement utilisateur:", userData.abonnement || "gratuit");
-        }
-      } catch (error) {
-        console.log("Erreur chargement abonnement:", error);
-      }
-    };
-
-    loadUserSubscription();
-  }, []);
-
-  useEffect(() => {
-    if (!conversationId || !currentUser) return;
-
-    console.log("=== CHARGEMENT MESSAGES ===");
-    console.log("Conversation ID:", conversationId);
-
-    const messagesRef = collection(db, "conversations", conversationId, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log("Messages reçus:", snapshot.size);
-
-      let msgs = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      if (abonnement === "gratuit") {
-        const sixtyDaysAgo = new Date();
-        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-        msgs = msgs.filter((msg) => {
-          if (!msg.createdAt || !msg.createdAt.seconds) return true;
-          const msgDate = new Date(msg.createdAt.seconds * 1000);
-          return msgDate >= sixtyDaysAgo;
-        });
-
-        console.log(`Messages filtrés (60 jours) : ${msgs.length}`);
-      }
-
-      setMessages(msgs);
-
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    });
-
-    const conversationRef = doc(db, "conversations", conversationId);
-    updateDoc(conversationRef, {
-      [`unreadCount.${currentUser.uid}`]: 0,
-    }).catch((error) => {
-      console.log("Erreur reset unreadCount:", error);
-    });
-
-    return () => unsubscribe();
-  }, [conversationId, abonnement]);
 
   const sendPushNotification = async (token, title, body) => {
     try {
@@ -148,7 +135,6 @@ export default function Chat({ route, navigation }) {
           },
         }),
       });
-      console.log("Push notification envoyée");
     } catch (error) {
       console.log("Erreur notification push:", error);
     }
@@ -185,8 +171,6 @@ export default function Chat({ route, navigation }) {
           await sendPushNotification(token, `Nouveau message - ${dogName}`, messageText);
         }
       }
-
-      console.log("Message envoyé");
     } catch (error) {
       console.log("Erreur envoi message:", error);
       Alert.alert("Erreur", "Impossible d'envoyer le message");
@@ -209,7 +193,6 @@ export default function Chat({ route, navigation }) {
               messageId
             );
             await deleteDoc(messageRef);
-            console.log("Message supprimé");
           } catch (error) {
             console.log("Erreur suppression:", error);
           }
@@ -227,6 +210,20 @@ export default function Chat({ route, navigation }) {
     });
   };
 
+  // FILTRAGE 60 JOURS (AU RENDU)
+  const getFilteredMessages = () => {
+    if (abonnement !== "gratuit") return messages;
+
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    return messages.filter((msg) => {
+      if (!msg.createdAt || !msg.createdAt.seconds) return true;
+      const msgDate = new Date(msg.createdAt.seconds * 1000);
+      return msgDate >= sixtyDaysAgo;
+    });
+  };
+
   const renderItem = ({ item }) => {
     const fromMe = item.senderId === currentUser.uid;
 
@@ -238,31 +235,38 @@ export default function Chat({ route, navigation }) {
           fromMe ? styles.fromMe : styles.fromThem,
         ]}
       >
-        <Text style={styles.messageText}>{item.text}</Text>
-        <Text style={styles.timeText}>{formatTime(item.createdAt)}</Text>
-        {fromMe && <Text style={styles.deleteHint}>🗑️</Text>}
+        <Text style={[styles.messageText, !fromMe && { color: "#1A1A1D" }]}>
+          {item.text}
+        </Text>
+        <Text style={[styles.timeText, !fromMe && { color: "#6B7280" }]}>
+          {formatTime(item.createdAt)}
+        </Text>
       </TouchableOpacity>
     );
   };
+
+  const filteredMessages = getFilteredMessages();
 
   return (
     <ScreenLayout
       title={dogName || "Discussion"}
       navigation={navigation}
       active="chat"
+      showBack
     >
       <View style={styles.container}>
         {abonnement === "gratuit" && (
           <View style={styles.limitBanner}>
+            <MaterialCommunityIcons name="calendar-clock" size={16} color="#FF6B35" />
             <Text style={styles.historyText}>
-              📅 Historique : 60 jours (Gratuit)
+              Historique : 60 jours (Gratuit)
             </Text>
           </View>
         )}
 
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={filteredMessages}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesContainer}
@@ -286,14 +290,19 @@ export default function Chat({ route, navigation }) {
               maxLength={500}
             />
             <TouchableOpacity
-              style={[
-                styles.sendButton,
-                message.trim() === "" && styles.sendButtonDisabled,
-              ]}
+              style={styles.sendButtonContainer}
               onPress={handleSend}
               disabled={message.trim() === ""}
+              activeOpacity={0.8}
             >
-              <Text style={styles.sendText}>➤</Text>
+              <LinearGradient
+                colors={message.trim() === "" ? ["#D1D5DB", "#9CA3AF"] : ["#42A5F5", "#1976D2"]}
+                style={styles.sendButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <MaterialCommunityIcons name="send" size={20} color="#FFF" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -308,15 +317,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
   },
   limitBanner: {
-    backgroundColor: "#F5F5F7",
-    padding: 8,
+    flexDirection: "row",
+    backgroundColor: "#FEF3C7",
+    padding: 12,
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: "#F59E0B",
   },
   historyText: {
-    color: "#6B7280",
-    fontSize: 12,
+    color: "#92400E",
+    fontSize: 13,
+    fontWeight: "600",
   },
   messagesContainer: {
     padding: 12,
@@ -327,20 +340,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginVertical: 4,
     maxWidth: "75%",
-    position: "relative",
   },
   fromMe: {
-    backgroundColor: "#42A5F5",
     alignSelf: "flex-end",
     borderBottomRightRadius: 4,
   },
   fromThem: {
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#F5F5F7",
     alignSelf: "flex-start",
     borderBottomLeftRadius: 4,
   },
   messageText: {
-    color: "#fff",
+    color: "#FFF",
     fontSize: 16,
     marginBottom: 4,
   },
@@ -349,20 +360,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     alignSelf: "flex-end",
   },
-  deleteHint: {
-    position: "absolute",
-    top: 4,
-    right: 8,
-    fontSize: 12,
-    opacity: 0.5,
-  },
   inputContainer: {
     flexDirection: "row",
     padding: 12,
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
+    borderTopColor: "#E5E7EB",
     backgroundColor: "#FFF",
     alignItems: "flex-end",
+    gap: 8,
   },
   input: {
     flex: 1,
@@ -373,22 +378,15 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     fontSize: 16,
   },
+  sendButtonContainer: {
+    borderRadius: 22,
+    overflow: "hidden",
+  },
   sendButton: {
-    marginLeft: 8,
-    backgroundColor: "#42A5F5",
     width: 44,
     height: 44,
-    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-  },
-  sendButtonDisabled: {
-    backgroundColor: "#D1D5DB",
-  },
-  sendText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 20,
   },
   error: {
     color: "#1A1A1D",

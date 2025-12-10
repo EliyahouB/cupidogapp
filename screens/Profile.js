@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -11,192 +10,137 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
 import {
   collection,
   query,
   where,
   getDocs,
-  doc,
-  updateDoc,
-  addDoc,
 } from "firebase/firestore";
-import { db, storage } from "../config/firebase";
-import { signOut } from "firebase/auth";
-import { auth } from "../config/firebase";
+import { db, auth } from "../config/firebase";
 import { useNavigation } from "@react-navigation/native";
 import ScreenLayout from "../components/ScreenLayout";
+import PremiumBadge from "../components/PremiumBadge";
 
 export default function Profile() {
-  const [name, setName] = useState("");
-  const [city, setCity] = useState("");
-  const [gender, setGender] = useState("Homme");
-  const [bio, setBio] = useState("");
-  const [purpose, setPurpose] = useState("Saillie");
-  const [imageUri, setImageUri] = useState(null);
-  const [photoUrl, setPhotoUrl] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [profileId, setProfileId] = useState(null);
+  const [abonnement, setAbonnement] = useState("gratuit");
   const [nomadMode, setNomadMode] = useState(false);
   const [hideProfile, setHideProfile] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
-    const loadProfile = async () => {
-      const user = auth.currentUser;
-      
-      if (!user) {
-        setInitialLoading(false);
-        Alert.alert("Erreur", "Vous devez être connecté pour voir votre profil.");
-        return;
-      }
-
-      try {
-        const q = query(collection(db, "profiles"), where("uid", "==", user.uid));
-        const snapshot = await getDocs(q);
-
-        if (!snapshot.empty) {
-          const docData = snapshot.docs[0];
-          const data = docData.data();
-          setProfileId(docData.id);
-          setName(data.name || "");
-          setCity(data.city || "");
-          setGender(data.gender || "Homme");
-          setBio(data.bio || "");
-          setPurpose(data.purpose || "Saillie");
-          setPhotoUrl(data.photoUrl || null);
-          setImageUri(data.photoUrl || null);
-          setNomadMode(data.nomadMode || false);
-          setHideProfile(data.hideProfile || false);
-        }
-      } catch (error) {
-        console.error("Erreur chargement profil :", error);
-        Alert.alert("Erreur", "Impossible de charger votre profil.");
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-
     loadProfile();
   }, []);
 
-  const updateSetting = async (field, value) => {
-    if (!profileId) return;
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      loadProfile();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
-    try {
-      const profileRef = doc(db, "profiles", profileId);
-      await updateDoc(profileRef, { [field]: value });
-    } catch (error) {
-      console.error("Erreur de mise à jour :", error);
-      Alert.alert("Erreur", "Erreur lors de la mise à jour du paramètre.");
-    }
-  };
-
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        setImageUri(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error("Erreur sélection image :", error);
-      Alert.alert("Erreur", "Impossible de sélectionner l'image.");
-    }
-  };
-
-  const handleSave = async () => {
-    if (!name.trim() || !city.trim()) {
-      Alert.alert("Champs requis", "Veuillez remplir au moins le nom et la ville.");
+  const loadProfile = async () => {
+    const user = auth.currentUser;
+    
+    if (!user) {
+      setLoading(false);
+      Alert.alert("Erreur", "Vous devez être connecté.");
       return;
     }
 
-    setLoading(true);
-    let uploadedPhotoUrl = photoUrl;
-
     try {
-      if (imageUri && !imageUri.startsWith("https://")) {
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
-        const filename = `profilePhotos/${Date.now()}.jpg`;
-        const storageRef = ref(storage, filename);
-        await uploadBytes(storageRef, blob);
-        uploadedPhotoUrl = await getDownloadURL(storageRef);
-      }
+      const q = query(collection(db, "profiles"), where("uid", "==", user.uid));
+      const snapshot = await getDocs(q);
 
-      const user = auth.currentUser;
-      const data = {
-        uid: user.uid,
-        name,
-        city,
-        gender,
-        bio,
-        purpose,
-        photoUrl: uploadedPhotoUrl,
-        nomadMode,
-        hideProfile,
-        updatedAt: new Date(),
-      };
-
-      if (profileId) {
-        const profileRef = doc(db, "profiles", profileId);
-        await updateDoc(profileRef, data);
-        Alert.alert("Succès", "Profil mis à jour !");
-      } else {
-        const docRef = await addDoc(collection(db, "profiles"), {
-          ...data,
-          createdAt: new Date(),
-        });
-        setProfileId(docRef.id);
-        Alert.alert("Succès", "Profil enregistré !");
+      if (!snapshot.empty) {
+        const docData = snapshot.docs[0];
+        const data = docData.data();
+        setProfileId(docData.id);
+        setProfile(data);
+        setAbonnement(data.abonnement || "gratuit");
+        setNomadMode(data.nomadMode || false);
+        setHideProfile(data.hideProfile || false);
       }
     } catch (error) {
-      console.error("Erreur d'enregistrement :", error);
-      Alert.alert("Erreur", "Erreur lors de l'enregistrement.");
+      console.error("Erreur chargement profil :", error);
+      Alert.alert("Erreur", "Impossible de charger votre profil.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      "Déconnexion",
-      "Voulez-vous vraiment vous déconnecter ?",
-      [
-        {
-          text: "Annuler",
-          style: "cancel"
-        },
-        {
-          text: "Oui",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await signOut(auth);
-            } catch (error) {
-              console.error("Erreur déconnexion :", error);
-              Alert.alert("Erreur", "Impossible de se déconnecter.");
-            }
-          }
-        }
-      ]
-    );
+  const updateSetting = async (field, value) => {
+    if (!profileId) return;
+
+    try {
+      const { doc, updateDoc } = await import("firebase/firestore");
+      const profileRef = doc(db, "profiles", profileId);
+      await updateDoc(profileRef, { [field]: value });
+    } catch (error) {
+      console.error("Erreur de mise à jour :", error);
+      Alert.alert("Erreur", "Erreur lors de la mise à jour.");
+    }
   };
 
-  if (initialLoading) {
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "Non renseigné";
+    
+    try {
+      let date;
+      if (dateValue.toDate) {
+        date = dateValue.toDate();
+      } else if (dateValue instanceof Date) {
+        date = dateValue;
+      } else if (typeof dateValue === 'string') {
+        date = new Date(dateValue);
+      } else {
+        return "Non renseigné";
+      }
+
+      return date.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+    } catch {
+      return "Non renseigné";
+    }
+  };
+
+  const calculateAge = (dateValue) => {
+    if (!dateValue) return null;
+    
+    try {
+      let birthDate;
+      if (dateValue.toDate) {
+        birthDate = dateValue.toDate();
+      } else if (dateValue instanceof Date) {
+        birthDate = dateValue;
+      } else if (typeof dateValue === 'string') {
+        birthDate = new Date(dateValue);
+      } else {
+        return null;
+      }
+
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      return age;
+    } catch {
+      return null;
+    }
+  };
+
+  if (loading) {
     return (
       <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
         <View style={styles.loadingContainer}>
@@ -207,129 +151,213 @@ export default function Profile() {
     );
   }
 
+  if (!profile) {
+    return (
+      <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="account-off" size={80} color="#999" />
+          <Text style={styles.emptyText}>Profil introuvable</Text>
+        </View>
+      </ScreenLayout>
+    );
+  }
+
+  const age = calculateAge(profile.dateOfBirth);
+
   return (
     <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Mon Profil</Text>
-
-        <Text style={styles.label}>Photo de profil</Text>
-        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.profileImage} />
-          ) : (
-            <View style={styles.placeholderContainer}>
-              <MaterialCommunityIcons name="camera-plus" size={48} color="#999" />
-              <Text style={styles.imageText}>Ajouter une photo</Text>
+        
+        {/* HEADER PHOTO + NOM */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.photoContainer}
+            onPress={() => navigation.navigate("EditField", {
+              field: "photo",
+              title: "Photo de profil",
+              currentValue: profile.photoUrl,
+              profileId: profileId
+            })}
+          >
+            {profile.photoUrl ? (
+              <Image source={{ uri: profile.photoUrl }} style={styles.photo} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <MaterialCommunityIcons name="camera-plus" size={40} color="#1A1A1D" />
+              </View>
+            )}
+            <View style={styles.photoEditIcon}>
+              <MaterialCommunityIcons name="pencil" size={16} color="#FFF" />
             </View>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
 
-        <Text style={styles.label}>Prénom / Nom *</Text>
-        <TextInput 
-          style={styles.input} 
-          value={name} 
-          onChangeText={setName}
-          placeholder="Votre nom"
-          placeholderTextColor="#999"
-        />
-
-        <Text style={styles.label}>Ville *</Text>
-        <TextInput 
-          style={styles.input} 
-          value={city} 
-          onChangeText={setCity}
-          placeholder="Votre ville"
-          placeholderTextColor="#999"
-        />
-
-        <Text style={styles.label}>Sexe</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={gender}
-            onValueChange={(itemValue) => setGender(itemValue)}
-          >
-            <Picker.Item label="Homme" value="Homme" />
-            <Picker.Item label="Femme" value="Femme" />
-          </Picker>
-        </View>
-
-        <Text style={styles.label}>Bio / Description</Text>
-        <TextInput
-          style={[styles.input, styles.bioInput]}
-          value={bio}
-          onChangeText={setBio}
-          multiline
-          placeholder="Parlez-nous de vous..."
-          placeholderTextColor="#999"
-          textAlignVertical="top"
-        />
-
-        <Text style={styles.label}>But de l'inscription</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={purpose}
-            onValueChange={(itemValue) => setPurpose(itemValue)}
-          >
-            <Picker.Item label="Saillie" value="Saillie" />
-            <Picker.Item label="Adoption" value="Adoption" />
-            <Picker.Item label="Rencontre" value="Rencontre" />
-            <Picker.Item label="Vente" value="Vente" />
-            <Picker.Item label="Échange" value="Échange" />
-          </Picker>
-        </View>
-
-        <View style={styles.switchContainer}>
-          <View style={styles.switchLabelContainer}>
-            <Text style={styles.label}>Mode nomade</Text>
-            <Text style={styles.switchDescription}>
-              Afficher votre profil dans plusieurs villes
-            </Text>
+          <Text style={styles.name}>{profile.name || "Nom non renseigné"}</Text>
+          <View style={styles.badgeContainer}>
+            <PremiumBadge abonnement={abonnement} size="medium" />
           </View>
-          <Switch
-            value={nomadMode}
-            onValueChange={(value) => {
-              setNomadMode(value);
-              updateSetting("nomadMode", value);
-            }}
-            trackColor={{ false: "#767577", true: "#ff914d" }}
-            thumbColor={nomadMode ? "#fff" : "#f4f3f4"}
-          />
         </View>
 
-        <View style={styles.switchContainer}>
-          <View style={styles.switchLabelContainer}>
-            <Text style={styles.label}>Masquer mon profil</Text>
-            <Text style={styles.switchDescription}>
-              Votre profil ne sera plus visible par les autres
-            </Text>
-          </View>
-          <Switch
-            value={hideProfile}
-            onValueChange={(value) => {
-              setHideProfile(value);
-              updateSetting("hideProfile", value);
-            }}
-            trackColor={{ false: "#767577", true: "#ff914d" }}
-            thumbColor={hideProfile ? "#fff" : "#f4f3f4"}
-          />
-        </View>
-
-        <TouchableOpacity 
-          style={[styles.button, loading && styles.buttonDisabled]} 
-          onPress={handleSave} 
-          disabled={loading}
+        {/* BOUTON GÉRER ABONNEMENT */}
+        <TouchableOpacity
+          style={styles.abonnementButtonContainer}
+          onPress={() => navigation.navigate("Abonnements")}
+          activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Enregistrement..." : "Enregistrer"}
-          </Text>
+          <LinearGradient
+            colors={["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"]}
+            style={styles.abonnementButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="crown" size={20} color="#FFF" />
+            <Text style={styles.abonnementText}>Gérer mon abonnement</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <MaterialCommunityIcons name="logout" size={20} color="#fff" style={styles.logoutIcon} />
-          <Text style={styles.logoutText}>Se déconnecter</Text>
-        </TouchableOpacity>
+        {/* MENU LISTE */}
+        <View style={styles.menuList}>
+          <MenuItem
+            icon="account"
+            label="Identité"
+            value={profile.name}
+            onPress={() => navigation.navigate("EditField", {
+              field: "name",
+              title: "Identité",
+              currentValue: profile.name,
+              profileId: profileId
+            })}
+          />
+
+          <MenuItem
+            icon="map-marker"
+            label="Ville"
+            value={profile.city}
+            onPress={() => navigation.navigate("EditField", {
+              field: "city",
+              title: "Ville",
+              currentValue: profile.city,
+              profileId: profileId
+            })}
+          />
+
+          <MenuItem
+            icon="cake-variant"
+            label="Date de naissance"
+            value={formatDate(profile.dateOfBirth) + (age ? ` (${age} ans)` : "")}
+            onPress={() => navigation.navigate("EditField", {
+              field: "dateOfBirth",
+              title: "Date de naissance",
+              currentValue: profile.dateOfBirth,
+              profileId: profileId
+            })}
+          />
+
+          <MenuItem
+            icon="gender-male-female"
+            label="Sexe"
+            value={profile.gender}
+            onPress={() => navigation.navigate("EditField", {
+              field: "gender",
+              title: "Sexe",
+              currentValue: profile.gender,
+              profileId: profileId
+            })}
+          />
+
+          <MenuItem
+            icon="text"
+            label="Bio"
+            value={profile.bio}
+            onPress={() => navigation.navigate("EditField", {
+              field: "bio",
+              title: "Bio / Description",
+              currentValue: profile.bio,
+              profileId: profileId
+            })}
+          />
+
+          <MenuItem
+            icon="target"
+            label="But de l'inscription"
+            value={profile.purpose}
+            onPress={() => navigation.navigate("EditField", {
+              field: "purpose",
+              title: "But de l'inscription",
+              currentValue: profile.purpose,
+              profileId: profileId
+            })}
+            hideBorder
+          />
+        </View>
+
+        {/* SWITCHS */}
+        <View style={styles.switchSection}>
+          <View style={styles.switchItem}>
+            <View style={styles.switchContent}>
+              <MaterialCommunityIcons name="map-marker-multiple" size={24} color="#FF6B35" />
+              <View style={styles.switchText}>
+                <Text style={styles.switchLabel}>Mode nomade</Text>
+                <Text style={styles.switchDescription}>
+                  Afficher votre profil dans plusieurs villes
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={nomadMode}
+              onValueChange={(value) => {
+                setNomadMode(value);
+                updateSetting("nomadMode", value);
+              }}
+              trackColor={{ false: "#E5E7EB", true: "#FF6B35" }}
+              thumbColor="#FFF"
+            />
+          </View>
+          <View style={styles.separator} />
+
+          <View style={styles.switchItem}>
+            <View style={styles.switchContent}>
+              <MaterialCommunityIcons name="eye-off" size={24} color="#FF6B35" />
+              <View style={styles.switchText}>
+                <Text style={styles.switchLabel}>Masquer mon profil</Text>
+                <Text style={styles.switchDescription}>
+                  Votre profil ne sera plus visible par les autres
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={hideProfile}
+              onValueChange={(value) => {
+                setHideProfile(value);
+                updateSetting("hideProfile", value);
+              }}
+              trackColor={{ false: "#E5E7EB", true: "#FF6B35" }}
+              thumbColor="#FFF"
+            />
+          </View>
+        </View>
+
       </ScrollView>
     </ScreenLayout>
+  );
+}
+
+function MenuItem({ icon, label, value, onPress, hideBorder }) {
+  return (
+    <>
+      <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+        <View style={styles.menuLeft}>
+          <MaterialCommunityIcons name={icon} size={24} color="#FF6B35" />
+          <View style={styles.menuText}>
+            <Text style={styles.menuLabel}>{label}</Text>
+            <Text style={styles.menuValue} numberOfLines={1}>
+              {value || "Non renseigné"}
+            </Text>
+          </View>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+      </TouchableOpacity>
+      {!hideBorder && <View style={styles.separator} />}
+    </>
   );
 }
 
@@ -340,126 +368,155 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#fff",
+    color: "#6B7280",
     marginTop: 12,
     fontSize: 16,
   },
-  container: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 24,
-    textAlign: "center",
-  },
-  label: {
-    fontSize: 16,
-    color: "#fff",
-    marginBottom: 6,
-    marginTop: 12,
-    fontWeight: "600",
-  },
-  input: {
-    backgroundColor: "#fff",
-    color: "#1a1a1a",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    fontSize: 15,
-  },
-  bioInput: {
-    height: 100,
-    paddingTop: 12,
-  },
-  pickerWrapper: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  imagePicker: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    height: 160,
+  emptyContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "#ddd",
-    borderStyle: "dashed",
+    padding: 40,
   },
-  placeholderContainer: {
-    alignItems: "center",
-  },
-  imageText: {
-    color: "#666",
-    marginTop: 8,
-    fontSize: 14,
-  },
-  profileImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-  },
-  switchContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  emptyText: {
+    color: "#6B7280",
+    fontSize: 16,
     marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 8,
   },
-  switchLabelContainer: {
+  container: {
+    paddingBottom: 100,
+  },
+  header: {
+    alignItems: "center",
+    paddingVertical: 24,
+  },
+  photoContainer: {
+    position: "relative",
+    marginBottom: 16,
+  },
+  photo: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: "#FF6B35",
+  },
+  photoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#E5E7EB",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#FF6B35",
+  },
+  photoEditIcon: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    backgroundColor: "#FF6B35",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#FFF",
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#003366",
+    marginBottom: 8,
+  },
+  badgeContainer: {
+    marginTop: 4,
+  },
+  abonnementButtonContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
+    marginHorizontal: 16,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  abonnementButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    gap: 8,
+  },
+  abonnementText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  menuList: {
+    marginBottom: 24,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  menuLeft: {
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
-    marginRight: 12,
+    gap: 12,
+  },
+  menuText: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+  menuValue: {
+    fontSize: 16,
+    color: "#003366",
+    fontWeight: "500",
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginLeft: 52,
+  },
+  switchSection: {
+    paddingTop: 8,
+  },
+  switchItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  switchContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 12,
+  },
+  switchText: {
+    flex: 1,
+  },
+  switchLabel: {
+    fontSize: 16,
+    color: "#003366",
+    fontWeight: "600",
+    marginBottom: 4,
   },
   switchDescription: {
     fontSize: 12,
-    color: "#ccc",
-    marginTop: 2,
-  },
-  button: {
-    backgroundColor: "#ff914d",
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 32,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  buttonDisabled: {
-    backgroundColor: "#999",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 17,
-  },
-  logoutButton: {
-    flexDirection: "row",
-    backgroundColor: "#d32f2f",
-    padding: 14,
-    borderRadius: 12,
-    marginTop: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoutIcon: {
-    marginRight: 8,
-  },
-  logoutText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#6B7280",
   },
 });

@@ -8,6 +8,8 @@ import {
   TextInput,
   Alert
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
 import { collection, addDoc } from "firebase/firestore";
@@ -62,17 +64,13 @@ export default function Support({ navigation }) {
   return (
     <ScreenLayout title="Support" navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Support CupiDog</Text>
-        <Text style={styles.description}>
-          Besoin d'aide ? Notre équipe est là pour vous accompagner. Remplissez le formulaire ci-dessous et nous vous répondrons rapidement.
-        </Text>
-
+        
         <View style={styles.form}>
           <Text style={styles.label}>Votre nom</Text>
           <TextInput
             style={styles.input}
             placeholder="Nom complet"
-            placeholderTextColor="#888"
+            placeholderTextColor="#999"
             value={name}
             onChangeText={setName}
           />
@@ -81,7 +79,7 @@ export default function Support({ navigation }) {
           <TextInput
             style={styles.input}
             placeholder="email@exemple.com"
-            placeholderTextColor="#888"
+            placeholderTextColor="#999"
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -92,37 +90,45 @@ export default function Support({ navigation }) {
           <TextInput
             style={[styles.input, styles.messageInput]}
             placeholder="Décrivez votre problème ou votre question..."
-            placeholderTextColor="#888"
+            placeholderTextColor="#999"
             multiline
             numberOfLines={6}
             textAlignVertical="top"
             value={message}
             onChangeText={setMessage}
           />
-
-          <TouchableOpacity 
-            style={[styles.sendButton, sending && styles.sendButtonDisabled]}
-            onPress={handleSendMessage}
-            disabled={sending}
-          >
-            <Text style={styles.sendButtonText}>
-              {sending ? "Envoi en cours..." : "📨 Envoyer le message"}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>💡 Avant de nous contacter</Text>
-          <Text style={styles.infoText}>
-            • Consultez notre Centre d'aide pour les questions fréquentes
-          </Text>
-          <Text style={styles.infoText}>
-            • Vérifiez votre connexion internet
-          </Text>
-          <Text style={styles.infoText}>
-            • Nous répondons généralement sous 24-48h
-          </Text>
+          <View style={styles.infoHeader}>
+            <MaterialCommunityIcons name="information" size={20} color="#FF6B35" />
+            <Text style={styles.infoTitle}>Avant de nous contacter</Text>
+          </View>
+          <Text style={styles.infoText}>• Consultez notre Centre d'aide</Text>
+          <Text style={styles.infoText}>• Vérifiez votre connexion internet</Text>
+          <Text style={styles.infoText}>• Réponse sous 24-48h</Text>
         </View>
+
+        {/* BOUTON ENVOYER */}
+        <TouchableOpacity
+          style={styles.sendButtonContainer}
+          onPress={handleSendMessage}
+          disabled={sending}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={sending ? ["#9CA3AF", "#6B7280"] : ["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"]}
+            style={styles.sendButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="send" size={20} color="#FFF" />
+            <Text style={styles.sendButtonText}>
+              {sending ? "Envoi en cours..." : "Envoyer le message"}
+            </Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
       </ScrollView>
     </ScreenLayout>
   );
@@ -130,76 +136,76 @@ export default function Support({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 15,
-    color: "#ccc",
-    marginBottom: 24,
-    lineHeight: 22,
+    padding: 16,
+    paddingBottom: 40,
   },
   form: {
     marginBottom: 24,
   },
   label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#003366",
     marginBottom: 8,
-    marginTop: 12,
+    marginTop: 16,
   },
   input: {
-    backgroundColor: "#2a2a2a",
-    color: "#fff",
+    backgroundColor: "#FFF",
+    color: "#1A1A1D",
     padding: 14,
-    borderRadius: 8,
+    borderRadius: 12,
     fontSize: 15,
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#E5E7EB",
   },
   messageInput: {
     height: 120,
     paddingTop: 14,
   },
-  sendButton: {
-    backgroundColor: "#ff914d",
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 20,
-  },
-  sendButtonDisabled: {
-    backgroundColor: "#666",
-  },
-  sendButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
   infoBox: {
-    backgroundColor: "#2a2a2a",
+    backgroundColor: "#FEF3C7",
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: "#ff914d",
+    borderLeftColor: "#FF6B35",
+    marginBottom: 24,
+  },
+  infoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
   },
   infoTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 12,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#003366",
   },
   infoText: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#6B7280",
     marginBottom: 6,
     lineHeight: 20,
+  },
+  sendButtonContainer: {
+    borderRadius: 28,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  sendButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 8,
+  },
+  sendButtonText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

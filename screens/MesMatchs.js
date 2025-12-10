@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { auth, db } from "../config/firebase";
 import {
   collection,
@@ -23,12 +24,14 @@ import {
 } from "firebase/firestore";
 import ScreenLayout from "../components/ScreenLayout";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import PremiumBadge from "../components/PremiumBadge";
 
 export default function MesMatchs({ navigation, embedded = false }) {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("list");
   const [filter, setFilter] = useState("all");
+  const [usersAbonnements, setUsersAbonnements] = useState({});
 
   useEffect(() => {
     fetchLikes();
@@ -54,6 +57,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
       }
 
       const allLikes = [];
+      const userIds = new Set();
 
       for (const dogId of myDogIds) {
         const likesRef = collection(db, "likes");
@@ -72,6 +76,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
 
           if (!profileSnap.empty) {
             const profileData = profileSnap.docs[0].data();
+            userIds.add(likeData.fromUserId);
 
             const fromUserDogsRef = collection(db, "users", likeData.fromUserId, "dogs");
             const fromUserDogsSnap = await getDocs(fromUserDogsRef);
@@ -103,6 +108,20 @@ export default function MesMatchs({ navigation, embedded = false }) {
           }
         }
       }
+
+      // Charger les abonnements des utilisateurs
+      const usersAbonnementsMap = {};
+      const profilesQuery = collection(db, "profiles");
+      const allProfiles = await getDocs(profilesQuery);
+      
+      allProfiles.forEach((profileDoc) => {
+        const profileData = profileDoc.data();
+        if (userIds.has(profileData.uid)) {
+          usersAbonnementsMap[profileData.uid] = profileData.abonnement || "gratuit";
+        }
+      });
+
+      setUsersAbonnements(usersAbonnementsMap);
 
       allLikes.sort((a, b) => {
         const dateA = a.createdAt?.seconds || 0;
@@ -233,7 +252,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
         <Image source={{ uri: item.dogPhoto }} style={styles.dogImage} />
       ) : (
         <View style={styles.dogImagePlaceholder}>
-          <MaterialCommunityIcons name="dog" size={40} color="#aaa" />
+          <MaterialCommunityIcons name="dog" size={40} color="#9CA3AF" />
         </View>
       )}
       <View style={styles.groupedInfo}>
@@ -250,68 +269,135 @@ export default function MesMatchs({ navigation, embedded = false }) {
       <MaterialCommunityIcons
         name="chevron-right"
         size={28}
-        color="#ff914d"
+        color="#FF6B35"
       />
     </TouchableOpacity>
   );
 
-  const renderListItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.card, !item.isRead && styles.cardUnread]}
-      onPress={() => markAsRead(item.id)}
-      onLongPress={() => handleDeleteLike(item.id)}
-    >
-      <View style={styles.leftSection}>
-        {item.fromUserPhoto ? (
-          <Image
-            source={{ uri: item.fromUserPhoto }}
-            style={styles.profileImage}
-          />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <MaterialCommunityIcons name="account" size={30} color="#aaa" />
-          </View>
-        )}
-        {!item.isRead && <View style={styles.newIndicator} />}
-      </View>
+  const renderListItem = ({ item }) => {
+    const userAbonnement = usersAbonnements[item.fromUserId] || "gratuit";
 
-      <View style={styles.info}>
-        <Text style={styles.name}>{item.fromUserName}</Text>
-        <Text style={styles.city}>{item.fromUserCity}</Text>
-        <View style={styles.likedDogContainer}>
-          <Text style={styles.likedDog}>A like : </Text>
-          <Text style={styles.dogName}>{item.likedDogName}</Text>
-        </View>
-      </View>
-
-      <View style={styles.actions}>
-        {!item.hasLikedBack && (
-          <TouchableOpacity
-            style={styles.likeBackButton}
-            onPress={() => handleLikeBack(item)}
-          >
-            <MaterialCommunityIcons name="heart" size={20} color="#fff" />
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={styles.chatButton}
-          onPress={() =>
-            navigation.navigate("Chat", {
-              ownerId: item.fromUserId,
-              dogName: item.fromUserName,
-            })
+    const handleOpenChat = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        
+        // Cherche conversation existante
+        const conversationsRef = collection(db, "conversations");
+        const q = query(
+          conversationsRef,
+          where("participants", "array-contains", currentUser.uid)
+        );
+        const conversationsSnap = await getDocs(q);
+        
+        let conversationId = null;
+        
+        // Trouve conversation avec cet utilisateur
+        conversationsSnap.forEach((doc) => {
+          const data = doc.data();
+          if (data.participants.includes(item.fromUserId)) {
+            conversationId = doc.id;
           }
-        >
-          <MaterialCommunityIcons
-            name="chat-outline"
-            size={20}
-            color="#fff"
-          />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
+        });
+        
+        // Si pas de conversation, créer
+        if (!conversationId) {
+          const newConvRef = await addDoc(collection(db, "conversations"), {
+            participants: [currentUser.uid, item.fromUserId],
+            createdAt: new Date(),
+            lastMessage: "",
+            lastMessageTime: new Date(),
+            unreadCount: {
+              [currentUser.uid]: 0,
+              [item.fromUserId]: 0,
+            },
+            dogName: item.fromUserName,
+            dogPhotoUrl: item.fromUserPhoto,
+          });
+          conversationId = newConvRef.id;
+        }
+        
+        // Navigation avec bons params
+        navigation.navigate("Chat", {
+          conversationId: conversationId,
+          otherUserId: item.fromUserId,
+          dogName: item.fromUserName,
+        });
+      } catch (error) {
+        console.error("Erreur ouverture chat:", error);
+        Alert.alert("Erreur", "Impossible d'ouvrir la conversation");
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        style={[styles.card, !item.isRead && styles.cardUnread]}
+        onPress={() => markAsRead(item.id)}
+        onLongPress={() => handleDeleteLike(item.id)}
+      >
+        <View style={styles.leftSection}>
+          {item.fromUserPhoto ? (
+            <Image
+              source={{ uri: item.fromUserPhoto }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="account" size={30} color="#9CA3AF" />
+            </View>
+          )}
+          {!item.isRead && <View style={styles.newIndicator} />}
+        </View>
+
+        <View style={styles.info}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>{item.fromUserName}</Text>
+            <PremiumBadge abonnement={userAbonnement} size="small" />
+          </View>
+          <Text style={styles.city}>{item.fromUserCity}</Text>
+          <View style={styles.likedDogContainer}>
+            <Text style={styles.likedDog}>A like : </Text>
+            <Text style={styles.dogName}>{item.likedDogName}</Text>
+          </View>
+        </View>
+
+        <View style={styles.actions}>
+          {!item.hasLikedBack && (
+            <TouchableOpacity
+              style={styles.actionButtonContainer}
+              onPress={() => handleLikeBack(item)}
+            >
+              <LinearGradient
+                colors={["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"]}
+                style={styles.actionButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <MaterialCommunityIcons name="heart" size={20} color="#FFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            style={styles.actionButtonContainer}
+            onPress={handleOpenChat}
+          >
+            <LinearGradient
+              colors={["#42A5F5", "#1976D2"]}
+              style={styles.actionButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialCommunityIcons
+                name="chat"
+                size={20}
+                color="#FFF"
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const filteredLikes = getFilteredLikes();
   const groupedLikes = getGroupedLikes();
@@ -324,14 +410,14 @@ export default function MesMatchs({ navigation, embedded = false }) {
       <>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#ff914d" />
-            <Text style={[styles.loadingText, { color: "#6B7280" }]}>Chargement...</Text>
+            <ActivityIndicator size="large" color="#FF6B35" />
+            <Text style={styles.loadingText}>Chargement...</Text>
           </View>
         ) : likes.length === 0 ? (
           <View style={styles.empty}>
             <MaterialCommunityIcons name="heart-outline" size={80} color="#D1D5DB" />
-            <Text style={[styles.emptyText, { color: "#1A1A1D" }]}>Aucun like pour le moment</Text>
-            <Text style={[styles.emptySubtext, { color: "#6B7280" }]}>
+            <Text style={styles.emptyText}>Aucun like pour le moment</Text>
+            <Text style={styles.emptySubtext}>
               Partagez vos chiens pour recevoir des likes !
             </Text>
           </View>
@@ -366,7 +452,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                   <MaterialCommunityIcons
                     name="view-list"
                     size={24}
-                    color={viewMode === "list" ? "#ff914d" : "#aaa"}
+                    color={viewMode === "list" ? "#FF6B35" : "#9CA3AF"}
                   />
                 </TouchableOpacity>
 
@@ -377,7 +463,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                   <MaterialCommunityIcons
                     name="view-grid"
                     size={24}
-                    color={viewMode === "grouped" ? "#ff914d" : "#aaa"}
+                    color={viewMode === "grouped" ? "#FF6B35" : "#9CA3AF"}
                   />
                 </TouchableOpacity>
               </View>
@@ -409,12 +495,12 @@ export default function MesMatchs({ navigation, embedded = false }) {
     <ScreenLayout title={titleText} navigation={navigation} active="likes">
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#ff914d" />
+          <ActivityIndicator size="large" color="#FF6B35" />
           <Text style={styles.loadingText}>Chargement...</Text>
         </View>
       ) : likes.length === 0 ? (
         <View style={styles.empty}>
-          <MaterialCommunityIcons name="heart-outline" size={80} color="#444" />
+          <MaterialCommunityIcons name="heart-outline" size={80} color="#D1D5DB" />
           <Text style={styles.emptyText}>Aucun like pour le moment</Text>
           <Text style={styles.emptySubtext}>
             Partagez vos chiens pour recevoir des likes !
@@ -451,7 +537,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                 <MaterialCommunityIcons
                   name="view-list"
                   size={24}
-                  color={viewMode === "list" ? "#ff914d" : "#aaa"}
+                  color={viewMode === "list" ? "#FF6B35" : "#9CA3AF"}
                 />
               </TouchableOpacity>
 
@@ -462,7 +548,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                 <MaterialCommunityIcons
                   name="view-grid"
                   size={24}
-                  color={viewMode === "grouped" ? "#ff914d" : "#aaa"}
+                  color={viewMode === "grouped" ? "#FF6B35" : "#9CA3AF"}
                 />
               </TouchableOpacity>
             </View>
@@ -496,7 +582,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#fff",
+    color: "#6B7280",
     marginTop: 12,
     fontSize: 16,
   },
@@ -509,14 +595,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1A1A1D",
     marginTop: 16,
     marginBottom: 8,
     textAlign: "center",
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#6B7280",
     textAlign: "center",
   },
   controls: {
@@ -524,7 +610,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 12,
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#F9FAFB",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   filterButtons: {
     flexDirection: "row",
@@ -534,18 +622,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: "#333",
+    backgroundColor: "#E5E7EB",
   },
   filterButtonActive: {
-    backgroundColor: "#ff914d",
+    backgroundColor: "#FF6B35",
   },
   filterText: {
-    color: "#aaa",
+    color: "#6B7280",
     fontSize: 14,
     fontWeight: "600",
   },
   filterTextActive: {
-    color: "#fff",
+    color: "#FFF",
   },
   viewModeButtons: {
     flexDirection: "row",
@@ -554,10 +642,10 @@ const styles = StyleSheet.create({
   viewModeButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: "#333",
+    backgroundColor: "#E5E7EB",
   },
   viewModeButtonActive: {
-    backgroundColor: "#444",
+    backgroundColor: "#FFF",
   },
   list: {
     padding: 16,
@@ -565,15 +653,20 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: "row",
-    backgroundColor: "#222",
+    backgroundColor: "#F5F5F7",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   cardUnread: {
     borderLeftWidth: 4,
-    borderLeftColor: "#ff914d",
+    borderLeftColor: "#FF6B35",
   },
   leftSection: {
     marginRight: 12,
@@ -588,7 +681,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "#444",
+    backgroundColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -599,22 +692,27 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#ff914d",
+    backgroundColor: "#FF6B35",
     borderWidth: 2,
-    borderColor: "#222",
+    borderColor: "#F5F5F7",
   },
   info: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 2,
+  },
   name: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 2,
+    color: "#1A1A1D",
   },
   city: {
     fontSize: 13,
-    color: "#aaa",
+    color: "#6B7280",
     marginBottom: 4,
   },
   likedDogContainer: {
@@ -623,40 +721,39 @@ const styles = StyleSheet.create({
   },
   likedDog: {
     fontSize: 13,
-    color: "#ccc",
+    color: "#6B7280",
   },
   dogName: {
     fontSize: 13,
     fontWeight: "bold",
-    color: "#ff914d",
+    color: "#FF6B35",
   },
   actions: {
     flexDirection: "row",
     gap: 8,
   },
-  likeBackButton: {
-    backgroundColor: "#ff914d",
-    width: 40,
-    height: 40,
+  actionButtonContainer: {
     borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
+    overflow: "hidden",
   },
-  chatButton: {
-    backgroundColor: "#42A5F5",
+  actionButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
   },
   groupedCard: {
     flexDirection: "row",
-    backgroundColor: "#222",
+    backgroundColor: "#F5F5F7",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   dogImage: {
     width: 70,
@@ -668,7 +765,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 12,
-    backgroundColor: "#444",
+    backgroundColor: "#E5E7EB",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -679,15 +776,15 @@ const styles = StyleSheet.create({
   groupedDogName: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1A1A1D",
     marginBottom: 4,
   },
   groupedCount: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#6B7280",
   },
   unreadBadge: {
-    backgroundColor: "#ff914d",
+    backgroundColor: "#FF6B35",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -695,7 +792,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   unreadText: {
-    color: "#fff",
+    color: "#FFF",
     fontSize: 12,
     fontWeight: "bold",
   },

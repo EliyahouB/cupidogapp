@@ -8,14 +8,16 @@ import {
   ScrollView,
   Image,
   Alert,
+  Modal,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db, storage } from "../config/firebase";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
 
 const DOG_BREEDS = [
   "Akita Inu",
@@ -86,7 +88,15 @@ export default function ModifierChien({ route, navigation }) {
   const [imageUris, setImageUris] = useState([null, null, null, null]);
   const [loading, setLoading] = useState(false);
 
+  // NOUVEAUX ÉTATS POUR LE MUR PAYANT
+  const [abonnement, setAbonnement] = useState("gratuit");
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [originalPurpose, setOriginalPurpose] = useState(dog.purpose || "Rencontre");
+
   useEffect(() => {
+    // Charge l'abonnement
+    loadUserAbonnement();
+
     // Charge les photos existantes
     if (dog.photoUrls && dog.photoUrls.length > 0) {
       const existingPhotos = [...dog.photoUrls];
@@ -104,6 +114,36 @@ export default function ModifierChien({ route, navigation }) {
       setCustomBreed(dog.breed);
     }
   }, []);
+
+  const loadUserAbonnement = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const profilesRef = collection(db, "profiles");
+      const q = query(profilesRef, where("uid", "==", user.uid));
+      const profileSnap = await getDocs(q);
+      
+      if (!profileSnap.empty) {
+        const profileData = profileSnap.docs[0].data();
+        setAbonnement(profileData.abonnement || "gratuit");
+      }
+    } catch (error) {
+      console.log("Erreur chargement abonnement:", error);
+    }
+  };
+
+  // VÉRIFIER LE MUR PAYANT QUAND L'UTILISATEUR CHANGE LE BUT
+  const handlePurposeChange = (newPurpose) => {
+    // SI CHANGEMENT VERS VENTE OU SAILLIE + ABONNEMENT GRATUIT → BLOQUER
+    if ((newPurpose === "Vente" || newPurpose === "Saillie") && abonnement === "gratuit") {
+      setShowPaywall(true);
+      // Remettre sur le but original
+      setTimeout(() => setPurpose(originalPurpose), 100);
+    } else {
+      setPurpose(newPurpose);
+    }
+  };
 
   const chooseImageSource = (index) => {
     Alert.alert(
@@ -192,11 +232,9 @@ export default function ModifierChien({ route, navigation }) {
       
       for (let i = 0; i < imageUris.length; i++) {
         if (imageUris[i]) {
-          // Si c'est une URL existante (commence par https://), on la garde
           if (imageUris[i].startsWith("https://")) {
             photoUrls.push(imageUris[i]);
           } else {
-            // Sinon, c'est une nouvelle photo locale, on l'upload
             const response = await fetch(imageUris[i]);
             const blob = await response.blob();
             const filename = "dogs/" + user.uid + "/" + Date.now() + "_" + i + ".jpg";
@@ -373,7 +411,7 @@ export default function ModifierChien({ route, navigation }) {
         <View style={styles.pickerWrapperSmall}>
           <Picker
             selectedValue={purpose}
-            onValueChange={(itemValue) => setPurpose(itemValue)}
+            onValueChange={handlePurposeChange}
           >
             <Picker.Item label="Rencontre" value="Rencontre" />
             <Picker.Item label="Vente" value="Vente" />
@@ -440,6 +478,74 @@ export default function ModifierChien({ route, navigation }) {
           <Text style={styles.deleteButtonText}>🗑️ Supprimer ce chien</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* MODAL MUR PAYANT */}
+      <Modal
+        visible={showPaywall}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPaywall(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalIconGradient}
+              >
+                <MaterialCommunityIcons name="crown" size={40} color="#FFF" />
+              </LinearGradient>
+            </View>
+
+            <Text style={styles.modalTitle}>Fonctionnalité Premium</Text>
+            <Text style={styles.modalText}>
+              La vente et la saillie sont réservées aux abonnés Premium.
+            </Text>
+
+            <View style={styles.modalPricing}>
+              <View style={styles.priceBox}>
+                <Text style={styles.priceLabel}>⭐ Premium</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceStrike}>59₪</Text>
+                  <Text style={styles.pricePromo}>49₪/mois</Text>
+                </View>
+                <Text style={styles.priceSubtext}>🎁 Offre de lancement</Text>
+              </View>
+
+              <View style={styles.priceBox}>
+                <Text style={styles.priceLabel}>👑 Premium+</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceStrike}>139₪</Text>
+                  <Text style={styles.pricePromo}>119₪/mois</Text>
+                </View>
+                <Text style={styles.priceSubtext}>🎁 Offre de lancement</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={() => {
+                setShowPaywall(false);
+                navigation.navigate("Abonnements");
+              }}
+            >
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalButtonGradient}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonSecondary}
+              onPress={() => setShowPaywall(false)}
+            >
+              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 }
@@ -550,5 +656,107 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  // STYLES MODAL
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+  },
+  modalIconContainer: {
+    marginBottom: 20,
+  },
+  modalIconGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1A1A1D",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  modalPricing: {
+    width: "100%",
+    marginBottom: 24,
+    gap: 12,
+  },
+  priceBox: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  priceLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1A1A1D",
+    marginBottom: 8,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  priceStrike: {
+    fontSize: 16,
+    color: "#9CA3AF",
+    textDecorationLine: "line-through",
+  },
+  pricePromo: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#E91E63",
+  },
+  priceSubtext: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  modalButtonPrimary: {
+    width: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  modalButtonGradient: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  modalButtonTextPrimary: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalButtonSecondary: {
+    paddingVertical: 12,
+  },
+  modalButtonTextSecondary: {
+    color: "#6B7280",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

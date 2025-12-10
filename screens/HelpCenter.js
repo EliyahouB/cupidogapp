@@ -1,130 +1,135 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 
 export default function HelpCenter({ navigation }) {
   return (
     <ScreenLayout title="Centre d'aide" navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Centre d'aide</Text>
-        <Text style={styles.description}>
-          Bienvenue dans le centre d'aide de CupiDog. Retrouvez ici les réponses aux questions
-          fréquentes, des conseils d'utilisation, et des ressources pour vous accompagner.
-        </Text>
-
-        <TouchableOpacity 
-          style={styles.button}
+        
+        {/* MENU ACTIONS */}
+        <MenuItem
+          icon="message-text"
+          label="Contacter le support"
           onPress={() => navigation.navigate("Support")}
-        >
-          <Text style={styles.buttonText}>💬 Contacter le support</Text>
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity 
-          style={styles.button}
+        <MenuItem
+          icon="file-document"
+          label="Conditions générales d'utilisation"
           onPress={() => navigation.navigate("Terms")}
-        >
-          <Text style={styles.buttonText}>📄 Conditions générales d'utilisation</Text>
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity 
-          style={styles.button}
+        <MenuItem
+          icon="shield-lock"
+          label="Politique de confidentialité"
           onPress={() => navigation.navigate("PrivacyPolicy")}
-        >
-          <Text style={styles.buttonText}>🔐 Politique de confidentialité</Text>
-        </TouchableOpacity>
+          hideBorder
+        />
 
-        <View style={styles.faqSection}>
-          <Text style={styles.faqTitle}>❓ Questions fréquentes</Text>
-          
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Comment ajouter mon chien ?</Text>
-            <Text style={styles.faqAnswer}>
-              Cliquez sur l'icône patte 🐾 dans la barre de navigation, puis remplissez les informations de votre chien.
-            </Text>
-          </View>
+        {/* FAQ */}
+        <Text style={styles.sectionTitle}>Questions fréquentes</Text>
 
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Comment fonctionne le système de match ?</Text>
-            <Text style={styles.faqAnswer}>
-              Lorsque vous likez un chien et que son propriétaire vous like en retour, c'est un match ! Vous pouvez alors discuter.
-            </Text>
-          </View>
+        <FAQItem
+          question="Comment ajouter mon chien ?"
+          answer="Cliquez sur l'icône patte 🐾 dans la barre de navigation, puis remplissez les informations de votre chien."
+        />
 
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Comment contacter un autre utilisateur ?</Text>
-            <Text style={styles.faqAnswer}>
-              Après un match, utilisez l'icône message 💬 pour ouvrir une conversation.
-            </Text>
-          </View>
+        <FAQItem
+          question="Comment fonctionne le système de match ?"
+          answer="Lorsque vous likez un chien et que son propriétaire vous like en retour, c'est un match ! Vous pouvez alors discuter."
+        />
 
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Comment changer mes paramètres ?</Text>
-            <Text style={styles.faqAnswer}>
-              Allez dans Profil › Réglages pour personnaliser vos préférences.
-            </Text>
-          </View>
-        </View>
+        <FAQItem
+          question="Comment contacter un autre utilisateur ?"
+          answer="Après un match, utilisez l'icône message 💬 pour ouvrir une conversation."
+        />
+
+        <FAQItem
+          question="Comment changer mes paramètres ?"
+          answer="Allez dans Profil › Réglages pour personnaliser vos préférences."
+        />
+
       </ScrollView>
     </ScreenLayout>
   );
 }
 
+function MenuItem({ icon, label, onPress, hideBorder }) {
+  return (
+    <>
+      <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+        <View style={styles.menuLeft}>
+          <MaterialCommunityIcons name={icon} size={24} color="#FF6B35" />
+          <Text style={styles.menuLabel}>{label}</Text>
+        </View>
+        <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+      </TouchableOpacity>
+      {!hideBorder && <View style={styles.separator} />}
+    </>
+  );
+}
+
+function FAQItem({ question, answer }) {
+  return (
+    <View style={styles.faqItem}>
+      <Text style={styles.faqQuestion}>{question}</Text>
+      <Text style={styles.faqAnswer}>{answer}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 15,
-    color: "#ccc",
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  button: {
-    backgroundColor: "#ff914d",
-    paddingVertical: 14,
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    borderRadius: 8,
-    marginBottom: 12,
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
+  menuLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 12,
+  },
+  menuLabel: {
     fontSize: 16,
+    color: "#003366",
+    fontWeight: "600",
   },
-  faqSection: {
-    marginTop: 32,
-    borderTopWidth: 1,
-    borderTopColor: "#444",
-    paddingTop: 24,
+  separator: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginLeft: 52,
   },
-  faqTitle: {
-    fontSize: 20,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#003366",
+    paddingHorizontal: 16,
+    marginTop: 32,
     marginBottom: 16,
   },
   faqItem: {
-    marginBottom: 20,
-    backgroundColor: "#2a2a2a",
-    padding: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
   faqQuestion: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#ff914d",
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#003366",
     marginBottom: 8,
   },
   faqAnswer: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#fefeffff",
     lineHeight: 20,
   },
 });

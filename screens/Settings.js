@@ -8,11 +8,14 @@ import {
   Alert,
   ScrollView,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
-import { deleteUser } from "firebase/auth";
+import { deleteUser, signOut } from "firebase/auth";
 import { collection, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import { removeUserId } from "../utils/authStorage";
 
 export default function Settings() {
   const navigation = useNavigation();
@@ -51,6 +54,29 @@ export default function Settings() {
     } catch {
       Alert.alert("Erreur", "Impossible de mettre à jour les réglages.");
     }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Déconnexion",
+      "Voulez-vous vraiment vous déconnecter ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Oui",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeUserId();
+              await signOut(auth);
+            } catch (error) {
+              console.error("Erreur déconnexion:", error);
+              Alert.alert("Erreur", "Impossible de se déconnecter.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteAccount = () => {
@@ -103,16 +129,6 @@ export default function Settings() {
     <ScreenLayout title="Réglages" navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* BOUTON PREVIEW NOUVEAU DESIGN */}
-        <TouchableOpacity
-          style={styles.previewButton}
-          onPress={() => navigation.navigate("StylePreview")}
-        >
-          <Text style={styles.previewButtonText}>
-            🎨 Aperçu du Nouveau Design
-          </Text>
-        </TouchableOpacity>
-
         <SettingSwitch
           label="Notifications"
           description="Active les notifications pour recevoir les mises à jour de tes conversations et des likes."
@@ -161,6 +177,24 @@ export default function Settings() {
           onPress={handleDeleteAccount}
           destructive
         />
+
+        {/* BOUTON DÉCONNEXION */}
+        <TouchableOpacity
+          style={styles.logoutButtonContainer}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={["#007AFF", "#0051A8"]}
+            style={styles.logoutButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="logout" size={22} color="#FFF" />
+            <Text style={styles.logoutText}>Déconnexion</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
       </ScrollView>
     </ScreenLayout>
   );
@@ -192,24 +226,7 @@ function SettingButton({ label, description, onPress, destructive }) {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    paddingBottom: 100,
-  },
-  previewButton: {
-    backgroundColor: '#FF6B35',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  previewButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    paddingBottom: 40,
   },
   settingBlock: {
     flexDirection: "row",
@@ -230,7 +247,29 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 13,
-    color: "#666",
+    color: "#003366",
     marginTop: 4,
+  },
+  logoutButtonContainer: {
+    borderRadius: 28,
+    overflow: "hidden",
+    marginTop: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 8,
+  },
+  logoutText: {
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

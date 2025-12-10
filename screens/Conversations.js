@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ActivityIndicator,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { auth, db } from "../config/firebase";
 import {
   collection,
@@ -29,9 +31,6 @@ export default function Conversations({ navigation }) {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
-    console.log("=== CHARGEMENT CONVERSATIONS ===");
-
-    // Charge l'abonnement de l'utilisateur
     const loadUserSubscription = async () => {
       try {
         const profilesRef = collection(db, "profiles");
@@ -41,7 +40,6 @@ export default function Conversations({ navigation }) {
         if (!profileSnap.empty) {
           const userData = profileSnap.docs[0].data();
           setAbonnement(userData.abonnement || "gratuit");
-          console.log("Abonnement utilisateur:", userData.abonnement || "gratuit");
         }
       } catch (error) {
         console.log("Erreur chargement abonnement:", error);
@@ -50,7 +48,6 @@ export default function Conversations({ navigation }) {
 
     loadUserSubscription();
 
-    // Query conversations où l'utilisateur est participant
     const conversationsRef = collection(db, "conversations");
     const q = query(
       conversationsRef,
@@ -58,72 +55,54 @@ export default function Conversations({ navigation }) {
       orderBy("lastMessageTime", "desc")
     );
 
-    // Écoute en temps réel
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      console.log("Conversations reçues:", snapshot.size);
+    const unsubscribe = onSnapshot(
+      q,
+      async (snapshot) => {
+        const convs = [];
+        const userIds = new Set();
 
-      const convs = [];
-      const userIds = new Set();
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          convs.push({
+            id: doc.id,
+            ...data,
+          });
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        convs.push({
-          id: doc.id,
-          ...data,
+          const otherUserId = data.participants.find(
+            (uid) => uid !== currentUser.uid
+          );
+          if (otherUserId) userIds.add(otherUserId);
         });
 
-        // Récupère l'ID de l'autre utilisateur
-        const otherUserId = data.participants.find(
-          (uid) => uid !== currentUser.uid
-        );
-        if (otherUserId) userIds.add(otherUserId);
-      });
+        const profiles = {};
+        for (const uid of userIds) {
+          if (!userProfiles[uid]) {
+            const profilesRef = collection(db, "profiles");
+            const profileQuery = query(profilesRef, where("uid", "==", uid));
+            const profileSnap = await getDocs(profileQuery);
 
-      // Charge les profils des autres utilisateurs
-      const profiles = {};
-      for (const uid of userIds) {
-        if (!userProfiles[uid]) {
-          const profilesRef = collection(db, "profiles");
-          const profileQuery = query(profilesRef, where("uid", "==", uid));
-          const profileSnap = await getDocs(profileQuery);
-
-          if (!profileSnap.empty) {
-            profiles[uid] = profileSnap.docs[0].data();
+            if (!profileSnap.empty) {
+              profiles[uid] = profileSnap.docs[0].data();
+            } else {
+              profiles[uid] = { name: "Utilisateur", photoUrl: null };
+            }
           } else {
-            profiles[uid] = { name: "Utilisateur", photoUrl: null };
+            profiles[uid] = userProfiles[uid];
           }
-        } else {
-          profiles[uid] = userProfiles[uid];
         }
-      }
 
-      setUserProfiles((prev) => ({ ...prev, ...profiles }));
-      setConversations(convs);
-      setLoading(false);
-    });
+        setUserProfiles((prev) => ({ ...prev, ...profiles }));
+        setConversations(convs);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Erreur conversations:", error);
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", () => {
-      // Refresh conversations quand on revient sur l'écran
-      setLoading(true);
-    });
-    return unsubscribe;
-  }, [navigation]);
-
-  const getConversationLimit = () => {
-    if (abonnement === "premium") return null; // Illimité
-    if (abonnement === "lite") return 20;
-    return 10; // Gratuit
-  };
-
-  const canStartNewConversation = () => {
-    const limit = getConversationLimit();
-    if (limit === null) return true; // Premium = illimité
-    return conversations.length < limit;
-  };
 
   const formatTime = (timestamp) => {
     if (!timestamp || !timestamp.seconds) return "";
@@ -157,49 +136,69 @@ export default function Conversations({ navigation }) {
 
     return (
       <TouchableOpacity
-        style={[styles.card, unreadCount > 0 && styles.cardUnread]}
+        style={styles.cardContainer}
         onPress={() =>
           navigation.navigate("Chat", {
             conversationId: item.id,
             otherUserId: otherUserId,
-            dogName: item.dogName,
-            dogPhotoUrl: item.dogPhotoUrl,
+            dogName: item.dogName || otherUserProfile.name,
           })
         }
+        activeOpacity={0.7}
       >
-        <View style={styles.leftSection}>
-          {item.dogPhotoUrl ? (
-            <Image
-              source={{ uri: item.dogPhotoUrl }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <MaterialCommunityIcons name="dog" size={30} color="#aaa" />
-            </View>
-          )}
-          {unreadCount > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{unreadCount}</Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.info}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name}>
-              {item.dogName} • {otherUserProfile.name || "Utilisateur"}
-            </Text>
-            <Text style={styles.time}>{formatTime(item.lastMessageTime)}</Text>
+        <LinearGradient
+          colors={unreadCount > 0 ? ['#FFF5F0', '#FFF'] : ['#FFF', '#FFF']}
+          style={[styles.card, unreadCount > 0 && styles.cardUnread]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <View style={styles.leftSection}>
+            {item.dogPhotoUrl ? (
+              <Image
+                source={{ uri: item.dogPhotoUrl }}
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <MaterialCommunityIcons name="dog" size={32} color="#9CA3AF" />
+              </View>
+            )}
+            {unreadCount > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{unreadCount}</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage || "Nouvelle conversation"}
-          </Text>
-        </View>
 
-        <MaterialCommunityIcons name="chevron-right" size={24} color="#ff914d" />
+          <View style={styles.info}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name} numberOfLines={1}>
+                {item.dogName}
+              </Text>
+              <Text style={styles.time}>{formatTime(item.lastMessageTime)}</Text>
+            </View>
+            <Text style={styles.userName} numberOfLines={1}>
+              {otherUserProfile.name || "Utilisateur"}
+            </Text>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.lastMessage || "Nouvelle conversation"}
+            </Text>
+          </View>
+
+          <MaterialCommunityIcons 
+            name="chevron-right" 
+            size={22} 
+            color={unreadCount > 0 ? "#FF6B35" : "#D1D5DB"} 
+          />
+        </LinearGradient>
       </TouchableOpacity>
     );
+  };
+
+  const getConversationLimit = () => {
+    if (abonnement === "premium" || abonnement === "premium+") return null;
+    if (abonnement === "lite") return 20;
+    return 10;
   };
 
   const limit = getConversationLimit();
@@ -207,143 +206,181 @@ export default function Conversations({ navigation }) {
 
   return (
     <ScreenLayout title="Conversations" navigation={navigation} active="chat">
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loading}>Chargement...</Text>
-        </View>
-      ) : (
-        <>
-          {limit !== null && (
-            <View style={styles.limitBanner}>
-              <MaterialCommunityIcons
-                name="information"
-                size={20}
-                color="#ff914d"
-              />
-              <Text style={styles.limitText}>
-                {remainingConversations > 0
-                  ? `Encore ${remainingConversations} conversation(s) disponible(s)`
-                  : "Limite atteinte. Passez à Lite ou Premium pour plus."}
-              </Text>
-            </View>
-          )}
+      <View style={styles.container}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF6B35" />
+            <Text style={styles.loadingText}>Chargement...</Text>
+          </View>
+        ) : (
+          <>
+            {limit !== null && (
+              <LinearGradient
+                colors={['#FEF3C7', '#FDE68A']}
+                style={styles.limitBanner}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <MaterialCommunityIcons
+                  name="information"
+                  size={18}
+                  color="#92400E"
+                />
+                <Text style={styles.limitText}>
+                  {remainingConversations > 0
+                    ? `${remainingConversations} conversation(s) restante(s)`
+                    : "Limite atteinte · Passez à Premium"}
+                </Text>
+              </LinearGradient>
+            )}
 
-          {conversations.length === 0 ? (
-            <View style={styles.empty}>
-              <MaterialCommunityIcons
-                name="chat-outline"
-                size={80}
-                color="#444"
+            {conversations.length === 0 ? (
+              <View style={styles.empty}>
+                <View style={styles.emptyIconContainer}>
+                  <MaterialCommunityIcons
+                    name="chat-outline"
+                    size={64}
+                    color="#D1D5DB"
+                  />
+                </View>
+                <Text style={styles.emptyText}>Aucune conversation</Text>
+                <Text style={styles.emptySubtext}>
+                  Commencez à discuter avec d'autres propriétaires
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={conversations}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={false}
               />
-              <Text style={styles.emptyText}>Aucune conversation</Text>
-              <Text style={styles.emptySubtext}>
-                Commencez à discuter avec d'autres propriétaires !
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={conversations}
-              keyExtractor={(item) => item.id}
-              renderItem={renderItem}
-              contentContainerStyle={styles.list}
-            />
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </View>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F9FAFB",
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  loading: {
-    color: "#fff",
-    textAlign: "center",
-    marginTop: 40,
+  loadingText: {
+    color: "#6B7280",
+    marginTop: 12,
     fontSize: 16,
   },
   limitBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#1a1a1a",
-    padding: 12,
-    gap: 8,
+    padding: 14,
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F59E0B",
   },
   limitText: {
     flex: 1,
-    color: "#fff",
+    color: "#92400E",
     fontSize: 13,
+    fontWeight: "600",
   },
   empty: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 40,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#fff",
-    marginTop: 16,
+    color: "#1A1A1D",
     marginBottom: 8,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#ccc",
+    fontSize: 15,
+    color: "#6B7280",
     textAlign: "center",
+    lineHeight: 22,
   },
   list: {
     padding: 16,
     paddingBottom: 100,
   },
+  cardContainer: {
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   card: {
     flexDirection: "row",
-    backgroundColor: "#222",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     alignItems: "center",
+    padding: 16,
   },
   cardUnread: {
     borderLeftWidth: 4,
-    borderLeftColor: "#ff914d",
+    borderLeftColor: "#FF6B35",
   },
   leftSection: {
-    marginRight: 12,
+    marginRight: 14,
     position: "relative",
   },
   profileImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: "#F3F4F6",
   },
   imagePlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#444",
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
   },
   unreadBadge: {
     position: "absolute",
     top: -4,
     right: -4,
-    backgroundColor: "#ff914d",
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    backgroundColor: "#FF6B35",
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 6,
+    borderWidth: 2,
+    borderColor: "#FFF",
   },
   unreadText: {
-    color: "#fff",
-    fontSize: 12,
+    color: "#FFF",
+    fontSize: 11,
     fontWeight: "bold",
   },
   info: {
@@ -356,18 +393,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   name: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "bold",
-    color: "#fff",
+    color: "#1A1A1D",
     flex: 1,
+    marginRight: 8,
   },
   time: {
     fontSize: 12,
-    color: "#aaa",
-    marginLeft: 8,
+    color: "#9CA3AF",
+    fontWeight: "500",
+  },
+  userName: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "500",
+    marginBottom: 2,
   },
   lastMessage: {
     fontSize: 14,
-    color: "#ccc",
+    color: "#9CA3AF",
   },
 });

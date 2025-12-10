@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   ScrollView,
   Image,
   Alert,
+  Modal,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -82,8 +84,47 @@ export default function AjouterChien({ navigation }) {
   const [pedigree, setPedigree] = useState("Non");
   const [contest, setContest] = useState("Non");
   const [result, setResult] = useState("");
-  const [imageUris, setImageUris] = useState([null, null, null, null]); // 4 photos
+  const [imageUris, setImageUris] = useState([null, null, null, null]);
   const [loading, setLoading] = useState(false);
+  
+  // NOUVEAUX ÉTATS POUR LE MUR PAYANT
+  const [abonnement, setAbonnement] = useState("gratuit");
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  // CHARGER L'ABONNEMENT AU DÉMARRAGE
+  useEffect(() => {
+    loadUserAbonnement();
+  }, []);
+
+  const loadUserAbonnement = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const profilesRef = collection(db, "profiles");
+      const q = query(profilesRef, where("uid", "==", user.uid));
+      const profileSnap = await getDocs(q);
+      
+      if (!profileSnap.empty) {
+        const profileData = profileSnap.docs[0].data();
+        setAbonnement(profileData.abonnement || "gratuit");
+      }
+    } catch (error) {
+      console.log("Erreur chargement abonnement:", error);
+    }
+  };
+
+  // VÉRIFIER LE MUR PAYANT QUAND L'UTILISATEUR CHANGE LE BUT
+  const handlePurposeChange = (newPurpose) => {
+    setPurpose(newPurpose);
+    
+    // SI VENTE OU SAILLIE + ABONNEMENT GRATUIT → BLOQUER
+    if ((newPurpose === "Vente" || newPurpose === "Saillie") && abonnement === "gratuit") {
+      setShowPaywall(true);
+      // Remettre sur "Rencontre"
+      setTimeout(() => setPurpose("Rencontre"), 100);
+    }
+  };
 
   const chooseImageSource = (index) => {
     Alert.alert(
@@ -168,17 +209,16 @@ export default function AjouterChien({ navigation }) {
     const photoUrls = [];
 
     try {
-      // Cherche l'abonnement dans PROFILES
       console.log("1. Recherche du profil...");
       const profilesRef = collection(db, "profiles");
       const q = query(profilesRef, where("uid", "==", user.uid));
       const profileSnap = await getDocs(q);
       
-      let abonnement = "gratuit";
+      let userAbonnement = "gratuit";
       if (!profileSnap.empty) {
         const profileData = profileSnap.docs[0].data();
-        abonnement = profileData.abonnement || "gratuit";
-        console.log("2. Abonnement trouvé:", abonnement);
+        userAbonnement = profileData.abonnement || "gratuit";
+        console.log("2. Abonnement trouvé:", userAbonnement);
       } else {
         console.log("2. Profil non trouvé, abonnement par défaut: gratuit");
       }
@@ -190,26 +230,25 @@ export default function AjouterChien({ navigation }) {
 
       const limites = {
         gratuit: 1,
-        lite: 3,
-        premium: Infinity,
+        premium: 3,
+        "premium+": Infinity,
       };
 
-      console.log("4. Limite pour", abonnement, ":", limites[abonnement]);
+      console.log("4. Limite pour", userAbonnement, ":", limites[userAbonnement]);
 
-      if (dogCount >= limites[abonnement]) {
+      if (dogCount >= limites[userAbonnement]) {
         Alert.alert(
           "Limite atteinte",
           "Abonnement " +
-            abonnement +
+            userAbonnement +
             " autorise " +
-            limites[abonnement] +
+            limites[userAbonnement] +
             " chien(s)."
         );
         setLoading(false);
         return;
       }
 
-      // Upload toutes les photos
       console.log("5. Upload des photos...");
       for (let i = 0; i < imageUris.length; i++) {
         if (imageUris[i]) {
@@ -237,8 +276,8 @@ export default function AjouterChien({ navigation }) {
         pedigree,
         contest,
         result: contest === "Oui" ? result : "",
-        photoUrl: photoUrls[0] || null, // Photo principale (rétrocompatibilité)
-        photoUrls: photoUrls, // Tableau de toutes les photos
+        photoUrl: photoUrls[0] || null,
+        photoUrls: photoUrls,
         createdAt: new Date(),
       });
 
@@ -347,7 +386,7 @@ export default function AjouterChien({ navigation }) {
         <View style={styles.pickerWrapperSmall}>
           <Picker
             selectedValue={purpose}
-            onValueChange={(itemValue) => setPurpose(itemValue)}
+            onValueChange={handlePurposeChange}
           >
             <Picker.Item label="Rencontre" value="Rencontre" />
             <Picker.Item label="Vente" value="Vente" />
@@ -406,6 +445,74 @@ export default function AjouterChien({ navigation }) {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* MODAL MUR PAYANT */}
+      <Modal
+        visible={showPaywall}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPaywall(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalIconGradient}
+              >
+                <MaterialCommunityIcons name="crown" size={40} color="#FFF" />
+              </LinearGradient>
+            </View>
+
+            <Text style={styles.modalTitle}>Fonctionnalité Premium</Text>
+            <Text style={styles.modalText}>
+              La vente et la saillie sont réservées aux abonnés Premium.
+            </Text>
+
+            <View style={styles.modalPricing}>
+              <View style={styles.priceBox}>
+                <Text style={styles.priceLabel}>⭐ Premium</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceStrike}>59₪</Text>
+                  <Text style={styles.pricePromo}>49₪/mois</Text>
+                </View>
+                <Text style={styles.priceSubtext}>🎁 Offre de lancement 200 premiers abonnés</Text>
+              </View>
+
+              <View style={styles.priceBox}>
+                <Text style={styles.priceLabel}>👑 Premium++</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceStrike}>139₪</Text>
+                  <Text style={styles.pricePromo}>119₪/mois</Text>
+                </View>
+                <Text style={styles.priceSubtext}>🎁 Offre de lancement 200 premiers abonnés</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={() => {
+                setShowPaywall(false);
+                navigation.navigate("Abonnements");
+              }}
+            >
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalButtonGradient}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonSecondary}
+              onPress={() => setShowPaywall(false)}
+            >
+              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 }
@@ -503,5 +610,108 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  // STYLES MODAL
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+  },
+  modalIconContainer: {
+    marginBottom: 20,
+  },
+  modalIconGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1A1A1D",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  // NOUVEAUX STYLES PRICING
+  modalPricing: {
+    width: "100%",
+    marginBottom: 24,
+    gap: 12,
+  },
+  priceBox: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  priceLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1A1A1D",
+    marginBottom: 8,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  priceStrike: {
+    fontSize: 16,
+    color: "#9CA3AF",
+    textDecorationLine: "line-through",
+  },
+  pricePromo: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#E91E63",
+  },
+  priceSubtext: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  modalButtonPrimary: {
+    width: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  modalButtonGradient: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  modalButtonTextPrimary: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalButtonSecondary: {
+    paddingVertical: 12,
+  },
+  modalButtonTextSecondary: {
+    color: "#6B7280",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

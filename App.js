@@ -17,6 +17,7 @@ import StylePreview from "./screens/StylePreview.js";
 import LikesHub from "./screens/LikesHub";
 import Favoris from "./screens/Favoris";
 import Profile from "./screens/Profile";
+import EditField from "./screens/EditField";
 import SignUp from "./screens/SignUp";
 import SignIn from "./screens/SignIn";
 import MesMatchs from "./screens/MesMatchs";
@@ -74,6 +75,7 @@ export default function App() {
               <Stack.Screen name="LikesHub" component={LikesHub} />
               <Stack.Screen name="Favoris" component={Favoris} />
               <Stack.Screen name="Profile" component={Profile} />
+              <Stack.Screen name="EditField" component={EditField} />
               <Stack.Screen name="MesMatchs" component={MesMatchs} />
               <Stack.Screen name="Conversations" component={Conversations} />
               <Stack.Screen name="DetailsChien" component={DetailsChien} />

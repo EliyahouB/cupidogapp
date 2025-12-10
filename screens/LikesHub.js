@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Animated,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import ScreenLayout from "../components/ScreenLayout";
@@ -15,47 +16,61 @@ const { width } = Dimensions.get("window");
 
 export default function LikesHub({ navigation }) {
   const [activeTab, setActiveTab] = useState("recu");
+  const [slideAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: activeTab === "recu" ? 0 : 1,
+      useNativeDriver: false,
+      friction: 8,
+    }).start();
+  }, [activeTab]);
+
+  const buttonWidth = (width - 48) / 2;
+  const slidePosition = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [8, buttonWidth + 16],
+  });
 
   return (
     <ScreenLayout title="Likes" navigation={navigation} active="likes">
-      {/* ONGLETS EN HAUT */}
       <View style={styles.tabsContainer}>
+        <Animated.View
+          style={[
+            styles.slidingButton,
+            {
+              width: buttonWidth,
+              transform: [{ translateX: slidePosition }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+            style={styles.gradientButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        </Animated.View>
+
         <TouchableOpacity
-          style={[styles.tab, activeTab === "recu" && styles.tabActive]}
+          style={styles.tab}
           onPress={() => setActiveTab("recu")}
         >
           <Text style={[styles.tabText, activeTab === "recu" && styles.tabTextActive]}>
-            Likes reçus
+            Intéressés
           </Text>
-          {activeTab === "recu" && (
-            <LinearGradient
-              colors={['#FF6B35', '#E85D2A']}
-              style={styles.tabIndicator}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.tab, activeTab === "favoris" && styles.tabActive]}
+          style={styles.tab}
           onPress={() => setActiveTab("favoris")}
         >
           <Text style={[styles.tabText, activeTab === "favoris" && styles.tabTextActive]}>
-            Mes favoris
+            Mes Favoris
           </Text>
-          {activeTab === "favoris" && (
-            <LinearGradient
-              colors={['#FF6B35', '#E85D2A']}
-              style={styles.tabIndicator}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-          )}
         </TouchableOpacity>
       </View>
 
-      {/* CONTENU SELON ONGLET */}
       <View style={styles.content}>
         {activeTab === "recu" ? (
           <MesMatchs navigation={navigation} embedded={true} />
@@ -71,35 +86,38 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: "row",
     backgroundColor: "#F5F5F7",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderRadius: 25,
+    padding: 8,
+    margin: 16,
+    position: "relative",
+  },
+  slidingButton: {
+    position: "absolute",
+    height: 40,
+    borderRadius: 20,
+    overflow: "hidden",
+    top: 8,
+    zIndex: 0,
+  },
+  gradientButton: {
+    flex: 1,
+    borderRadius: 20,
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 10,
     alignItems: "center",
-    position: "relative",
-  },
-  tabActive: {
-    backgroundColor: "transparent",
+    justifyContent: "center",
+    zIndex: 1,
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: "#6B7280",
   },
   tabTextActive: {
-    color: "#1A1A1D",
+    color: "#FFF",
     fontWeight: "bold",
-  },
-  tabIndicator: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
   },
   content: {
     flex: 1,

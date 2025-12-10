@@ -18,11 +18,13 @@ import {
   where,
   addDoc,
   collectionGroup,
-  serverTimestamp,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import * as Location from "expo-location";
 import ScreenLayout from "../components/ScreenLayout";
 import FiltreModal from "../components/FiltreModal";
+import PremiumBadge from "../components/PremiumBadge";
 
 const { width } = Dimensions.get("window");
 
@@ -34,6 +36,8 @@ export default function ChiensParBut({ route, navigation }) {
   const [showFilters, setShowFilters] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [abonnement, setAbonnement] = useState("gratuit");
+  const [likedDogs, setLikedDogs] = useState([]);
+  const [ownersAbonnements, setOwnersAbonnements] = useState({});
 
   const [filters, setFilters] = useState({
     minAge: 1,
@@ -66,6 +70,7 @@ export default function ChiensParBut({ route, navigation }) {
         const dogsSnap = await getDocs(dogsQuery);
         
         const allDogs = [];
+        const ownerIds = new Set();
 
         dogsSnap.forEach((dogDoc) => {
           const dogData = dogDoc.data();
@@ -73,6 +78,7 @@ export default function ChiensParBut({ route, navigation }) {
           
           if (ownerId === currentUser.uid) return;
           
+          ownerIds.add(ownerId);
           allDogs.push({
             id: dogDoc.id,
             ownerId: ownerId,
@@ -80,8 +86,29 @@ export default function ChiensParBut({ route, navigation }) {
           });
         });
 
+        // Charger les abonnements des propriétaires
+        const ownersAbonnementsMap = {};
+        const profilesQuery = collection(db, "profiles");
+        const allProfiles = await getDocs(profilesQuery);
+        
+        allProfiles.forEach((profileDoc) => {
+          const profileData = profileDoc.data();
+          if (ownerIds.has(profileData.uid)) {
+            ownersAbonnementsMap[profileData.uid] = profileData.abonnement || "gratuit";
+          }
+        });
+
+        setOwnersAbonnements(ownersAbonnementsMap);
         setDogs(allDogs);
         setFilteredDogs(allDogs);
+
+        const likesQuery = query(
+          collection(db, "likes"),
+          where("fromUserId", "==", currentUser.uid)
+        );
+        const likesSnap = await getDocs(likesQuery);
+        const liked = likesSnap.docs.map(doc => doc.data().toDogId);
+        setLikedDogs(liked);
       } catch (error) {
         console.log("Erreur chargement chiens:", error);
         alert("Erreur lors du chargement des chiens.");
@@ -144,65 +171,121 @@ export default function ChiensParBut({ route, navigation }) {
     const user = auth.currentUser;
     if (!user) return;
 
-    try {
-      await addDoc(collection(db, "likes"), {
-        fromUserId: user.uid,
-        toDogId: dogId,
-        toOwnerId: ownerId,
-        createdAt: new Date(),
-      });
-      alert("Ajouté aux favoris !");
-    } catch (error) {
-      console.log("Erreur like:", error);
-      alert("Erreur lors du like.");
+    const isAlreadyLiked = likedDogs.includes(dogId);
+
+    if (isAlreadyLiked) {
+      // UNLIKER
+      try {
+        const likesRef = collection(db, "likes");
+        const q = query(
+          likesRef,
+          where("fromUserId", "==", user.uid),
+          where("toDogId", "==", dogId)
+        );
+        const likesSnap = await getDocs(q);
+        
+        if (!likesSnap.empty) {
+          const likeDoc = likesSnap.docs[0];
+          await deleteDoc(doc(db, "likes", likeDoc.id));
+          setLikedDogs(likedDogs.filter(id => id !== dogId));
+          alert("Retiré des favoris !");
+        }
+      } catch (error) {
+        console.log("Erreur unlike:", error);
+        alert("Erreur lors du retrait.");
+      }
+    } else {
+      // LIKER
+      try {
+        await addDoc(collection(db, "likes"), {
+          fromUserId: user.uid,
+          toDogId: dogId,
+          toOwnerId: ownerId,
+          createdAt: new Date(),
+        });
+        setLikedDogs([...likedDogs, dogId]);
+        alert("Ajouté aux favoris !");
+      } catch (error) {
+        console.log("Erreur like:", error);
+        alert("Erreur lors du like.");
+      }
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      {/* CŒUR STYLE INSTAGRAM */}
-      <TouchableOpacity
-        style={styles.likeButtonTop}
-        onPress={() => handleLike(item.id, item.ownerId)}
-      >
-        <LinearGradient
-          colors={['#FF8A5B', '#FF6B35', '#E85D2A']}
-          style={styles.likeGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+  const renderItem = ({ item }) => {
+    const isLiked = likedDogs.includes(item.id);
+    const ownerAbonnement = ownersAbonnements[item.ownerId] || "gratuit";
+
+    return (
+      <View style={styles.card}>
+        <View 
+          style={styles.likeButton}
+          pointerEvents="box-none"
         >
-          <MaterialCommunityIcons name="heart" size={22} color="#FFF" />
-        </LinearGradient>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.cardContent}
-        onPress={() => navigation.navigate("DetailsChien", { dog: item })}
-      >
-        {item.photoUrl ? (
-          <Image source={{ uri: item.photoUrl }} style={styles.image} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <MaterialCommunityIcons name="dog" size={40} color="#999" />
-          </View>
-        )}
-
-        <View style={styles.info}>
-          <Text style={styles.name}>{item.dogName}</Text>
-          
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="dog" size={16} color="#6B7280" />
-            <Text style={styles.detail}>{item.breed}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
-            <Text style={styles.detail}>{item.age} ans</Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => {
+              console.log("LIKE CLIQUÉ !", item.id);
+              handleLike(item.id, item.ownerId);
+            }}
+            activeOpacity={0.7}
+          >
+            {isLiked ? (
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.likeGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <MaterialCommunityIcons 
+                  name="heart" 
+                  size={28} 
+                  color="#FFF"
+                />
+              </LinearGradient>
+            ) : (
+              <View style={styles.likeContainer}>
+                <MaterialCommunityIcons 
+                  name="heart-outline" 
+                  size={28} 
+                  color="#FF6B35"
+                />
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
-      </TouchableOpacity>
-    </View>
-  );
+
+        <TouchableOpacity
+          style={styles.cardContent}
+          onPress={() => navigation.navigate("DetailsChien", { dog: item })}
+        >
+          {item.photoUrl ? (
+            <Image source={{ uri: item.photoUrl }} style={styles.image} />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <MaterialCommunityIcons name="dog" size={40} color="#999" />
+            </View>
+          )}
+
+          <View style={styles.info}>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{item.dogName}</Text>
+              <PremiumBadge abonnement={ownerAbonnement} size="small" />
+            </View>
+            
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="dog" size={16} color="#6B7280" />
+              <Text style={styles.detail}>{item.breed}</Text>
+            </View>
+            
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
+              <Text style={styles.detail}>{item.age} ans</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <ScreenLayout
@@ -261,27 +344,38 @@ const styles = StyleSheet.create({
     elevation: 2,
     position: "relative",
   },
-  likeButtonTop: {
+  likeButton: {
     position: "absolute",
     top: 12,
     right: 12,
     zIndex: 10,
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    overflow: "hidden",
+  },
+  likeContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "#FFF",
+    borderWidth: 2,
+    borderColor: "#FF6B35",
+    justifyContent: "center",
+    alignItems: "center",
     shadowColor: "#FF6B35",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 6,
   },
   likeGradient: {
-    width: "100%",
-    height: "100%",
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
+    shadowColor: "#FF6B35",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   cardContent: {
     flexDirection: "row",
@@ -306,11 +400,16 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
   name: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#1A1A1D",
-    marginBottom: 6,
   },
   infoRow: {
     flexDirection: "row",
