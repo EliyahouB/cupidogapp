@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ImageBackground,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -50,7 +51,6 @@ export default function Chat({ route, navigation }) {
   const currentUser = auth.currentUser;
   const flatListRef = useRef(null);
 
-  // CHARGEMENT ABONNEMENT (1 FOIS)
   useEffect(() => {
     const loadUserSubscription = async () => {
       if (!currentUser) return;
@@ -70,9 +70,8 @@ export default function Chat({ route, navigation }) {
     };
 
     loadUserSubscription();
-  }, []); // ← PAS DE DÉPENDANCE
+  }, []);
 
-  // CHARGEMENT MESSAGES (1 FOIS)
   useEffect(() => {
     if (!conversationId || !currentUser) return;
 
@@ -92,7 +91,6 @@ export default function Chat({ route, navigation }) {
       }, 100);
     });
 
-    // RESET UNREAD COUNT
     const conversationRef = doc(db, "conversations", conversationId);
     updateDoc(conversationRef, {
       [`unreadCount.${currentUser.uid}`]: 0,
@@ -101,9 +99,8 @@ export default function Chat({ route, navigation }) {
     });
 
     return () => unsubscribe();
-  }, [conversationId]); // ← SEULEMENT conversationId
+  }, [conversationId]);
 
-  // PUSH NOTIFICATIONS
   useEffect(() => {
     const askPermission = async () => {
       if (!currentUser) return;
@@ -210,7 +207,6 @@ export default function Chat({ route, navigation }) {
     });
   };
 
-  // FILTRAGE 60 JOURS (AU RENDU)
   const getFilteredMessages = () => {
     if (abonnement !== "gratuit") return messages;
 
@@ -234,11 +230,12 @@ export default function Chat({ route, navigation }) {
           styles.messageBubble,
           fromMe ? styles.fromMe : styles.fromThem,
         ]}
+        activeOpacity={0.7}
       >
-        <Text style={[styles.messageText, !fromMe && { color: "#1A1A1D" }]}>
+        <Text style={[styles.messageText, fromMe ? styles.messageTextMe : styles.messageTextThem]}>
           {item.text}
         </Text>
-        <Text style={[styles.timeText, !fromMe && { color: "#6B7280" }]}>
+        <Text style={[styles.timeText, fromMe ? styles.timeTextMe : styles.timeTextThem]}>
           {formatTime(item.createdAt)}
         </Text>
       </TouchableOpacity>
@@ -257,38 +254,46 @@ export default function Chat({ route, navigation }) {
       <View style={styles.container}>
         {abonnement === "gratuit" && (
           <View style={styles.limitBanner}>
-            <MaterialCommunityIcons name="calendar-clock" size={16} color="#FF6B35" />
+            <MaterialCommunityIcons name="calendar-clock" size={14} color="#92400E" />
             <Text style={styles.historyText}>
-              Historique : 60 jours (Gratuit)
+              Historique : 60 jours
             </Text>
           </View>
         )}
 
-        <FlatList
-          ref={flatListRef}
-          data={filteredMessages}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesContainer}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: false })
-          }
-        />
+        <ImageBackground
+          source={{ uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFklEQVR42mN89+7df0FBQQYGBgY+RgYAJ+gE/dNKYfkAAAAASUVORK5CYII=' }}
+          style={styles.chatBackground}
+        >
+          <FlatList
+            ref={flatListRef}
+            data={filteredMessages}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messagesContainer}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: false })
+            }
+          />
+        </ImageBackground>
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
         >
           <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={message}
-              onChangeText={setMessage}
-              placeholder="Envoyer un message..."
-              placeholderTextColor="#999"
-              multiline
-              maxLength={500}
-            />
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                value={message}
+                onChangeText={setMessage}
+                placeholder="Message"
+                placeholderTextColor="#8E8E93"
+                multiline
+                maxLength={500}
+              />
+            </View>
+            
             <TouchableOpacity
               style={styles.sendButtonContainer}
               onPress={handleSend}
@@ -296,7 +301,7 @@ export default function Chat({ route, navigation }) {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={message.trim() === "" ? ["#D1D5DB", "#9CA3AF"] : ["#42A5F5", "#1976D2"]}
+                colors={message.trim() === "" ? ["#D1D5DB", "#9CA3AF"] : ["#06D6A0", "#059669"]}
                 style={styles.sendButton}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -314,67 +319,91 @@ export default function Chat({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFF",
+    backgroundColor: "#E5DDD5",
   },
   limitBanner: {
     flexDirection: "row",
     backgroundColor: "#FEF3C7",
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F59E0B",
+    gap: 6,
   },
   historyText: {
     color: "#92400E",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
+  },
+  chatBackground: {
+    flex: 1,
   },
   messagesContainer: {
     padding: 12,
     paddingBottom: 20,
   },
   messageBubble: {
-    padding: 12,
-    borderRadius: 16,
-    marginVertical: 4,
-    maxWidth: "75%",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginVertical: 2,
+    maxWidth: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   fromMe: {
     alignSelf: "flex-end",
-    borderBottomRightRadius: 4,
+    backgroundColor: "#DCF8C6",
+    borderBottomRightRadius: 2,
   },
   fromThem: {
-    backgroundColor: "#F5F5F7",
     alignSelf: "flex-start",
-    borderBottomLeftRadius: 4,
+    backgroundColor: "#FFF",
+    borderBottomLeftRadius: 2,
   },
   messageText: {
-    color: "#FFF",
-    fontSize: 16,
-    marginBottom: 4,
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  messageTextMe: {
+    color: "#000",
+  },
+  messageTextThem: {
+    color: "#000",
   },
   timeText: {
-    color: "rgba(255,255,255,0.7)",
     fontSize: 11,
+    marginTop: 4,
     alignSelf: "flex-end",
+  },
+  timeTextMe: {
+    color: "#5A7A62",
+  },
+  timeTextThem: {
+    color: "#8E8E93",
   },
   inputContainer: {
     flexDirection: "row",
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    backgroundColor: "#FFF",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: "#F0F0F0",
     alignItems: "flex-end",
-    gap: 8,
+    gap: 6,
+  },
+  inputWrapper: {
+    flex: 1,
+    backgroundColor: "#FFF",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
   },
   input: {
-    flex: 1,
-    backgroundColor: "#F5F5F7",
-    color: "#1A1A1D",
-    padding: 12,
-    borderRadius: 20,
+    color: "#000",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     maxHeight: 100,
     fontSize: 16,
   },

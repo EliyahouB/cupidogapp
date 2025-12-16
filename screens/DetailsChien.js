@@ -8,7 +8,6 @@ import {
   ScrollView,
   Dimensions,
   FlatList,
-  SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -20,8 +19,11 @@ import {
   query,
   where,
   serverTimestamp,
+  deleteDoc,
+  doc,
 } from "firebase/firestore";
 import PremiumBadge from "../components/PremiumBadge";
+import ScreenLayout from "../components/ScreenLayout";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +31,7 @@ export default function DetailsChien({ route, navigation }) {
   const { dog } = route.params;
   const user = auth.currentUser;
   const [isFavorite, setIsFavorite] = useState(false);
+  const [likeId, setLikeId] = useState(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [ownerAbonnement, setOwnerAbonnement] = useState("gratuit");
   const flatListRef = useRef(null);
@@ -50,7 +53,14 @@ export default function DetailsChien({ route, navigation }) {
           where("toDogId", "==", dog.id)
         );
         const likesSnap = await getDocs(likesQuery);
-        setIsFavorite(!likesSnap.empty);
+        
+        if (!likesSnap.empty) {
+          setIsFavorite(true);
+          setLikeId(likesSnap.docs[0].id);
+        } else {
+          setIsFavorite(false);
+          setLikeId(null);
+        }
       } catch (error) {
         console.log("Erreur vérification favoris:", error);
       }
@@ -81,17 +91,24 @@ export default function DetailsChien({ route, navigation }) {
     if (!user) return;
 
     try {
-      await addDoc(collection(db, "likes"), {
-        fromUserId: user.uid,
-        toDogId: dog.id,
-        toOwnerId: dog.ownerId,
-        createdAt: new Date(),
-      });
-      setIsFavorite(true);
-      alert("Ajouté aux favoris !");
+      if (isFavorite && likeId) {
+        // UNLIKE
+        await deleteDoc(doc(db, "likes", likeId));
+        setIsFavorite(false);
+        setLikeId(null);
+      } else {
+        // LIKE
+        const docRef = await addDoc(collection(db, "likes"), {
+          fromUserId: user.uid,
+          toDogId: dog.id,
+          toOwnerId: dog.ownerId,
+          createdAt: new Date(),
+        });
+        setIsFavorite(true);
+        setLikeId(docRef.id);
+      }
     } catch (error) {
-      console.log("Erreur ajout favoris:", error);
-      alert("Erreur lors de l'ajout aux favoris.");
+      console.log("Erreur favoris:", error);
     }
   };
 
@@ -168,134 +185,43 @@ export default function DetailsChien({ route, navigation }) {
   );
 
   return (
-    <View style={styles.container}>
+    <ScreenLayout title={dog.dogName} navigation={navigation} showBack>
       <LinearGradient
         colors={['#F5D547', '#FF9966']}
         style={styles.gradient}
       >
-        <SafeAreaView style={styles.safeArea}>
-          {/* HEADER AVEC BOUTON RETOUR */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{dog.dogName}</Text>
-            <View style={styles.headerSpacer} />
-          </View>
-
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.card}>
-              {photos.length > 0 ? (
-                <View style={styles.carouselContainer}>
-                  <FlatList
-                    ref={flatListRef}
-                    data={photos}
-                    renderItem={renderPhoto}
-                    keyExtractor={(item, index) => index.toString()}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onViewableItemsChanged={onViewableItemsChanged}
-                    viewabilityConfig={viewabilityConfig}
-                  />
-                  
-                  {photos.length > 1 && (
-                    <View style={styles.photoIndicator}>
-                      <Text style={styles.photoIndicatorText}>
-                        {currentPhotoIndex + 1} / {photos.length}
-                      </Text>
-                    </View>
-                  )}
-
-                  <TouchableOpacity style={styles.favoriteIcon} onPress={handleFavorite}>
-                    <MaterialCommunityIcons 
-                      name={isFavorite ? "heart" : "heart-outline"} 
-                      size={28} 
-                      color={isFavorite ? "#FF6B35" : "#666"} 
-                    />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View>
-                  <View style={styles.imagePlaceholder}>
-                    <MaterialCommunityIcons name="dog" size={60} color="#999" />
-                    <Text style={styles.imageText}>Pas d'image</Text>
-                  </View>
-                  <TouchableOpacity style={styles.favoriteIcon} onPress={handleFavorite}>
-                    <MaterialCommunityIcons 
-                      name={isFavorite ? "heart" : "heart-outline"} 
-                      size={28} 
-                      color={isFavorite ? "#FF6B35" : "#666"} 
-                    />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* BADGES */}
-              <View style={styles.badgesContainer}>
-                <View style={styles.badge}>
-                  <MaterialCommunityIcons name="check-decagram" size={14} color="#06D6A0" />
-                  <Text style={styles.badgeText}>Vérifié</Text>
-                </View>
-                <PremiumBadge abonnement={ownerAbonnement} size="small" />
-              </View>
-
-              {/* INFOS AVEC ICÔNES */}
-              <View style={styles.dogInfo}>
-                <Text style={styles.dogName}>{dog.dogName}</Text>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.card}>
+            {photos.length > 0 ? (
+              <View style={styles.carouselContainer}>
+                <FlatList
+                  ref={flatListRef}
+                  data={photos}
+                  renderItem={renderPhoto}
+                  keyExtractor={(item, index) => index.toString()}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onViewableItemsChanged={onViewableItemsChanged}
+                  viewabilityConfig={viewabilityConfig}
+                />
                 
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="dog" size={18} color="#6B7280" />
-                  <Text style={styles.infoText}>{dog.breed}</Text>
-                </View>
-                
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="cake-variant" size={18} color="#6B7280" />
-                  <Text style={styles.infoText}>{dog.age}</Text>
-                </View>
-                
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="gender-male-female" size={18} color="#6B7280" />
-                  <Text style={styles.infoText}>{dog.gender}</Text>
-                </View>
-                
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="heart-outline" size={18} color="#FF6B35" />
-                  <Text style={styles.infoPurpose}>{dog.purpose}</Text>
-                </View>
-
-                {dog.pedigree && dog.pedigree !== "Non précisé" && (
-                  <View style={styles.infoRow}>
-                    <MaterialCommunityIcons name="certificate" size={18} color="#6B7280" />
-                    <Text style={styles.infoText}>Pedigree: {dog.pedigree}</Text>
+                {photos.length > 1 && (
+                  <View style={styles.photoIndicator}>
+                    <Text style={styles.photoIndicatorText}>
+                      {currentPhotoIndex + 1} / {photos.length}
+                    </Text>
                   </View>
                 )}
 
-                {dog.contest === "Oui" && (
-                  <View style={styles.infoRow}>
-                    <MaterialCommunityIcons name="trophy" size={18} color="#FFB84D" />
-                    <Text style={styles.infoText}>{dog.result || "Concours"}</Text>
-                  </View>
-                )}
-
-                {dog.description && (
-                  <Text style={styles.description}>{dog.description}</Text>
-                )}
-              </View>
-
-              {/* BOUTONS */}
-              <View style={styles.dogActions}>
                 <TouchableOpacity 
-                  style={styles.likeButtonOutline} 
+                  style={styles.favoriteIconTop} 
                   onPress={handleFavorite}
                   activeOpacity={0.8}
                 >
                   <LinearGradient
-                    colors={isFavorite ? ["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"] : ["#E5E7EB", "#E5E7EB"]}
-                    style={styles.likeButtonGradient}
+                    colors={isFavorite ? ["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"] : ["#FFF", "#FFF"]}
+                    style={styles.favoriteIconGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
@@ -306,61 +232,129 @@ export default function DetailsChien({ route, navigation }) {
                     />
                   </LinearGradient>
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.chatButtonContainer} onPress={handleContact}>
+              </View>
+            ) : (
+              <View>
+                <View style={styles.imagePlaceholder}>
+                  <MaterialCommunityIcons name="dog" size={60} color="#999" />
+                  <Text style={styles.imageText}>Pas d'image</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.favoriteIconTop} 
+                  onPress={handleFavorite}
+                  activeOpacity={0.8}
+                >
                   <LinearGradient
-                    colors={['#06D6A0', '#059669']}
-                    style={styles.chatButtonGradient}
+                    colors={isFavorite ? ["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"] : ["#FFF", "#FFF"]}
+                    style={styles.favoriteIconGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    <MaterialCommunityIcons name="message-text-outline" size={18} color="#FFF" />
-                    <Text style={styles.chatText}>Contacter</Text>
+                    <MaterialCommunityIcons 
+                      name="heart" 
+                      size={24} 
+                      color={isFavorite ? "#FFF" : "#9CA3AF"} 
+                    />
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
+            )}
+
+            {/* BADGES */}
+            <View style={styles.badgesContainer}>
+              <View style={styles.badge}>
+                <MaterialCommunityIcons name="check-decagram" size={14} color="#06D6A0" />
+                <Text style={styles.badgeText}>Vérifié</Text>
+              </View>
+              <PremiumBadge abonnement={ownerAbonnement} size="small" />
             </View>
-          </ScrollView>
-        </SafeAreaView>
+
+            {/* INFOS AVEC ICÔNES */}
+            <View style={styles.dogInfo}>
+              <Text style={styles.dogName}>{dog.dogName}</Text>
+              
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="dog" size={18} color="#6B7280" />
+                <Text style={styles.infoText}>{dog.breed}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="cake-variant" size={18} color="#6B7280" />
+                <Text style={styles.infoText}>{dog.age}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="gender-male-female" size={18} color="#6B7280" />
+                <Text style={styles.infoText}>{dog.gender}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="heart-outline" size={18} color="#FF6B35" />
+                <Text style={styles.infoPurpose}>{dog.purpose}</Text>
+              </View>
+
+              {dog.pedigree && dog.pedigree !== "Non précisé" && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="certificate" size={18} color="#6B7280" />
+                  <Text style={styles.infoText}>Pedigree: {dog.pedigree}</Text>
+                </View>
+              )}
+
+              {dog.contest === "Oui" && (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="trophy" size={18} color="#FFB84D" />
+                  <Text style={styles.infoText}>{dog.result || "Concours"}</Text>
+                </View>
+              )}
+
+              {dog.description && (
+                <Text style={styles.description}>{dog.description}</Text>
+              )}
+            </View>
+
+            {/* BOUTONS */}
+            <View style={styles.dogActions}>
+              <TouchableOpacity 
+                style={styles.likeButtonOutline} 
+                onPress={handleFavorite}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={isFavorite ? ["#FFA85C", "#FF6A3D", "#F15156", "#E91E63"] : ["#E5E7EB", "#E5E7EB"]}
+                  style={styles.likeButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <MaterialCommunityIcons 
+                    name="heart" 
+                    size={24} 
+                    color={isFavorite ? "#FFF" : "#9CA3AF"} 
+                  />
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.chatButtonContainer} onPress={handleContact}>
+                <LinearGradient
+                  colors={['#06D6A0', '#059669']}
+                  style={styles.chatButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <MaterialCommunityIcons name="message-text-outline" size={18} color="#FFF" />
+                  <Text style={styles.chatText}>Contacter</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
       </LinearGradient>
-    </View>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   gradient: {
     flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#FFF",
-    flex: 1,
-    textAlign: "center",
-  },
-  headerSpacer: {
-    width: 40,
   },
   scrollContent: {
     padding: 16,
@@ -419,22 +413,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
-  favoriteIcon: {
+  favoriteIconTop: {
     position: "absolute",
     top: 12,
     right: 12,
     zIndex: 10,
-    backgroundColor: "#FFF",
     borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
+  },
+  favoriteIconGradient: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
   },
   badgesContainer: {
     flexDirection: "row",

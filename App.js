@@ -12,6 +12,7 @@ import Home from "./screens/Home";
 import Chat from "./screens/Chat";
 import MesChiens from "./screens/MesChiens";
 import AjouterChien from "./screens/AjouterChien.js";
+import Abonnements from "./screens/Abonnements";
 import ModifierChien from "./screens/ModifierChien.js";
 import StylePreview from "./screens/StylePreview.js";
 import LikesHub from "./screens/LikesHub";
@@ -67,6 +68,7 @@ export default function App() {
           {user ? (
             <>
               <Stack.Screen name="Home" component={Home} />
+              <Stack.Screen name="Abonnements" component={Abonnements} />
               <Stack.Screen name="Chat" component={Chat} />
               <Stack.Screen name="MesChiens" component={MesChiens} />
               <Stack.Screen name="AjouterChien" component={AjouterChien} />

@@ -206,21 +206,19 @@ export default function Conversations({ navigation }) {
 
   return (
     <ScreenLayout title="Conversations" navigation={navigation} active="chat">
-      <View style={styles.container}>
+      <LinearGradient
+        colors={['#F5D547', '#FF9966']}
+        style={styles.gradientContainer}
+      >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FF6B35" />
+            <ActivityIndicator size="large" color="#FFF" />
             <Text style={styles.loadingText}>Chargement...</Text>
           </View>
         ) : (
           <>
             {limit !== null && (
-              <LinearGradient
-                colors={['#FEF3C7', '#FDE68A']}
-                style={styles.limitBanner}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
+              <View style={styles.limitBanner}>
                 <MaterialCommunityIcons
                   name="information"
                   size={18}
@@ -231,7 +229,7 @@ export default function Conversations({ navigation }) {
                     ? `${remainingConversations} conversation(s) restante(s)`
                     : "Limite atteinte · Passez à Premium"}
                 </Text>
-              </LinearGradient>
+              </View>
             )}
 
             {conversations.length === 0 ? (
@@ -240,7 +238,7 @@ export default function Conversations({ navigation }) {
                   <MaterialCommunityIcons
                     name="chat-outline"
                     size={64}
-                    color="#D1D5DB"
+                    color="#FFF"
                   />
                 </View>
                 <Text style={styles.emptyText}>Aucune conversation</Text>
@@ -259,15 +257,14 @@ export default function Conversations({ navigation }) {
             )}
           </>
         )}
-      </View>
+      </LinearGradient>
     </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  gradientContainer: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
   },
   loadingContainer: {
     flex: 1,
@@ -275,13 +272,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#6B7280",
+    color: "#FFF",
     marginTop: 12,
     fontSize: 16,
+    fontWeight: "600",
   },
   limitBanner: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#FEF3C7",
     padding: 14,
     gap: 10,
     borderBottomWidth: 1,
@@ -303,7 +302,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "rgba(255,255,255,0.2)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
@@ -311,14 +310,15 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1A1A1D",
+    color: "#FFF",
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 15,
-    color: "#6B7280",
+    color: "#FFF",
     textAlign: "center",
     lineHeight: 22,
+    opacity: 0.9,
   },
   list: {
     padding: 16,
@@ -330,9 +330,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 3,
   },
   card: {
     flexDirection: "row",
