@@ -93,7 +93,7 @@ export default function MesChiens({ navigation }) {
   const renderDog = ({ item }) => (
     <TouchableOpacity
       style={styles.dogCard}
-      onPress={() => navigation.navigate("DetailsChien", { dog: item })}
+      onPress={() => navigation.navigate("DetailsChien", { dog: { ...item, ownerId: auth.currentUser.uid } })}
       activeOpacity={0.7}
     >
       <View style={styles.dogCardMain}>

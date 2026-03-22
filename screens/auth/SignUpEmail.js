@@ -1,3 +1,4 @@
+// screens/auth/SignUpEmail.js
 import React, { useState } from "react";
 import {
   View,
@@ -13,17 +14,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { auth, db } from "../config/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { auth, db } from "../../config/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
-export default function SignUp({ navigation }) {
+export default function SignUpEmail({ navigation, route }) {
+  const { userType, providerType } = route.params;
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword) {
       Alert.alert("Erreur", "Veuillez remplir tous les champs");
       return;
     }
@@ -33,42 +37,77 @@ export default function SignUp({ navigation }) {
       return;
     }
 
+    if (password !== confirmPassword) {
+      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
+      return;
+    }
+
     setLoading(true);
     try {
-      console.log("1. Création compte Auth...");
+      // 1. Créer le compte Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      console.log("2. Compte créé, UID:", user.uid);
 
-      console.log("3. Envoi email de vérification...");
+      // 2. Envoyer email de vérification
       await sendEmailVerification(user);
-      console.log("4. Email envoyé");
 
-      console.log("5. Création profil Firestore...");
-      await addDoc(collection(db, "profiles"), {
+      // 3. Créer le profil Firestore avec le nouveau schéma
+      const profileData = {
         uid: user.uid,
         email: user.email,
-        name: user.email.split("@")[0],
         createdAt: new Date(),
-        hideProfile: false,
-        nomadMode: true,
+        
+        // Type d'utilisateur
+        userType: userType, // "particulier" ou "professionnel"
+        
+        // Si professionnel
+        ...(userType === "professionnel" && {
+          providerType: providerType, // "prestataire" ou "vendeur"
+          providerStatus: "pending",
+          subscription: "none",
+        }),
+        
+        // Profil commun
+        name: "",
+        displayName: "",
+        photoUrl: null,
         city: "",
         bio: "",
-        photoUrl: null,
+        phone: "",
+        
+        // Settings
+        hideProfile: false,
+        nomadMode: true,
+        emailVerified: false,
+        
+        // Onboarding
+        onboardingCompleted: false,
+        
+        // Legacy (pour compatibilité)
         purpose: "",
         gender: "",
         abonnement: "gratuit",
-        emailVerified: false,
-      });
-      console.log("6. Profil créé");
+      };
 
+      await setDoc(doc(db, "profiles", user.uid), profileData);
+
+      // 4. Rediriger vers onboarding
       Alert.alert(
         "Compte créé !",
-        "Un email de vérification a été envoyé à " + email + ". Vérifiez votre boîte mail avant de vous connecter.",
+        "Un email de vérification a été envoyé à " + email,
         [
           {
             text: "OK",
-            onPress: () => navigation.replace("SignIn"),
+            onPress: () => {
+              // Navigation vers onboarding selon le type
+              navigation.reset({
+                index: 0,
+                routes: [{ 
+                  name: "OnboardingProfile", 
+                  params: { userType, providerType } 
+                }],
+              });
+            },
           },
         ]
       );
@@ -83,10 +122,16 @@ export default function SignUp({ navigation }) {
     }
   };
 
+  const getTitle = () => {
+    if (userType === "particulier") return "Inscription";
+    if (providerType === "prestataire") return "Inscription Prestataire";
+    return "Inscription Vendeur";
+  };
+
   return (
-    <LinearGradient colors={['#F5D547', '#FF9966']} style={styles.gradient}>
+    <LinearGradient colors={["#F5D547", "#FF9966"]} style={styles.gradient}>
       <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -94,7 +139,7 @@ export default function SignUp({ navigation }) {
             <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
           </TouchableOpacity>
 
-          <Text style={styles.title}>Créer un compte</Text>
+          <Text style={styles.title}>{getTitle()}</Text>
 
           <View style={styles.card}>
             <TextInput
@@ -125,13 +170,24 @@ export default function SignUp({ navigation }) {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirmer le mot de passe"
+                placeholderTextColor="#999"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showPassword}
+              />
+            </View>
+
             <TouchableOpacity
               style={styles.buttonPrimary}
               onPress={handleSignUp}
               disabled={loading}
             >
               <LinearGradient
-                colors={['#42A5F5', '#1976D2']}
+                colors={["#42A5F5", "#1976D2"]}
                 style={styles.buttonGradient}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -157,7 +213,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  container: {
+  scrollContainer: {
     flexGrow: 1,
     padding: 24,
   },
@@ -197,7 +253,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderRadius: 12,
     paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: "#E0E0E0",
   },
@@ -209,6 +265,7 @@ const styles = StyleSheet.create({
   buttonPrimary: {
     borderRadius: 28,
     overflow: "hidden",
+    marginTop: 8,
   },
   buttonGradient: {
     paddingVertical: 16,

@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   FlatList,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -21,6 +22,8 @@ import {
   serverTimestamp,
   deleteDoc,
   doc,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import PremiumBadge from "../components/PremiumBadge";
 import ScreenLayout from "../components/ScreenLayout";
@@ -34,6 +37,10 @@ export default function DetailsChien({ route, navigation }) {
   const [likeId, setLikeId] = useState(null);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [ownerAbonnement, setOwnerAbonnement] = useState("gratuit");
+  const [userAbonnement, setUserAbonnement] = useState("gratuit");
+  const [userProfileId, setUserProfileId] = useState(null);
+  const [totalConversationsCreated, setTotalConversationsCreated] = useState(0);
+  const [showPaywall, setShowPaywall] = useState(false);
   const flatListRef = useRef(null);
 
   const photos = dog.photoUrls && dog.photoUrls.length > 0 
@@ -83,21 +90,45 @@ export default function DetailsChien({ route, navigation }) {
       }
     };
 
+    const loadUserData = async () => {
+      if (!user) return;
+
+      try {
+        const profilesRef = collection(db, "profiles");
+        const q = query(profilesRef, where("uid", "==", user.uid));
+        const profileSnap = await getDocs(q);
+        
+        if (!profileSnap.empty) {
+          const profileData = profileSnap.docs[0].data();
+          setUserAbonnement(profileData.abonnement || "gratuit");
+          setUserProfileId(profileSnap.docs[0].id);
+          setTotalConversationsCreated(profileData.totalConversationsCreated || 0);
+        }
+      } catch (error) {
+        console.log("Erreur chargement profil user:", error);
+      }
+    };
+
     checkFavorite();
     loadOwnerAbonnement();
+    loadUserData();
   }, [dog.id, dog.ownerId]);
+
+  const getConversationLimit = () => {
+    if (userAbonnement === "premium" || userAbonnement === "premium+") return null;
+    if (userAbonnement === "essentiel") return 20;
+    return 10;
+  };
 
   const handleFavorite = async () => {
     if (!user) return;
 
     try {
       if (isFavorite && likeId) {
-        // UNLIKE
         await deleteDoc(doc(db, "likes", likeId));
         setIsFavorite(false);
         setLikeId(null);
       } else {
-        // LIKE
         const docRef = await addDoc(collection(db, "likes"), {
           fromUserId: user.uid,
           toDogId: dog.id,
@@ -132,6 +163,7 @@ export default function DetailsChien({ route, navigation }) {
       const conversationsSnap = await getDocs(q);
       
       let conversationId = null;
+      let existingConversationsCount = conversationsSnap.size;
       
       conversationsSnap.forEach((doc) => {
         const data = doc.data();
@@ -140,25 +172,50 @@ export default function DetailsChien({ route, navigation }) {
         }
       });
 
-      if (!conversationId) {
-        const newConvDoc = await addDoc(conversationsRef, {
-          participants: [user.uid, dog.ownerId],
-          dogId: dog.id,
+      // Si conversation existante, on l'ouvre directement
+      if (conversationId) {
+        navigation.navigate("Chat", {
+          conversationId: conversationId,
+          otherUserId: dog.ownerId,
           dogName: dog.dogName,
-          dogPhotoUrl: photos[0] || null,
-          lastMessage: "",
-          lastMessageTime: serverTimestamp(),
-          unreadCount: {
-            [user.uid]: 0,
-            [dog.ownerId]: 0,
-          },
-          createdAt: serverTimestamp(),
         });
-        conversationId = newConvDoc.id;
+        return;
+      }
+
+      // Sinon, vérifier la limite avant de créer
+      const limit = getConversationLimit();
+      const conversationsUsed = Math.max(existingConversationsCount, totalConversationsCreated);
+      
+      if (limit !== null && conversationsUsed >= limit) {
+        setShowPaywall(true);
+        return;
+      }
+
+      // Créer la nouvelle conversation
+      const newConvDoc = await addDoc(conversationsRef, {
+        participants: [user.uid, dog.ownerId],
+        dogId: dog.id,
+        dogName: dog.dogName,
+        dogPhotoUrl: photos[0] || null,
+        lastMessage: "",
+        lastMessageTime: serverTimestamp(),
+        unreadCount: {
+          [user.uid]: 0,
+          [dog.ownerId]: 0,
+        },
+        createdAt: serverTimestamp(),
+      });
+
+      // Incrémenter le compteur total de conversations créées
+      if (userProfileId) {
+        await updateDoc(doc(db, "profiles", userProfileId), {
+          totalConversationsCreated: increment(1),
+        });
+        setTotalConversationsCreated(prev => prev + 1);
       }
 
       navigation.navigate("Chat", {
-        conversationId: conversationId,
+        conversationId: newConvDoc.id,
         otherUserId: dog.ownerId,
         dogName: dog.dogName,
       });
@@ -333,21 +390,75 @@ export default function DetailsChien({ route, navigation }) {
                 </LinearGradient>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.chatButtonContainer} onPress={handleContact}>
-                <LinearGradient
-                  colors={['#06D6A0', '#059669']}
-                  style={styles.chatButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <MaterialCommunityIcons name="message-text-outline" size={18} color="#FFF" />
-                  <Text style={styles.chatText}>Contacter</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+              {/* BOUTON CONTACTER - UNIQUEMENT SI CE N'EST PAS MON CHIEN */}
+              {user?.uid !== dog.ownerId && (
+                <TouchableOpacity style={styles.chatButtonContainer} onPress={handleContact}>
+                  <LinearGradient
+                    colors={['#06D6A0', '#059669']}
+                    style={styles.chatButtonGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <MaterialCommunityIcons name="message-text-outline" size={18} color="#FFF" />
+                    <Text style={styles.chatText}>Contacter</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </ScrollView>
       </LinearGradient>
+
+      {/* MODAL PAYWALL */}
+      <Modal
+        visible={showPaywall}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowPaywall(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalIconGradient}
+              >
+                <MaterialCommunityIcons name="message-alert" size={40} color="#FFF" />
+              </LinearGradient>
+            </View>
+
+            <Text style={styles.modalTitle}>Limite atteinte</Text>
+            <Text style={styles.modalText}>
+              Vous avez atteint le nombre maximum de conversations gratuites ({getConversationLimit()}).
+            </Text>
+            <Text style={styles.modalSubtext}>
+              Passez à Premium pour des conversations illimitées !
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={() => {
+                setShowPaywall(false);
+                navigation.navigate("Abonnements");
+              }}
+            >
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalButtonGradient}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonSecondary}
+              onPress={() => setShowPaywall(false)}
+            >
+              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 }
@@ -517,5 +628,74 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "700",
     fontSize: 17,
+  },
+  // MODAL STYLES
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
+  },
+  modalIconContainer: {
+    marginBottom: 20,
+  },
+  modalIconGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#1A1A1D",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  modalSubtext: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  modalButtonPrimary: {
+    width: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  modalButtonGradient: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  modalButtonTextPrimary: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalButtonSecondary: {
+    paddingVertical: 12,
+  },
+  modalButtonTextSecondary: {
+    color: "#6B7280",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

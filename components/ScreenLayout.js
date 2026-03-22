@@ -7,28 +7,50 @@ import {
   Image,
   useColorScheme,
   Platform,
-  StatusBar
+  StatusBar,
+  Text
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useCart } from "../contexts/CartContext";
 import GradientBackground from "./GradientBackground";
 import Header from "./Header";
 import Toolbar from "./Toolbar";
+
+// Écrans où on ne veut PAS de flèche retour
+const NO_BACK_SCREENS = ["Home", "Welcome", "UserTypeSelect", "AuthMethods"];
 
 export default function ScreenLayout({
   children,
   title,
   navigation,
   showToolbar = true,
-  showBack = false,
+  showBack,
   active,
   rightIcon,
   onRightPress,
   onProfile,
+  showCart = false,
 }) {
   const go = (name) => navigation?.navigate?.(name);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
+  
+  let cartCount = 0;
+  try {
+    const { getItemsCount } = useCart();
+    cartCount = getItemsCount();
+  } catch (error) {
+    cartCount = 0;
+  }
+
+  // Déterminer si on affiche la flèche retour
+  // Si showBack est explicitement défini, on le respecte
+  // Sinon, on affiche la flèche sauf sur les écrans listés dans NO_BACK_SCREENS
+  const shouldShowBack = showBack !== undefined 
+    ? showBack 
+    : !NO_BACK_SCREENS.includes(title);
 
   return (
     <>
@@ -49,9 +71,21 @@ export default function ScreenLayout({
         <SafeAreaView style={styles.safe}>
           <Header
             title={title}
-            onBack={showBack ? () => navigation?.goBack() : undefined}
+            onBack={shouldShowBack ? () => navigation?.goBack() : undefined}
             right={() =>
-              rightIcon === "filter" ? (
+              showCart ? (
+                <TouchableOpacity 
+                  onPress={() => navigation?.navigate("Cart")} 
+                  style={styles.cartButton}
+                >
+                  <MaterialCommunityIcons name="cart" size={28} color="#003366" />
+                  {cartCount > 0 && (
+                    <View style={styles.cartBadge}>
+                      <Text style={styles.cartBadgeText}>{cartCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ) : rightIcon === "filter" ? (
                 <TouchableOpacity onPress={onRightPress} style={styles.rightBtn}>
                   <Image
                     source={{
@@ -115,11 +149,33 @@ const styles = StyleSheet.create({
   },
   rightBtn: {
     padding: 6,
-    marginTop: 12,
+    marginTop: 44,
   },
   icon: {
-    width: 24,
-    height: 24,
+    width: 40,
+    height: 40,
     resizeMode: "contain",
+  },
+  cartButton: {
+    padding: 6,
+    marginTop: 12,
+    position: "relative",
+  },
+  cartBadge: {
+    position: "absolute",
+    top: 4,
+    right: 2,
+    backgroundColor: "#FF6B35",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+  cartBadgeText: {
+    color: "#FFF",
+    fontSize: 11,
+    fontWeight: "bold",
   },
 });

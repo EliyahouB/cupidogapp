@@ -48,7 +48,7 @@ export default function Profile() {
     
     if (!user) {
       setLoading(false);
-      Alert.alert("Erreur", "Vous devez être connecté.");
+      Alert.alert("Erreur", "Vous devez etre connecte.");
       return;
     }
 
@@ -81,16 +81,16 @@ export default function Profile() {
       const profileRef = doc(db, "profiles", profileId);
       await updateDoc(profileRef, { [field]: value });
     } catch (error) {
-      console.error("Erreur de mise à jour :", error);
-      Alert.alert("Erreur", "Erreur lors de la mise à jour.");
+      console.error("Erreur de mise a jour :", error);
+      Alert.alert("Erreur", "Erreur lors de la mise a jour.");
     }
   };
 
   const formatDate = (dateValue) => {
-    if (!dateValue) return "Non renseigné";
+    if (!dateValue) return "Non renseigne";
     
     try {
-      let date;
+      var date;
       if (dateValue.toDate) {
         date = dateValue.toDate();
       } else if (dateValue instanceof Date) {
@@ -98,7 +98,7 @@ export default function Profile() {
       } else if (typeof dateValue === 'string') {
         date = new Date(dateValue);
       } else {
-        return "Non renseigné";
+        return "Non renseigne";
       }
 
       return date.toLocaleDateString('fr-FR', {
@@ -107,7 +107,7 @@ export default function Profile() {
         year: 'numeric'
       });
     } catch {
-      return "Non renseigné";
+      return "Non renseigne";
     }
   };
 
@@ -115,7 +115,7 @@ export default function Profile() {
     if (!dateValue) return null;
     
     try {
-      let birthDate;
+      var birthDate;
       if (dateValue.toDate) {
         birthDate = dateValue.toDate();
       } else if (dateValue instanceof Date) {
@@ -126,9 +126,9 @@ export default function Profile() {
         return null;
       }
 
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
+      var today = new Date();
+      var age = today.getFullYear() - birthDate.getFullYear();
+      var monthDiff = today.getMonth() - birthDate.getMonth();
       
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         age--;
@@ -138,6 +138,15 @@ export default function Profile() {
     } catch {
       return null;
     }
+  };
+
+  const getAbonnementLabel = () => {
+    if (abonnement === "gratuit") return "Gratuit";
+    if (abonnement === "vente") return "Vente";
+    if (abonnement === "saillie") return "Saillie";
+    if (abonnement === "essentiel") return "Essentiel";
+    if (abonnement === "premium") return "Premium";
+    return "Gratuit";
   };
 
   if (loading) {
@@ -162,13 +171,12 @@ export default function Profile() {
     );
   }
 
-  const age = calculateAge(profile.dateOfBirth);
+  var age = calculateAge(profile.dateOfBirth);
 
   return (
     <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* HEADER PHOTO + NOM */}
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.photoContainer}
@@ -191,13 +199,12 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.name}>{profile.name || "Nom non renseigné"}</Text>
+          <Text style={styles.name}>{profile.name || "Nom non renseigne"}</Text>
           <View style={styles.badgeContainer}>
             <PremiumBadge abonnement={abonnement} size="medium" />
           </View>
         </View>
 
-        {/* BOUTON GÉRER ABONNEMENT */}
         <TouchableOpacity
           style={styles.abonnementButtonContainer}
           onPress={() => navigation.navigate("Abonnements")}
@@ -210,19 +217,37 @@ export default function Profile() {
             end={{ x: 1, y: 1 }}
           >
             <MaterialCommunityIcons name="crown" size={20} color="#FFF" />
-            <Text style={styles.abonnementText}>Gérer mon abonnement</Text>
+            <Text style={styles.abonnementText}>Gerer mon abonnement</Text>
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* MENU LISTE */}
+        <TouchableOpacity
+          style={styles.mesDemandesButton}
+          onPress={() => navigation.navigate("MyLeads")}
+          activeOpacity={0.8}
+        >
+          <View style={styles.mesDemandesContent}>
+            <MaterialCommunityIcons name="clipboard-list" size={20} color="#1976D2" />
+            <Text style={styles.mesDemandesText}>Mes demandes de services</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#1976D2" />
+        </TouchableOpacity>
+
         <View style={styles.menuList}>
           <MenuItem
+            icon="star-circle"
+            label="Abonnement"
+            value={getAbonnementLabel()}
+            onPress={() => navigation.navigate("Abonnements")}
+          />
+
+          <MenuItem
             icon="account"
-            label="Identité"
+            label="Identite"
             value={profile.name}
             onPress={() => navigation.navigate("EditField", {
               field: "name",
-              title: "Identité",
+              title: "Identite",
               currentValue: profile.name,
               profileId: profileId
             })}
@@ -243,7 +268,7 @@ export default function Profile() {
           <MenuItem
             icon="cake-variant"
             label="Date de naissance"
-            value={formatDate(profile.dateOfBirth) + (age ? ` (${age} ans)` : "")}
+            value={formatDate(profile.dateOfBirth) + (age ? " (" + age + " ans)" : "")}
             onPress={() => navigation.navigate("EditField", {
               field: "dateOfBirth",
               title: "Date de naissance",
@@ -290,7 +315,6 @@ export default function Profile() {
           />
         </View>
 
-        {/* SWITCHS */}
         <View style={styles.switchSection}>
           <View style={styles.switchItem}>
             <View style={styles.switchContent}>
@@ -343,21 +367,21 @@ export default function Profile() {
 
 function MenuItem({ icon, label, value, onPress, hideBorder }) {
   return (
-    <>
+    <View>
       <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
         <View style={styles.menuLeft}>
           <MaterialCommunityIcons name={icon} size={24} color="#FF6B35" />
           <View style={styles.menuText}>
             <Text style={styles.menuLabel}>{label}</Text>
             <Text style={styles.menuValue} numberOfLines={1}>
-              {value || "Non renseigné"}
+              {value || "Non renseigne"}
             </Text>
           </View>
         </View>
         <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
       </TouchableOpacity>
       {!hideBorder && <View style={styles.separator} />}
-    </>
+    </View>
   );
 }
 
@@ -437,7 +461,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     marginHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -455,6 +479,27 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "bold",
     fontSize: 15,
+  },
+  mesDemandesButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#E3F2FD",
+    marginHorizontal: 16,
+    marginBottom: 24,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  mesDemandesContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  mesDemandesText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1976D2",
   },
   menuList: {
     marginBottom: 24,

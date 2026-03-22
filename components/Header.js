@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function Header({ title, onBack, right }) {
   return (
@@ -7,7 +8,7 @@ export default function Header({ title, onBack, right }) {
       <View style={styles.left}>
         {onBack ? (
           <TouchableOpacity onPress={onBack} style={styles.btn}>
-            <Text style={styles.icon}>←</Text>
+            <MaterialCommunityIcons name="arrow-left" size={36} color="#FF6A3D" />
           </TouchableOpacity>
         ) : (
           <View style={styles.spacer} />
@@ -27,7 +28,7 @@ export default function Header({ title, onBack, right }) {
 
 const styles = StyleSheet.create({
   container: {
-    height: 72, // ✅ Augmenté pour laisser plus d’espace vertical
+    height: 72,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
@@ -36,13 +37,14 @@ const styles = StyleSheet.create({
   left: {
     width: 56,
     alignItems: "flex-start",
-    justifyContent: "center"
+    justifyContent: "center",
+    paddingTop: 28,
   },
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 44, // ✅ Décalage vers le bas du titre
+    paddingTop: 44,
   },
   right: {
     width: 56,
@@ -50,7 +52,7 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   spacer: {
-    width: 24
+    width: 28
   },
   title: {
     fontSize: 18,
@@ -58,10 +60,6 @@ const styles = StyleSheet.create({
     color: "#fff"
   },
   btn: {
-    padding: 6
+    padding: 8,
   },
-  icon: {
-    color: "#fff",
-    fontSize: 20
-  }
 });

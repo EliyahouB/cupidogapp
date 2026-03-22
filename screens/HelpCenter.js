@@ -43,7 +43,7 @@ export default function HelpCenter({ navigation }) {
 
         <FAQItem
           question="Comment contacter un autre utilisateur ?"
-          answer="Après un match, utilisez l'icône message 💬 pour ouvrir une conversation."
+          answer="Vous pouvez contacter n'importe quel utilisateur depuis la fiche de son chien. Sans réponse, vous êtes limité à 3 messages. Avec un compte gratuit, vous disposez de 10 conversations maximum."
         />
 
         <FAQItem
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   faqAnswer: {
     fontSize: 14,
-    color: "#fefeffff",
+    color: "#6B7280",
     lineHeight: 20,
   },
 });

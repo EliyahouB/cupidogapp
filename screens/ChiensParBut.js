@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { auth, db } from "../config/firebase";
 import {
   collection,
@@ -48,90 +49,93 @@ export default function ChiensParBut({ route, navigation }) {
     distance: 1000,
   });
 
-  useEffect(() => {
-    const fetchDogs = async () => {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+  useFocusEffect(
+    useCallback(() => {
+      const fetchDogs = async () => {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
 
-      try {
-        const profilesRef = collection(db, "profiles");
-        const q = query(profilesRef, where("uid", "==", currentUser.uid));
-        const profileSnap = await getDocs(q);
-        
-        if (!profileSnap.empty) {
-          const userAbonnement = profileSnap.docs[0].data().abonnement || "gratuit";
-          setAbonnement(userAbonnement);
-        }
-
-        const dogsQuery = query(
-          collectionGroup(db, "dogs"),
-          where("purpose", "==", purpose)
-        );
-        const dogsSnap = await getDocs(dogsQuery);
-        
-        const allDogs = [];
-        const ownerIds = new Set();
-
-        dogsSnap.forEach((dogDoc) => {
-          const dogData = dogDoc.data();
-          const ownerId = dogDoc.ref.parent.parent.id;
+        try {
+          const profilesRef = collection(db, "profiles");
+          const q = query(profilesRef, where("uid", "==", currentUser.uid));
+          const profileSnap = await getDocs(q);
           
-          if (ownerId === currentUser.uid) return;
-          
-          ownerIds.add(ownerId);
-          allDogs.push({
-            id: dogDoc.id,
-            ownerId: ownerId,
-            ...dogData,
-          });
-        });
-
-        // Charger les abonnements des propriétaires
-        const ownersAbonnementsMap = {};
-        const profilesQuery = collection(db, "profiles");
-        const allProfiles = await getDocs(profilesQuery);
-        
-        allProfiles.forEach((profileDoc) => {
-          const profileData = profileDoc.data();
-          if (ownerIds.has(profileData.uid)) {
-            ownersAbonnementsMap[profileData.uid] = profileData.abonnement || "gratuit";
+          if (!profileSnap.empty) {
+            const userAbonnement = profileSnap.docs[0].data().abonnement || "gratuit";
+            setAbonnement(userAbonnement);
           }
-        });
 
-        setOwnersAbonnements(ownersAbonnementsMap);
-        setDogs(allDogs);
-        setFilteredDogs(allDogs);
+          const dogsQuery = query(
+            collectionGroup(db, "dogs"),
+            where("purpose", "==", purpose)
+          );
+          const dogsSnap = await getDocs(dogsQuery);
+          
+          const allDogs = [];
+          const ownerIds = new Set();
 
-        const likesQuery = query(
-          collection(db, "likes"),
-          where("fromUserId", "==", currentUser.uid)
-        );
-        const likesSnap = await getDocs(likesQuery);
-        const liked = likesSnap.docs.map(doc => doc.data().toDogId);
-        setLikedDogs(liked);
-      } catch (error) {
-        console.log("Erreur chargement chiens:", error);
-        alert("Erreur lors du chargement des chiens.");
-      } finally {
-        setLoading(false);
-      }
-    };
+          dogsSnap.forEach((dogDoc) => {
+            const dogData = dogDoc.data();
+            const ownerId = dogDoc.ref.parent.parent.id;
+            
+            if (ownerId === currentUser.uid) return;
+            
+            ownerIds.add(ownerId);
+            allDogs.push({
+              id: dogDoc.id,
+              ownerId: ownerId,
+              ...dogData,
+            });
+          });
 
-    const getLocation = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === "granted") {
-          const location = await Location.getCurrentPositionAsync({});
-          setUserLocation(location.coords);
+          // Charger les abonnements des propriétaires
+          const ownersAbonnementsMap = {};
+          const profilesQuery = collection(db, "profiles");
+          const allProfiles = await getDocs(profilesQuery);
+          
+          allProfiles.forEach((profileDoc) => {
+            const profileData = profileDoc.data();
+            if (ownerIds.has(profileData.uid)) {
+              ownersAbonnementsMap[profileData.uid] = profileData.abonnement || "gratuit";
+            }
+          });
+
+          setOwnersAbonnements(ownersAbonnementsMap);
+          setDogs(allDogs);
+          setFilteredDogs(allDogs);
+
+          // RECHARGER LES LIKES À CHAQUE FOCUS
+          const likesQuery = query(
+            collection(db, "likes"),
+            where("fromUserId", "==", currentUser.uid)
+          );
+          const likesSnap = await getDocs(likesQuery);
+          const liked = likesSnap.docs.map(doc => doc.data().toDogId);
+          setLikedDogs(liked);
+        } catch (error) {
+          console.log("Erreur chargement chiens:", error);
+          alert("Erreur lors du chargement des chiens.");
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.log("Erreur GPS :", error);
-      }
-    };
+      };
 
-    fetchDogs();
-    getLocation();
-  }, [purpose]);
+      const getLocation = async () => {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === "granted") {
+            const location = await Location.getCurrentPositionAsync({});
+            setUserLocation(location.coords);
+          }
+        } catch (error) {
+          console.log("Erreur GPS :", error);
+        }
+      };
+
+      fetchDogs();
+      getLocation();
+    }, [purpose])
+  );
 
   const applyFilters = () => {
     const filtered = dogs.filter((dog) => {

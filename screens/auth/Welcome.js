@@ -1,3 +1,4 @@
+// screens/auth/Welcome.js
 import React from "react";
 import {
   View,
@@ -18,17 +19,20 @@ export default function Welcome({ navigation }) {
       <SafeAreaView style={styles.container}>
         <View style={styles.logoContainer}>
           <Image
-            source={require("../assets/logo.png")}
+            source={require("../../assets/logo.png")}
             style={styles.logo}
             resizeMode="contain"
           />
           <Text style={styles.title}>Bienvenue sur CupiDog</Text>
+          <Text style={styles.subtitle}>
+            Rencontres, saillie et services{"\n"}pour votre compagnon
+          </Text>
         </View>
 
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={styles.buttonWhite}
-            onPress={() => navigation.navigate("SignUp")}
+            onPress={() => navigation.navigate("UserTypeSelect")}
           >
             <Text style={styles.buttonWhiteText}>Créer un compte</Text>
           </TouchableOpacity>
@@ -39,6 +43,24 @@ export default function Welcome({ navigation }) {
           >
             <Text style={styles.buttonTransparentText}>Se connecter</Text>
           </TouchableOpacity>
+
+          {/* TEXTE CONDITIONS */}
+          <Text style={styles.legalText}>
+            En vous connectant, vous acceptez nos{" "}
+            <Text 
+              style={styles.legalLink} 
+              onPress={() => navigation.navigate("Terms")}
+            >
+              Conditions d'utilisation
+            </Text>
+            {" "}et notre{" "}
+            <Text 
+              style={styles.legalLink} 
+              onPress={() => navigation.navigate("PrivacyPolicy")}
+            >
+              Politique de confidentialité
+            </Text>
+          </Text>
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -69,6 +91,13 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFF",
     textAlign: "center",
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "rgba(255,255,255,0.9)",
+    textAlign: "center",
+    lineHeight: 22,
   },
   buttonsContainer: {
     paddingHorizontal: 32,
@@ -102,5 +131,17 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 18,
     fontWeight: "700",
+  },
+  legalText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
+    lineHeight: 18,
+    marginTop: 8,
+  },
+  legalLink: {
+    textDecorationLine: "underline",
+    fontWeight: "600",
+    color: "#FFF",
   },
 });

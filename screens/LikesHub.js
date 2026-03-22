@@ -15,7 +15,7 @@ import Favoris from "./Favoris";
 const { width } = Dimensions.get("window");
 
 export default function LikesHub({ navigation }) {
-  const [activeTab, setActiveTab] = useState("recu");
+  const [activeTab, setActiveTab] = useState("favoris");
   const [slideAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {

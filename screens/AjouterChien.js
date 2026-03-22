@@ -20,6 +20,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, getDoc, getDocs, doc, query, where } from "firebase/firestore";
 
 const DOG_BREEDS = [
+  "Autre",
   "Akita Inu",
   "Beagle",
   "Berger Allemand",
@@ -71,11 +72,11 @@ const DOG_BREEDS = [
   "Weimaraner",
   "West Highland Terrier",
   "Yorkshire Terrier",
-].sort().concat(["Autre"]);
+];
 
 export default function AjouterChien({ navigation }) {
   const [dogName, setDogName] = useState("");
-  const [breed, setBreed] = useState(DOG_BREEDS[0]);
+  const [breed, setBreed] = useState("Autre");
   const [customBreed, setCustomBreed] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("Male");
@@ -87,9 +88,10 @@ export default function AjouterChien({ navigation }) {
   const [imageUris, setImageUris] = useState([null, null, null, null]);
   const [loading, setLoading] = useState(false);
   
-  // NOUVEAUX ÉTATS POUR LE MUR PAYANT
+  // ÉTATS POUR LES MURS PAYANTS
   const [abonnement, setAbonnement] = useState("gratuit");
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showDogLimitPaywall, setShowDogLimitPaywall] = useState(false);
 
   // CHARGER L'ABONNEMENT AU DÉMARRAGE
   useEffect(() => {
@@ -200,8 +202,24 @@ export default function AjouterChien({ navigation }) {
       return;
     }
 
+    // VALIDATIONS OBLIGATOIRES
     if (!dogName.trim()) {
       Alert.alert("Erreur", "Le nom du chien est obligatoire");
+      return;
+    }
+
+    if (breed === "Autre" && !customBreed.trim()) {
+      Alert.alert("Erreur", "Veuillez préciser la race du chien");
+      return;
+    }
+
+    if (!age.trim()) {
+      Alert.alert("Erreur", "L'âge du chien est obligatoire");
+      return;
+    }
+
+    if (!gender) {
+      Alert.alert("Erreur", "Le sexe du chien est obligatoire");
       return;
     }
 
@@ -237,15 +255,8 @@ export default function AjouterChien({ navigation }) {
       console.log("4. Limite pour", userAbonnement, ":", limites[userAbonnement]);
 
       if (dogCount >= limites[userAbonnement]) {
-        Alert.alert(
-          "Limite atteinte",
-          "Abonnement " +
-            userAbonnement +
-            " autorise " +
-            limites[userAbonnement] +
-            " chien(s)."
-        );
         setLoading(false);
+        setShowDogLimitPaywall(true);
         return;
       }
 
@@ -331,14 +342,16 @@ export default function AjouterChien({ navigation }) {
           ))}
         </View>
 
-        <Text style={styles.label}>Nom</Text>
+        <Text style={styles.label}>Nom *</Text>
         <TextInput
           style={styles.input}
           value={dogName}
           onChangeText={setDogName}
+          placeholder="Nom du chien"
+          placeholderTextColor="#999"
         />
 
-        <Text style={styles.label}>Race</Text>
+        <Text style={styles.label}>Race *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={breed}
@@ -352,26 +365,28 @@ export default function AjouterChien({ navigation }) {
 
         {breed === "Autre" && (
           <>
-            <Text style={styles.label}>Precisez la race</Text>
+            <Text style={styles.label}>Precisez la race *</Text>
             <TextInput
               style={styles.input}
               value={customBreed}
               onChangeText={setCustomBreed}
               placeholder="Entrez la race"
+              placeholderTextColor="#999"
             />
           </>
         )}
 
-        <Text style={styles.label}>Age</Text>
+        <Text style={styles.label}>Age *</Text>
         <TextInput
           style={styles.inputSmall}
           value={age}
           onChangeText={setAge}
           keyboardType="numeric"
           placeholder="En annees"
+          placeholderTextColor="#999"
         />
 
-        <Text style={styles.label}>Sexe</Text>
+        <Text style={styles.label}>Sexe *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={gender}
@@ -400,6 +415,8 @@ export default function AjouterChien({ navigation }) {
           value={description}
           onChangeText={setDescription}
           multiline
+          placeholder="Décrivez votre chien..."
+          placeholderTextColor="#999"
         />
 
         <Text style={styles.label}>Pedigree</Text>
@@ -431,22 +448,32 @@ export default function AjouterChien({ navigation }) {
               style={styles.input}
               value={result}
               onChangeText={setResult}
+              placeholder="Résultats obtenus"
+              placeholderTextColor="#999"
             />
           </>
         )}
 
         <TouchableOpacity
-          style={styles.button}
+          style={styles.buttonPrimary}
           onPress={handleSave}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Enregistrement..." : "Enregistrer"}
-          </Text>
+          <LinearGradient
+            colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+            style={styles.buttonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="paw" size={20} color="#FFF" />
+            <Text style={styles.buttonTextPrimary}>
+              {loading ? "Enregistrement..." : "Enregistrer"}
+            </Text>
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* MODAL MUR PAYANT */}
+      {/* MODAL MUR PAYANT VENTE/SAILLIE */}
       <Modal
         visible={showPaywall}
         transparent={true}
@@ -507,6 +534,69 @@ export default function AjouterChien({ navigation }) {
             <TouchableOpacity
               style={styles.modalButtonSecondary}
               onPress={() => setShowPaywall(false)}
+            >
+              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL LIMITE CHIENS */}
+      <Modal
+        visible={showDogLimitPaywall}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDogLimitPaywall(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalIconGradient}
+              >
+                <MaterialCommunityIcons name="dog" size={40} color="#FFF" />
+              </LinearGradient>
+            </View>
+
+            <Text style={styles.modalTitle}>Limite atteinte</Text>
+            <Text style={styles.modalText}>
+              Vous avez déjà enregistré un chien gratuitement.{"\n\n"}
+              Pour ajouter d'autres chiens, passez à un abonnement supérieur !
+            </Text>
+
+            <View style={styles.modalPricing}>
+              <View style={styles.priceBox}>
+                <Text style={styles.priceLabel}>⭐ Premium</Text>
+                <Text style={styles.priceDetail}>Jusqu'à 3 chiens</Text>
+                <Text style={styles.pricePromo}>49₪/mois</Text>
+              </View>
+
+              <View style={styles.priceBox}>
+                <Text style={styles.priceLabel}>👑 Premium+</Text>
+                <Text style={styles.priceDetail}>Chiens illimités</Text>
+                <Text style={styles.pricePromo}>119₪/mois</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalButtonPrimary}
+              onPress={() => {
+                setShowDogLimitPaywall(false);
+                navigation.navigate("Abonnements");
+              }}
+            >
+              <LinearGradient
+                colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
+                style={styles.modalButtonGradient}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalButtonSecondary}
+              onPress={() => setShowDogLimitPaywall(false)}
             >
               <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
             </TouchableOpacity>
@@ -598,18 +688,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
   },
-  button: {
-    backgroundColor: "#ff914d",
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+  // BOUTON DÉGRADÉ
+  buttonPrimary: {
+    borderRadius: 28,
+    overflow: "hidden",
     marginTop: 24,
-    alignItems: "center",
   },
-  buttonText: {
-    color: "#fff",
+  buttonGradient: {
+    flexDirection: "row",
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  buttonTextPrimary: {
+    color: "#FFF",
+    fontSize: 18,
     fontWeight: "bold",
-    fontSize: 16,
   },
   // STYLES MODAL
   modalOverlay: {
@@ -651,7 +746,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 22,
   },
-  // NOUVEAUX STYLES PRICING
   modalPricing: {
     width: "100%",
     marginBottom: 24,
@@ -670,6 +764,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#1A1A1D",
     marginBottom: 8,
+  },
+  priceDetail: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 4,
   },
   priceRow: {
     flexDirection: "row",

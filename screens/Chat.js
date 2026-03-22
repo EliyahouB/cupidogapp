@@ -10,6 +10,8 @@ import {
   Platform,
   Alert,
   ImageBackground,
+  Image,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -48,8 +50,35 @@ export default function Chat({ route, navigation }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [abonnement, setAbonnement] = useState("gratuit");
+  const [otherUserProfile, setOtherUserProfile] = useState(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const currentUser = auth.currentUser;
   const flatListRef = useRef(null);
+
+  // Charger le profil de l'autre utilisateur
+  useEffect(() => {
+    const loadOtherUserProfile = async () => {
+      if (!otherUserId) return;
+
+      try {
+        const profilesRef = collection(db, "profiles");
+        const profileQuery = query(profilesRef, where("uid", "==", otherUserId));
+        const profileSnap = await getDocs(profileQuery);
+        
+        if (!profileSnap.empty) {
+          const profileData = profileSnap.docs[0].data();
+          setOtherUserProfile({
+            id: profileSnap.docs[0].id,
+            ...profileData,
+          });
+        }
+      } catch (error) {
+        console.log("Erreur chargement profil autre utilisateur:", error);
+      }
+    };
+
+    loadOtherUserProfile();
+  }, [otherUserId]);
 
   useEffect(() => {
     const loadUserSubscription = async () => {
@@ -86,6 +115,9 @@ export default function Chat({ route, navigation }) {
 
       setMessages(msgs);
 
+      // Vérifier si bloqué (3 messages consécutifs sans réponse)
+      checkIfBlocked(msgs);
+
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -101,6 +133,26 @@ export default function Chat({ route, navigation }) {
     return () => unsubscribe();
   }, [conversationId]);
 
+  // Vérifier si l'utilisateur est bloqué (3 messages sans réponse)
+  const checkIfBlocked = (msgs) => {
+    if (msgs.length === 0) {
+      setIsBlocked(false);
+      return;
+    }
+
+    // Compter les derniers messages consécutifs de l'utilisateur actuel
+    let consecutiveCount = 0;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].senderId === currentUser.uid) {
+        consecutiveCount++;
+      } else {
+        break;
+      }
+    }
+
+    setIsBlocked(consecutiveCount >= 3);
+  };
+
   useEffect(() => {
     const askPermission = async () => {
       if (!currentUser) return;
@@ -115,30 +167,18 @@ export default function Chat({ route, navigation }) {
     askPermission();
   }, []);
 
-  const sendPushNotification = async (token, title, body) => {
-    try {
-      await fetch("https://fcm.googleapis.com/fcm/send", {
-        method: "POST",
-        headers: {
-          Authorization:
-            "key=BJ4wZVIk6pQ_0Ceg6zOqoByADadM1GYC1nY9LIZeAz_gEuSlZoYzMVwb3KYZQjEYrTFwO1Hw5D-l_1bb7xSfp8g",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to: token,
-          notification: {
-            title: title,
-            body: body,
-          },
-        }),
-      });
-    } catch (error) {
-      console.log("Erreur notification push:", error);
-    }
-  };
-
   const handleSend = async () => {
     if (message.trim() === "" || !currentUser) return;
+
+    // Vérifier si bloqué
+    if (isBlocked) {
+      Alert.alert(
+        "En attente de réponse",
+        "Vous avez envoyé 3 messages sans réponse. Attendez une réponse avant de continuer.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
 
     const messageText = message.trim();
     setMessage("");
@@ -159,15 +199,6 @@ export default function Chat({ route, navigation }) {
         [`unreadCount.${otherUserId}`]: increment(1),
       });
 
-      const ownerRef = doc(db, "users", otherUserId);
-      const ownerSnap = await getDoc(ownerRef);
-
-      if (ownerSnap.exists()) {
-        const token = ownerSnap.data().pushToken;
-        if (token) {
-          await sendPushNotification(token, `Nouveau message - ${dogName}`, messageText);
-        }
-      }
     } catch (error) {
       console.log("Erreur envoi message:", error);
       Alert.alert("Erreur", "Impossible d'envoyer le message");
@@ -196,6 +227,15 @@ export default function Chat({ route, navigation }) {
         },
       },
     ]);
+  };
+
+  const handleViewProfile = () => {
+    if (otherUserProfile) {
+      navigation.navigate("ViewProfile", { 
+        profileId: otherUserProfile.id,
+        userId: otherUserId 
+      });
+    }
   };
 
   const formatTime = (timestamp) => {
@@ -252,11 +292,46 @@ export default function Chat({ route, navigation }) {
       showBack
     >
       <View style={styles.container}>
+        {/* HEADER UTILISATEUR - Photo + Nom cliquable */}
+        <TouchableOpacity 
+          style={styles.userHeader}
+          onPress={handleViewProfile}
+          activeOpacity={0.7}
+        >
+          {otherUserProfile?.photoUrl ? (
+            <Image 
+              source={{ uri: otherUserProfile.photoUrl }} 
+              style={styles.userAvatar} 
+            />
+          ) : (
+            <View style={styles.userAvatarPlaceholder}>
+              <MaterialCommunityIcons name="account" size={24} color="#FFF" />
+            </View>
+          )}
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>
+              {otherUserProfile?.name || otherUserProfile?.displayName || "Utilisateur"}
+            </Text>
+            <Text style={styles.userSubtitle}>Touchez pour voir le profil</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
+        </TouchableOpacity>
+
         {abonnement === "gratuit" && (
           <View style={styles.limitBanner}>
             <MaterialCommunityIcons name="calendar-clock" size={14} color="#92400E" />
             <Text style={styles.historyText}>
               Historique : 60 jours
+            </Text>
+          </View>
+        )}
+
+        {/* BANNIÈRE BLOQUÉ - 3 messages sans réponse */}
+        {isBlocked && (
+          <View style={styles.blockedBanner}>
+            <MaterialCommunityIcons name="hand-back-left" size={16} color="#DC2626" />
+            <Text style={styles.blockedText}>
+              En attente de réponse (3 messages max)
             </Text>
           </View>
         )}
@@ -287,21 +362,22 @@ export default function Chat({ route, navigation }) {
                 style={styles.input}
                 value={message}
                 onChangeText={setMessage}
-                placeholder="Message"
+                placeholder={isBlocked ? "En attente de réponse..." : "Message"}
                 placeholderTextColor="#8E8E93"
                 multiline
                 maxLength={500}
+                editable={!isBlocked}
               />
             </View>
             
             <TouchableOpacity
               style={styles.sendButtonContainer}
               onPress={handleSend}
-              disabled={message.trim() === ""}
+              disabled={message.trim() === "" || isBlocked}
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={message.trim() === "" ? ["#D1D5DB", "#9CA3AF"] : ["#06D6A0", "#059669"]}
+                colors={message.trim() === "" || isBlocked ? ["#D1D5DB", "#9CA3AF"] : ["#06D6A0", "#059669"]}
                 style={styles.sendButton}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -321,6 +397,45 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#E5DDD5",
   },
+  // HEADER UTILISATEUR
+  userHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  userAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 12,
+  },
+  userAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#9CA3AF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1A1A1D",
+  },
+  userSubtitle: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginTop: 2,
+  },
+  // BANNIÈRES
   limitBanner: {
     flexDirection: "row",
     backgroundColor: "#FEF3C7",
@@ -335,6 +450,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+  blockedBanner: {
+    flexDirection: "row",
+    backgroundColor: "#FEE2E2",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  blockedText: {
+    color: "#DC2626",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  // CHAT
   chatBackground: {
     flex: 1,
   },
