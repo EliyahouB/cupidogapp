@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../../config/firebase";
 import { doc, updateDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import i18n from "../../utils/i18n";
 
 export default function PaymentScreen({ route, navigation }) {
   const { plan, price, originalPrice } = route.params || {};
@@ -42,19 +43,19 @@ export default function PaymentScreen({ route, navigation }) {
     const cleanedCardNumber = cardNumber.replace(/\s/g, "");
     
     if (cleanedCardNumber.length < 16) {
-      Alert.alert("Erreur", "Numero de carte invalide");
+      Alert.alert(i18n.t("error"), i18n.t("invalid_card"));
       return false;
     }
     if (expiryDate.length < 5) {
-      Alert.alert("Erreur", "Date d'expiration invalide");
+      Alert.alert(i18n.t("error"), i18n.t("invalid_expiry"));
       return false;
     }
     if (cvv.length < 3) {
-      Alert.alert("Erreur", "CVV invalide");
+      Alert.alert(i18n.t("error"), i18n.t("invalid_cvv"));
       return false;
     }
     if (cardHolder.trim().length < 3) {
-      Alert.alert("Erreur", "Nom du titulaire invalide");
+      Alert.alert(i18n.t("error"), i18n.t("invalid_holder"));
       return false;
     }
     return true;
@@ -67,18 +68,15 @@ export default function PaymentScreen({ route, navigation }) {
     try {
       const user = auth.currentUser;
       if (!user) {
-        Alert.alert("Erreur", "Session expiree");
+        Alert.alert(i18n.t("error"), i18n.t("session_expired"));
         return;
       }
 
       // TODO: Appeler API Tranzila ici
-      // Pour l'instant, on simule un paiement reussi
 
-      // Calculer la date d'expiration de l'abonnement (1 mois)
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-      // Sauvegarder l'abonnement dans Firebase
       await addDoc(collection(db, "subscriptions"), {
         userId: user.uid,
         plan: plan,
@@ -91,13 +89,11 @@ export default function PaymentScreen({ route, navigation }) {
         lastFourDigits: cardNumber.replace(/\s/g, "").slice(-4),
       });
 
-      // Mettre a jour le profil
       await updateDoc(doc(db, "profiles", user.uid), {
         abonnement: plan,
         subscriptionExpiresAt: expiresAt,
       });
 
-      // Creer une facture
       await addDoc(collection(db, "invoices"), {
         userId: user.uid,
         type: "subscription",
@@ -109,11 +105,11 @@ export default function PaymentScreen({ route, navigation }) {
       });
 
       Alert.alert(
-        "Paiement reussi !",
-        `Votre abonnement ${plan.toUpperCase()} est maintenant actif.`,
+        i18n.t("payment_success"),
+        i18n.t("subscription_active", { plan: plan.toUpperCase() }),
         [
           {
-            text: "OK",
+            text: i18n.t("ok"),
             onPress: () => navigation.reset({
               index: 0,
               routes: [{ name: "Home" }],
@@ -123,7 +119,7 @@ export default function PaymentScreen({ route, navigation }) {
       );
     } catch (error) {
       console.error("Erreur paiement:", error);
-      Alert.alert("Erreur", "Le paiement a echoue. Veuillez reessayer.");
+      Alert.alert(i18n.t("error"), i18n.t("payment_failed"));
     } finally {
       setLoading(false);
     }
@@ -142,7 +138,6 @@ export default function PaymentScreen({ route, navigation }) {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           
-          {/* HEADER */}
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -150,14 +145,13 @@ export default function PaymentScreen({ route, navigation }) {
             <MaterialCommunityIcons name="arrow-left" size={24} color="#003366" />
           </TouchableOpacity>
 
-          <Text style={styles.title}>Paiement securise</Text>
+          <Text style={styles.title}>{i18n.t("secure_payment")}</Text>
 
-          {/* RESUME COMMANDE */}
           <View style={styles.orderSummary}>
             <View style={styles.orderHeader}>
               <MaterialCommunityIcons name="crown" size={24} color={getPlanColor()} />
               <Text style={[styles.orderPlan, { color: getPlanColor() }]}>
-                Abonnement {getPlanName()}
+                {i18n.t("subscription")} {getPlanName()}
               </Text>
             </View>
             <View style={styles.orderPriceRow}>
@@ -165,26 +159,25 @@ export default function PaymentScreen({ route, navigation }) {
                 <Text style={styles.orderPriceOld}>{originalPrice}₪</Text>
               )}
               <Text style={styles.orderPrice}>{price}₪</Text>
-              <Text style={styles.orderPriceUnit}>/mois</Text>
+              <Text style={styles.orderPriceUnit}>/{i18n.t("month")}</Text>
             </View>
             <View style={styles.orderFeatures}>
               <View style={styles.orderFeature}>
                 <MaterialCommunityIcons name="check" size={16} color={getPlanColor()} />
-                <Text style={styles.orderFeatureText}>Renouvellement automatique</Text>
+                <Text style={styles.orderFeatureText}>{i18n.t("auto_renewal")}</Text>
               </View>
               <View style={styles.orderFeature}>
                 <MaterialCommunityIcons name="check" size={16} color={getPlanColor()} />
-                <Text style={styles.orderFeatureText}>Annulation a tout moment</Text>
+                <Text style={styles.orderFeatureText}>{i18n.t("cancel_anytime")}</Text>
               </View>
             </View>
           </View>
 
-          {/* FORMULAIRE CARTE */}
           <View style={styles.cardForm}>
-            <Text style={styles.formTitle}>Informations de paiement</Text>
+            <Text style={styles.formTitle}>{i18n.t("payment_info")}</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Numero de carte</Text>
+              <Text style={styles.label}>{i18n.t("card_number")}</Text>
               <View style={styles.inputWithIcon}>
                 <MaterialCommunityIcons name="credit-card" size={20} color="#9CA3AF" />
                 <TextInput
@@ -201,7 +194,7 @@ export default function PaymentScreen({ route, navigation }) {
 
             <View style={styles.rowInputs}>
               <View style={[styles.inputGroup, { flex: 1 }]}>
-                <Text style={styles.label}>Expiration</Text>
+                <Text style={styles.label}>{i18n.t("expiry")}</Text>
                 <TextInput
                   style={styles.inputSmall}
                   placeholder="MM/YY"
@@ -232,10 +225,10 @@ export default function PaymentScreen({ route, navigation }) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Titulaire de la carte</Text>
+              <Text style={styles.label}>{i18n.t("card_holder")}</Text>
               <TextInput
                 style={styles.inputFull}
-                placeholder="NOM PRENOM"
+                placeholder={i18n.t("full_name_caps")}
                 placeholderTextColor="#9CA3AF"
                 value={cardHolder}
                 onChangeText={(text) => setCardHolder(text.toUpperCase())}
@@ -244,17 +237,13 @@ export default function PaymentScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* SECURITE */}
           <View style={styles.securityBadge}>
             <MaterialCommunityIcons name="shield-check" size={20} color="#4CAF50" />
-            <Text style={styles.securityText}>
-              Paiement securise par Tranzila - Vos donnees sont protegees
-            </Text>
+            <Text style={styles.securityText}>{i18n.t("payment_secure")}</Text>
           </View>
 
         </ScrollView>
 
-        {/* BOUTON PAYER */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.payButton}
@@ -270,7 +259,7 @@ export default function PaymentScreen({ route, navigation }) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="lock" size={20} color="#FFF" />
-                  <Text style={styles.payButtonText}>Payer {price}₪</Text>
+                  <Text style={styles.payButtonText}>{i18n.t("pay")} {price}₪</Text>
                 </>
               )}
             </LinearGradient>

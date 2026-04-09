@@ -1,4 +1,3 @@
-// screens/auth/SubscriptionChoice.js
 import React, { useEffect } from "react";
 import {
   View,
@@ -13,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { auth, db } from "../../config/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { createReferralCode, getReferralByUserId } from "../../utils/referral";
+import i18n from "../../utils/i18n";
 
 export default function SubscriptionChoice({ navigation }) {
 
@@ -72,10 +72,8 @@ export default function SubscriptionChoice({ navigation }) {
     <LinearGradient colors={["#F5D547", "#FF9966"]} style={styles.gradient}>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Text style={styles.title}>Activez votre compte PRO</Text>
-          <Text style={styles.subtitle}>
-            Recevez des clients et développez votre activité
-          </Text>
+          <Text style={styles.title}>{i18n.t("activate_pro_account")}</Text>
+          <Text style={styles.subtitle}>{i18n.t("receive_clients_grow")}</Text>
 
           <View style={styles.cardsContainer}>
             {/* PRO */}
@@ -83,32 +81,32 @@ export default function SubscriptionChoice({ navigation }) {
               <View style={styles.cardHeader}>
                 <Text style={styles.planName}>PRO</Text>
                 <View style={styles.earlyBadge}>
-                  <Text style={styles.earlyBadgeText}>Early Bird</Text>
+                  <Text style={styles.earlyBadgeText}>{i18n.t("early_bird")}</Text>
                 </View>
               </View>
               
               <View style={styles.priceContainer}>
                 <Text style={styles.priceOld}>249₪</Text>
                 <Text style={styles.price}>179₪</Text>
-                <Text style={styles.priceUnit}>/mois</Text>
+                <Text style={styles.priceUnit}>/{i18n.t("month")}</Text>
               </View>
 
               <View style={styles.features}>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                  <Text style={styles.featureText}>Profil listé dans l'app</Text>
+                  <Text style={styles.featureText}>{i18n.t("profile_listed")}</Text>
                 </View>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                  <Text style={styles.featureText}>5 photos portfolio</Text>
+                  <Text style={styles.featureText}>{i18n.t("photos_portfolio", { count: 5 })}</Text>
                 </View>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                  <Text style={styles.featureText}>Dashboard leads</Text>
+                  <Text style={styles.featureText}>{i18n.t("dashboard_leads")}</Text>
                 </View>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                  <Text style={styles.featureText}>Leads à prix standard</Text>
+                  <Text style={styles.featureText}>{i18n.t("leads_standard_price")}</Text>
                 </View>
               </View>
 
@@ -116,45 +114,45 @@ export default function SubscriptionChoice({ navigation }) {
                 style={styles.subscribeButton}
                 onPress={() => handleSubscribe("pro")}
               >
-                <Text style={styles.subscribeButtonText}>Choisir PRO</Text>
+                <Text style={styles.subscribeButtonText}>{i18n.t("choose_pro")}</Text>
               </TouchableOpacity>
             </View>
 
             {/* PRO+ */}
             <View style={[styles.card, styles.cardHighlight]}>
               <View style={styles.recommendedBadge}>
-                <Text style={styles.recommendedText}>RECOMMANDÉ</Text>
+                <Text style={styles.recommendedText}>{i18n.t("recommended")}</Text>
               </View>
               
               <View style={styles.cardHeader}>
                 <Text style={[styles.planName, { color: "#1976D2" }]}>PRO+</Text>
                 <View style={[styles.earlyBadge, { backgroundColor: "#E3F2FD" }]}>
-                  <Text style={[styles.earlyBadgeText, { color: "#1976D2" }]}>Early Bird</Text>
+                  <Text style={[styles.earlyBadgeText, { color: "#1976D2" }]}>{i18n.t("early_bird")}</Text>
                 </View>
               </View>
               
               <View style={styles.priceContainer}>
                 <Text style={styles.priceOld}>399₪</Text>
                 <Text style={[styles.price, { color: "#1976D2" }]}>279₪</Text>
-                <Text style={styles.priceUnit}>/mois</Text>
+                <Text style={styles.priceUnit}>/{i18n.t("month")}</Text>
               </View>
 
               <View style={styles.features}>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#1976D2" />
-                  <Text style={styles.featureText}>Tout PRO inclus</Text>
+                  <Text style={styles.featureText}>{i18n.t("all_pro_included")}</Text>
                 </View>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#1976D2" />
-                  <Text style={styles.featureText}>15 photos portfolio</Text>
+                  <Text style={styles.featureText}>{i18n.t("photos_portfolio", { count: 15 })}</Text>
                 </View>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="star" size={20} color="#FFB300" />
-                  <Text style={[styles.featureText, { fontWeight: "600" }]}>Badge Recommandé</Text>
+                  <Text style={[styles.featureText, { fontWeight: "600" }]}>{i18n.t("badge_recommended")}</Text>
                 </View>
                 <View style={styles.featureRow}>
                   <MaterialCommunityIcons name="sale" size={20} color="#4CAF50" />
-                  <Text style={[styles.featureText, { fontWeight: "600" }]}>Leads -25%</Text>
+                  <Text style={[styles.featureText, { fontWeight: "600" }]}>{i18n.t("leads_discount")}</Text>
                 </View>
               </View>
 
@@ -166,17 +164,14 @@ export default function SubscriptionChoice({ navigation }) {
                   colors={["#42A5F5", "#1976D2"]}
                   style={styles.subscribeButtonGradient}
                 >
-                  <Text style={styles.subscribeButtonTextWhite}>Choisir PRO+</Text>
+                  <Text style={styles.subscribeButtonTextWhite}>{i18n.t("choose_pro_plus")}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Skip */}
           <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-            <Text style={styles.skipText}>
-              Je fais juste une petite balade, je souscrirai plus tard
-            </Text>
+            <Text style={styles.skipText}>{i18n.t("skip_subscribe_later")}</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

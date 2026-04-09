@@ -6,6 +6,7 @@ import ScreenLayout from "../../../components/ScreenLayout";
 import { auth, db } from "../../../config/firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { generateMonthlyLeadsInvoice, generateMonthlyCommissionInvoice } from "../../../utils/invoicing";
+import i18n from "../../../utils/i18n";
 
 export default function MesFactures({ navigation }) {
   const [invoices, setInvoices] = useState([]);
@@ -50,26 +51,39 @@ export default function MesFactures({ navigation }) {
     }
   };
 
+  const getMonthNames = () => {
+    return [
+      i18n.t("january"), i18n.t("february"), i18n.t("march"), i18n.t("april"),
+      i18n.t("may"), i18n.t("june"), i18n.t("july"), i18n.t("august"),
+      i18n.t("september"), i18n.t("october"), i18n.t("november"), i18n.t("december")
+    ];
+  };
+
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
+
   const handleGenerateInvoice = async (period) => {
     const user = auth.currentUser;
     if (!user) return;
 
     const now = new Date();
     let targetMonth, targetYear, periodLabel;
+    const monthNames = getMonthNames();
 
     if (period === "last") {
       targetMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
       targetYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-      periodLabel = "mois dernier";
+      periodLabel = i18n.t("last_month");
     } else {
       targetMonth = now.getMonth();
       targetYear = now.getFullYear();
-      periodLabel = "mois en cours";
+      periodLabel = i18n.t("current_month");
     }
 
-    const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-
-    // VÉRIFIER SI FACTURE EXISTE DÉJÀ
     const existingInvoice = invoices.find(inv => {
       const invMonth = inv.month;
       const invYear = inv.year;
@@ -78,12 +92,12 @@ export default function MesFactures({ navigation }) {
 
     if (existingInvoice) {
       Alert.alert(
-        "Facture déjà générée",
-        `Une facture pour ${monthNames[targetMonth]} ${targetYear} existe déjà.\n\nVoulez-vous la régénérer ?`,
+        i18n.t("invoice_already_generated"),
+        `${i18n.t("invoice_for")} ${monthNames[targetMonth]} ${targetYear} ${i18n.t("already_exists")}.\n\n${i18n.t("regenerate_question")}`,
         [
-          { text: "Annuler", style: "cancel" },
+          { text: i18n.t("cancel"), style: "cancel" },
           {
-            text: "Régénérer",
+            text: i18n.t("regenerate"),
             style: "destructive",
             onPress: () => confirmGeneration(targetMonth, targetYear, periodLabel, monthNames)
           }
@@ -99,12 +113,12 @@ export default function MesFactures({ navigation }) {
     if (!user) return;
 
     Alert.alert(
-      "Générer la facture",
-      `Générer la facture de ${monthNames[targetMonth]} ${targetYear} (${periodLabel}) ?`,
+      i18n.t("generate_invoice"),
+      `${i18n.t("generate_invoice_for")} ${monthNames[targetMonth]} ${targetYear} (${periodLabel}) ?`,
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Générer",
+          text: i18n.t("generate"),
           onPress: async () => {
             setGenerating(true);
             try {
@@ -117,14 +131,14 @@ export default function MesFactures({ navigation }) {
               }
 
               if (result.success) {
-                Alert.alert("Succès", "Facture générée !");
+                Alert.alert(i18n.t("success"), i18n.t("invoice_generated"));
                 loadInvoices();
               } else {
-                Alert.alert("Info", result.message || "Aucune activité ce mois-ci");
+                Alert.alert(i18n.t("info"), result.message || i18n.t("no_activity_this_month"));
               }
             } catch (error) {
               console.error("Erreur génération facture:", error);
-              Alert.alert("Erreur", "Impossible de générer la facture");
+              Alert.alert(i18n.t("error"), i18n.t("error_generating_invoice"));
             } finally {
               setGenerating(false);
             }
@@ -136,7 +150,7 @@ export default function MesFactures({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Mes factures" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_invoices")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
         </View>
@@ -145,9 +159,8 @@ export default function MesFactures({ navigation }) {
   }
 
   return (
-    <ScreenLayout title="Mes factures" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("my_invoices")} navigation={navigation} showBack>
       <View style={{ flex: 1 }}>
-        {/* BOUTONS GÉNÉRER */}
         <View style={styles.generateSection}>
           <TouchableOpacity
             style={styles.generateButtonContainer}
@@ -166,7 +179,7 @@ export default function MesFactures({ navigation }) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="file-document-plus" size={22} color="#FFF" />
-                  <Text style={styles.generateButtonText}>Générer facture du mois dernier</Text>
+                  <Text style={styles.generateButtonText}>{i18n.t("generate_last_month_invoice")}</Text>
                 </>
               )}
             </LinearGradient>
@@ -189,20 +202,19 @@ export default function MesFactures({ navigation }) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="calendar-clock" size={22} color="#FFF" />
-                  <Text style={styles.generateButtonText}>Générer facture du mois en cours</Text>
+                  <Text style={styles.generateButtonText}>{i18n.t("generate_current_month_invoice")}</Text>
                 </>
               )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* LISTE FACTURES */}
         <ScrollView contentContainerStyle={styles.container}>
           {invoices.length === 0 ? (
             <View style={styles.empty}>
               <MaterialCommunityIcons name="file-document-outline" size={80} color="#9CA3AF" />
-              <Text style={styles.emptyText}>Aucune facture</Text>
-              <Text style={styles.emptyHint}>Cliquez sur les boutons ci-dessus pour générer votre première facture</Text>
+              <Text style={styles.emptyText}>{i18n.t("no_invoices")}</Text>
+              <Text style={styles.emptyHint}>{i18n.t("click_buttons_to_generate")}</Text>
             </View>
           ) : (
             invoices.map((invoice) => (
@@ -215,7 +227,7 @@ export default function MesFactures({ navigation }) {
                 <View style={styles.header}>
                   <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
                   <View style={[styles.statusBadge, { backgroundColor: invoice.status === "paid" ? "#43A047" : "#FF9900" }]}>
-                    <Text style={styles.statusText}>{invoice.status === "paid" ? "Payée" : "Impayée"}</Text>
+                    <Text style={styles.statusText}>{invoice.status === "paid" ? i18n.t("paid") : i18n.t("unpaid")}</Text>
                   </View>
                 </View>
                 
@@ -223,7 +235,7 @@ export default function MesFactures({ navigation }) {
                 
                 <View style={styles.row}>
                   <Text style={styles.label}>
-                    {invoice.type === "commission_invoice" ? "Total ventes :" : "Total leads :"}
+                    {invoice.type === "commission_invoice" ? i18n.t("total_sales") + " :" : i18n.t("total_leads") + " :"}
                   </Text>
                   <Text style={styles.value}>₪{invoice.totalAmount?.toFixed(0) || invoice.totalSales?.toFixed(0)}</Text>
                 </View>
@@ -231,11 +243,11 @@ export default function MesFactures({ navigation }) {
                 {invoice.type === "commission_invoice" && (
                   <>
                     <View style={styles.row}>
-                      <Text style={styles.label}>Commission CupiDog (20%) :</Text>
+                      <Text style={styles.label}>{i18n.t("cupidog_commission")} (20%) :</Text>
                       <Text style={styles.commission}>-₪{invoice.totalCommission?.toFixed(0)}</Text>
                     </View>
                     <View style={styles.row}>
-                      <Text style={styles.labelBold}>Vous recevez :</Text>
+                      <Text style={styles.labelBold}>{i18n.t("you_receive")} :</Text>
                       <Text style={styles.valueBold}>₪{invoice.totalPayout?.toFixed(0)}</Text>
                     </View>
                   </>
@@ -243,13 +255,13 @@ export default function MesFactures({ navigation }) {
 
                 {invoice.type === "lead_invoice" && (
                   <View style={styles.row}>
-                    <Text style={styles.labelBold}>Total TTC :</Text>
+                    <Text style={styles.labelBold}>{i18n.t("total_with_vat")} :</Text>
                     <Text style={styles.valueBold}>₪{invoice.totalWithTva?.toFixed(0)}</Text>
                   </View>
                 )}
 
                 <Text style={styles.date}>
-                  {invoice.createdAt?.toDate?.()?.toLocaleDateString("fr-FR") || "Date inconnue"}
+                  {invoice.createdAt?.toDate?.()?.toLocaleDateString(getLocale()) || i18n.t("unknown_date")}
                 </Text>
 
                 <View style={styles.chevron}>

@@ -1,4 +1,3 @@
-// screens/auth/SignUpEmail.js
 import React, { useState } from "react";
 import {
   View,
@@ -16,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { auth, db } from "../../config/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import i18n from "../../utils/i18n";
 
 export default function SignUpEmail({ navigation, route }) {
   const { userType, providerType } = route.params;
@@ -28,62 +28,47 @@ export default function SignUpEmail({ navigation, route }) {
 
   const handleSignUp = async () => {
     if (!email || !password || !confirmPassword) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      Alert.alert(i18n.t("error"), i18n.t("fill_all_fields"));
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Erreur", "Le mot de passe doit contenir au moins 6 caractères");
+      Alert.alert(i18n.t("error"), i18n.t("password_min_6"));
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Erreur", "Les mots de passe ne correspondent pas");
+      Alert.alert(i18n.t("error"), i18n.t("passwords_not_match"));
       return;
     }
 
     setLoading(true);
     try {
-      // 1. Créer le compte Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Envoyer email de vérification
       await sendEmailVerification(user);
 
-      // 3. Créer le profil Firestore avec le nouveau schéma
       const profileData = {
         uid: user.uid,
         email: user.email,
         createdAt: new Date(),
-        
-        // Type d'utilisateur
-        userType: userType, // "particulier" ou "professionnel"
-        
-        // Si professionnel
+        userType: userType,
         ...(userType === "professionnel" && {
-          providerType: providerType, // "prestataire" ou "vendeur"
+          providerType: providerType,
           providerStatus: "pending",
           subscription: "none",
         }),
-        
-        // Profil commun
         name: "",
         displayName: "",
         photoUrl: null,
         city: "",
         bio: "",
         phone: "",
-        
-        // Settings
         hideProfile: false,
         nomadMode: true,
         emailVerified: false,
-        
-        // Onboarding
         onboardingCompleted: false,
-        
-        // Legacy (pour compatibilité)
         purpose: "",
         gender: "",
         abonnement: "gratuit",
@@ -91,15 +76,13 @@ export default function SignUpEmail({ navigation, route }) {
 
       await setDoc(doc(db, "profiles", user.uid), profileData);
 
-      // 4. Rediriger vers onboarding
       Alert.alert(
-        "Compte créé !",
-        "Un email de vérification a été envoyé à " + email,
+        i18n.t("account_created"),
+        i18n.t("verification_email_sent") + " " + email,
         [
           {
-            text: "OK",
+            text: i18n.t("ok"),
             onPress: () => {
-              // Navigation vers onboarding selon le type
               navigation.reset({
                 index: 0,
                 routes: [{ 
@@ -113,19 +96,19 @@ export default function SignUpEmail({ navigation, route }) {
       );
     } catch (e) {
       console.log("ERREUR:", e.code, e.message);
-      let message = "Erreur lors de l'inscription";
-      if (e.code === "auth/email-already-in-use") message = "Email déjà utilisé";
-      if (e.code === "auth/invalid-email") message = "Email invalide";
-      Alert.alert("Erreur", message);
+      let message = i18n.t("signup_error");
+      if (e.code === "auth/email-already-in-use") message = i18n.t("email_already_used");
+      if (e.code === "auth/invalid-email") message = i18n.t("invalid_email");
+      Alert.alert(i18n.t("error"), message);
     } finally {
       setLoading(false);
     }
   };
 
   const getTitle = () => {
-    if (userType === "particulier") return "Inscription";
-    if (providerType === "prestataire") return "Inscription Prestataire";
-    return "Inscription Vendeur";
+    if (userType === "particulier") return i18n.t("signup");
+    if (providerType === "prestataire") return i18n.t("provider_signup");
+    return i18n.t("seller_signup");
   };
 
   return (
@@ -144,7 +127,7 @@ export default function SignUpEmail({ navigation, route }) {
           <View style={styles.card}>
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={i18n.t("email")}
               placeholderTextColor="#999"
               value={email}
               onChangeText={setEmail}
@@ -155,7 +138,7 @@ export default function SignUpEmail({ navigation, route }) {
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Mot de passe (min. 6 caractères)"
+                placeholder={i18n.t("password_placeholder")}
                 placeholderTextColor="#999"
                 value={password}
                 onChangeText={setPassword}
@@ -173,7 +156,7 @@ export default function SignUpEmail({ navigation, route }) {
             <View style={styles.passwordContainer}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder="Confirmer le mot de passe"
+                placeholder={i18n.t("confirm_password")}
                 placeholderTextColor="#999"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -195,7 +178,7 @@ export default function SignUpEmail({ navigation, route }) {
                 {loading ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.buttonText}>Créer mon compte</Text>
+                  <Text style={styles.buttonText}>{i18n.t("create_my_account")}</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>

@@ -19,6 +19,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, db } from "../../../config/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import ScreenLayout from "../../../components/ScreenLayout";
+import i18n from "../../../utils/i18n";
 
 export default function EditProduct({ route, navigation }) {
   const { productId } = route.params;
@@ -57,12 +58,12 @@ export default function EditProduct({ route, navigation }) {
           weight: data.weight || "",
         });
       } else {
-        Alert.alert("Erreur", "Produit introuvable");
+        Alert.alert(i18n.t("error"), i18n.t("product_not_found"));
         navigation.goBack();
       }
     } catch (error) {
       console.error("Erreur loadProduct:", error);
-      Alert.alert("Erreur", "Impossible de charger le produit");
+      Alert.alert(i18n.t("error"), i18n.t("error_loading_product"));
     } finally {
       setLoading(false);
     }
@@ -72,7 +73,7 @@ export default function EditProduct({ route, navigation }) {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (!permissionResult.granted) {
-      Alert.alert("Permission requise", "Accès à la galerie requis");
+      Alert.alert(i18n.t("permission_required"), i18n.t("gallery_access_required"));
       return;
     }
 
@@ -109,17 +110,16 @@ export default function EditProduct({ route, navigation }) {
   };
 
   const handleSubmit = async () => {
-    // VALIDATION
     if (!formData.name.trim()) {
-      Alert.alert("Erreur", "Nom du produit requis");
+      Alert.alert(i18n.t("error"), i18n.t("product_name_required"));
       return;
     }
     if (!formData.price || isNaN(formData.price) || parseFloat(formData.price) <= 0) {
-      Alert.alert("Erreur", "Prix valide requis");
+      Alert.alert(i18n.t("error"), i18n.t("valid_price_required"));
       return;
     }
     if (!formData.stock || isNaN(formData.stock) || parseInt(formData.stock) < 0) {
-      Alert.alert("Erreur", "Stock valide requis");
+      Alert.alert(i18n.t("error"), i18n.t("valid_stock_required"));
       return;
     }
 
@@ -137,7 +137,6 @@ export default function EditProduct({ route, navigation }) {
         updatedAt: new Date(),
       };
 
-      // Upload nouvelle photo si sélectionnée
       if (newPhoto) {
         const photoURL = await uploadPhoto();
         if (photoURL) {
@@ -148,18 +147,18 @@ export default function EditProduct({ route, navigation }) {
       await updateDoc(docRef, updateData);
 
       Alert.alert(
-        "Modifié !",
-        "Votre produit a été mis à jour",
+        i18n.t("modified"),
+        i18n.t("product_updated"),
         [
           { 
-            text: "OK", 
+            text: i18n.t("ok"), 
             onPress: () => navigation.goBack()
           }
         ]
       );
     } catch (error) {
       console.error("Erreur handleSubmit:", error);
-      Alert.alert("Erreur", "Impossible de modifier le produit");
+      Alert.alert(i18n.t("error"), i18n.t("error_modifying_product"));
     } finally {
       setSaving(false);
     }
@@ -167,7 +166,7 @@ export default function EditProduct({ route, navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Modifier produit" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("edit_product")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#E91E63" />
         </View>
@@ -176,16 +175,15 @@ export default function EditProduct({ route, navigation }) {
   }
 
   return (
-    <ScreenLayout title="Modifier produit" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("edit_product")} navigation={navigation} showBack>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* PHOTO */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Photo du produit</Text>
+            <Text style={styles.label}>{i18n.t("product_photo")}</Text>
             <TouchableOpacity
               style={styles.photoUpload}
               onPress={pickImage}
@@ -197,7 +195,7 @@ export default function EditProduct({ route, navigation }) {
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={40} color="#9CA3AF" />
-                  <Text style={styles.photoPlaceholderText}>Ajouter une photo</Text>
+                  <Text style={styles.photoPlaceholderText}>{i18n.t("add_photo")}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -206,28 +204,26 @@ export default function EditProduct({ route, navigation }) {
                 style={styles.changePhotoButton}
                 onPress={pickImage}
               >
-                <Text style={styles.changePhotoText}>Changer la photo</Text>
+                <Text style={styles.changePhotoText}>{i18n.t("change_photo")}</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* NOM */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom du produit *</Text>
+            <Text style={styles.label}>{i18n.t("product_name")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Royal Canin Maxi Adult 15kg"
+              placeholder={i18n.t("product_name_example")}
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
             />
           </View>
 
-          {/* DESCRIPTION */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description *</Text>
+            <Text style={styles.label}>{i18n.t("description")} *</Text>
             <TextInput
               style={[styles.input, styles.textarea]}
-              placeholder="Décrivez votre produit..."
+              placeholder={i18n.t("describe_product")}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -236,9 +232,8 @@ export default function EditProduct({ route, navigation }) {
             />
           </View>
 
-          {/* PRIX */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Prix de vente *</Text>
+            <Text style={styles.label}>{i18n.t("selling_price")} *</Text>
             <View style={styles.priceInputContainer}>
               <TextInput
                 style={styles.priceInput}
@@ -252,41 +247,38 @@ export default function EditProduct({ route, navigation }) {
             {formData.price && !isNaN(formData.price) && parseFloat(formData.price) > 0 && (
               <View style={styles.calculationBox}>
                 <Text style={styles.calculationText}>
-                  💰 Vous recevrez : {(parseFloat(formData.price) * 0.8).toFixed(0)}₪
+                  💰 {i18n.t("you_will_receive")}: {(parseFloat(formData.price) * 0.8).toFixed(0)}₪
                 </Text>
               </View>
             )}
           </View>
 
-          {/* STOCK */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Stock disponible *</Text>
+            <Text style={styles.label}>{i18n.t("available_stock")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: 10"
+              placeholder={i18n.t("stock_example")}
               keyboardType="numeric"
               value={formData.stock}
               onChangeText={(text) => setFormData({ ...formData, stock: text })}
             />
           </View>
 
-          {/* MARQUE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Marque (optionnel)</Text>
+            <Text style={styles.label}>{i18n.t("brand_optional")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Royal Canin"
+              placeholder={i18n.t("brand_example")}
               value={formData.brand}
               onChangeText={(text) => setFormData({ ...formData, brand: text })}
             />
           </View>
 
-          {/* POIDS */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Poids (optionnel)</Text>
+            <Text style={styles.label}>{i18n.t("weight_optional")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: 15kg"
+              placeholder={i18n.t("weight_example")}
               value={formData.weight}
               onChangeText={(text) => setFormData({ ...formData, weight: text })}
             />
@@ -294,7 +286,6 @@ export default function EditProduct({ route, navigation }) {
 
         </ScrollView>
 
-        {/* BOUTON SUBMIT */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.submitButtonContainer}
@@ -309,11 +300,11 @@ export default function EditProduct({ route, navigation }) {
               end={{ x: 1, y: 0 }}
             >
               {saving ? (
-                <Text style={styles.submitButtonText}>Enregistrement...</Text>
+                <Text style={styles.submitButtonText}>{i18n.t("saving")}</Text>
               ) : (
                 <>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#FFF" />
-                  <Text style={styles.submitButtonText}>Enregistrer les modifications</Text>
+                  <Text style={styles.submitButtonText}>{i18n.t("save_changes")}</Text>
                 </>
               )}
             </LinearGradient>

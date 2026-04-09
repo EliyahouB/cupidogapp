@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth, db } from "../../../config/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import i18n from "../../../utils/i18n";
 
 export default function MesProduits({ navigation }) {
   const [products, setProducts] = useState([]);
@@ -58,27 +59,27 @@ export default function MesProduits({ navigation }) {
       loadProducts();
     } catch (error) {
       console.error("Erreur handleToggleStatus:", error);
-      Alert.alert("Erreur", "Impossible de modifier le statut");
+      Alert.alert(i18n.t("error"), i18n.t("error_changing_status"));
     }
   };
 
   const handleDelete = (productId, productName) => {
     Alert.alert(
-      "Supprimer le produit",
-      `Êtes-vous sûr de vouloir supprimer "${productName}" ?`,
+      i18n.t("delete_product"),
+      `${i18n.t("confirm_delete_product")} "${productName}" ?`,
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: i18n.t("delete"),
           style: "destructive",
           onPress: async () => {
             try {
               await deleteDoc(doc(db, "marketplace_products", productId));
               loadProducts();
-              Alert.alert("Succès", "Produit supprimé");
+              Alert.alert(i18n.t("success"), i18n.t("product_deleted"));
             } catch (error) {
               console.error("Erreur handleDelete:", error);
-              Alert.alert("Erreur", "Impossible de supprimer le produit");
+              Alert.alert(i18n.t("error"), i18n.t("error_deleting_product"));
             }
           }
         }
@@ -88,7 +89,7 @@ export default function MesProduits({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Mes produits" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_products")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#E91E63" />
         </View>
@@ -101,36 +102,34 @@ export default function MesProduits({ navigation }) {
   const totalRevenue = products.reduce((sum, p) => sum + (p.price * (p.sold || 0) * 0.8), 0);
 
   return (
-    <ScreenLayout title="Mes produits" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("my_products")} navigation={navigation} showBack>
       <View style={styles.container}>
-        {/* STATS HEADER */}
         <View style={styles.statsHeader}>
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="package-variant" size={24} color="#E91E63" />
             <Text style={styles.statValue}>{products.length}</Text>
-            <Text style={styles.statLabel}>Produits</Text>
+            <Text style={styles.statLabel}>{i18n.t("products")}</Text>
           </View>
 
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="check-circle" size={24} color="#43A047" />
             <Text style={styles.statValue}>{activeProducts.length}</Text>
-            <Text style={styles.statLabel}>Actifs</Text>
+            <Text style={styles.statLabel}>{i18n.t("active")}</Text>
           </View>
 
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="cart-check" size={24} color="#1976D2" />
             <Text style={styles.statValue}>{totalSales}</Text>
-            <Text style={styles.statLabel}>Vendus</Text>
+            <Text style={styles.statLabel}>{i18n.t("sold")}</Text>
           </View>
 
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="cash" size={24} color="#43A047" />
             <Text style={styles.statValue}>₪{totalRevenue.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>Gains</Text>
+            <Text style={styles.statLabel}>{i18n.t("earnings")}</Text>
           </View>
         </View>
 
-        {/* LISTE */}
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -140,19 +139,18 @@ export default function MesProduits({ navigation }) {
           {products.length === 0 ? (
             <View style={styles.empty}>
               <MaterialCommunityIcons name="package-variant-closed" size={80} color="#9CA3AF" />
-              <Text style={styles.emptyText}>Aucun produit en vente</Text>
+              <Text style={styles.emptyText}>{i18n.t("no_products_for_sale")}</Text>
               <TouchableOpacity
                 style={styles.emptyButton}
                 onPress={() => navigation.navigate("CreateProduct")}
               >
-                <Text style={styles.emptyButtonText}>Ajouter un produit</Text>
+                <Text style={styles.emptyButtonText}>{i18n.t("add_product")}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.productsList}>
               {products.map((product) => (
                 <View key={product.id} style={styles.productCard}>
-                  {/* PHOTO + INFO */}
                   <View style={styles.productMain}>
                     {product.photos && product.photos.length > 0 ? (
                       <Image source={{ uri: product.photos[0] }} style={styles.productImage} />
@@ -172,7 +170,7 @@ export default function MesProduits({ navigation }) {
                           { backgroundColor: product.status === "active" ? "#43A047" : "#DC2626" }
                         ]}>
                           <Text style={styles.statusBadgeText}>
-                            {product.status === "active" ? "Actif" : "Suspendu"}
+                            {product.status === "active" ? i18n.t("active") : i18n.t("suspended")}
                           </Text>
                         </View>
                       </View>
@@ -181,30 +179,29 @@ export default function MesProduits({ navigation }) {
                         <View style={styles.detailRow}>
                           <MaterialCommunityIcons name="cash" size={16} color="#E91E63" />
                           <Text style={styles.detailText}>₪{product.price}</Text>
-                          <Text style={styles.detailSubtext}>(Tu reçois ₪{(product.price * 0.8).toFixed(0)})</Text>
+                          <Text style={styles.detailSubtext}>({i18n.t("you_receive")} ₪{(product.price * 0.8).toFixed(0)})</Text>
                         </View>
 
                         <View style={styles.detailRow}>
                           <MaterialCommunityIcons name="package-variant" size={16} color="#6B7280" />
-                          <Text style={styles.detailText}>Stock : {product.stock}</Text>
+                          <Text style={styles.detailText}>{i18n.t("stock")} : {product.stock}</Text>
                         </View>
 
                         <View style={styles.detailRow}>
                           <MaterialCommunityIcons name="cart" size={16} color="#1976D2" />
-                          <Text style={styles.detailText}>Vendus : {product.sold || 0}</Text>
+                          <Text style={styles.detailText}>{i18n.t("sold")} : {product.sold || 0}</Text>
                         </View>
                       </View>
                     </View>
                   </View>
 
-                  {/* ACTIONS */}
                   <View style={styles.actions}>
                     <TouchableOpacity
                       style={styles.actionButton}
                       onPress={() => navigation.navigate("EditProduct", { productId: product.id })}
                     >
                       <MaterialCommunityIcons name="pencil" size={18} color="#1976D2" />
-                      <Text style={styles.actionButtonText}>Modifier</Text>
+                      <Text style={styles.actionButtonText}>{i18n.t("edit")}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -217,7 +214,7 @@ export default function MesProduits({ navigation }) {
                         color="#FF9900" 
                       />
                       <Text style={styles.actionButtonText}>
-                        {product.status === "active" ? "Suspendre" : "Activer"}
+                        {product.status === "active" ? i18n.t("suspend") : i18n.t("activate")}
                       </Text>
                     </TouchableOpacity>
 
@@ -226,7 +223,7 @@ export default function MesProduits({ navigation }) {
                       onPress={() => handleDelete(product.id, product.name)}
                     >
                       <MaterialCommunityIcons name="delete" size={18} color="#DC2626" />
-                      <Text style={styles.actionButtonText}>Supprimer</Text>
+                      <Text style={styles.actionButtonText}>{i18n.t("delete")}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -235,7 +232,6 @@ export default function MesProduits({ navigation }) {
           )}
         </ScrollView>
 
-        {/* BOUTON AJOUTER */}
         <TouchableOpacity
           style={styles.fabButton}
           onPress={() => navigation.navigate("CreateProduct")}
@@ -250,7 +246,7 @@ export default function MesProduits({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-      },
+  },
   loading: {
     flex: 1,
     justifyContent: "center",

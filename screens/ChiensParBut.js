@@ -26,6 +26,7 @@ import * as Location from "expo-location";
 import ScreenLayout from "../components/ScreenLayout";
 import FiltreModal from "../components/FiltreModal";
 import PremiumBadge from "../components/PremiumBadge";
+import i18n from "../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -88,7 +89,6 @@ export default function ChiensParBut({ route, navigation }) {
             });
           });
 
-          // Charger les abonnements des propriétaires
           const ownersAbonnementsMap = {};
           const profilesQuery = collection(db, "profiles");
           const allProfiles = await getDocs(profilesQuery);
@@ -104,7 +104,6 @@ export default function ChiensParBut({ route, navigation }) {
           setDogs(allDogs);
           setFilteredDogs(allDogs);
 
-          // RECHARGER LES LIKES À CHAQUE FOCUS
           const likesQuery = query(
             collection(db, "likes"),
             where("fromUserId", "==", currentUser.uid)
@@ -114,7 +113,7 @@ export default function ChiensParBut({ route, navigation }) {
           setLikedDogs(liked);
         } catch (error) {
           console.log("Erreur chargement chiens:", error);
-          alert("Erreur lors du chargement des chiens.");
+          alert(i18n.t("error_loading_dogs"));
         } finally {
           setLoading(false);
         }
@@ -178,7 +177,6 @@ export default function ChiensParBut({ route, navigation }) {
     const isAlreadyLiked = likedDogs.includes(dogId);
 
     if (isAlreadyLiked) {
-      // UNLIKER
       try {
         const likesRef = collection(db, "likes");
         const q = query(
@@ -192,14 +190,13 @@ export default function ChiensParBut({ route, navigation }) {
           const likeDoc = likesSnap.docs[0];
           await deleteDoc(doc(db, "likes", likeDoc.id));
           setLikedDogs(likedDogs.filter(id => id !== dogId));
-          alert("Retiré des favoris !");
+          alert(i18n.t("removed_from_favorites"));
         }
       } catch (error) {
         console.log("Erreur unlike:", error);
-        alert("Erreur lors du retrait.");
+        alert(i18n.t("error_removing"));
       }
     } else {
-      // LIKER
       try {
         await addDoc(collection(db, "likes"), {
           fromUserId: user.uid,
@@ -208,10 +205,10 @@ export default function ChiensParBut({ route, navigation }) {
           createdAt: new Date(),
         });
         setLikedDogs([...likedDogs, dogId]);
-        alert("Ajouté aux favoris !");
+        alert(i18n.t("added_to_favorites"));
       } catch (error) {
         console.log("Erreur like:", error);
-        alert("Erreur lors du like.");
+        alert(i18n.t("error_liking"));
       }
     }
   };
@@ -283,7 +280,7 @@ export default function ChiensParBut({ route, navigation }) {
             
             <View style={styles.infoRow}>
               <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
-              <Text style={styles.detail}>{item.age} ans</Text>
+              <Text style={styles.detail}>{item.age} {i18n.t("years_old")}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -293,7 +290,7 @@ export default function ChiensParBut({ route, navigation }) {
 
   return (
     <ScreenLayout
-      title={`Chiens - ${purpose}`}
+      title={`${i18n.t("dogs")} - ${purpose}`}
       navigation={navigation}
       showBack={true}
       rightIcon="filter"
@@ -301,9 +298,9 @@ export default function ChiensParBut({ route, navigation }) {
     >
       <View style={{ flex: 1 }}>
         {loading ? (
-          <Text style={styles.loading}>Chargement...</Text>
+          <Text style={styles.loading}>{i18n.t("loading")}</Text>
         ) : filteredDogs.length === 0 ? (
-          <Text style={styles.loading}>Aucun chien trouvé</Text>
+          <Text style={styles.loading}>{i18n.t("no_dogs_found")}</Text>
         ) : (
           <FlatList
             data={filteredDogs}

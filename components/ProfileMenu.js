@@ -15,6 +15,7 @@ import { auth, db } from "../config/firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import PremiumBadge from "./PremiumBadge";
 import { getReferralByUserId } from "../utils/referral";
+import i18n from "../utils/i18n";
 
 export default function ProfileMenu({ navigation }) {
   const [profile, setProfile] = useState(null);
@@ -156,7 +157,7 @@ export default function ProfileMenu({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Profil" navigation={navigation} active="profile">
+      <ScreenLayout title={i18n.t("profile")} navigation={navigation} active="profile">
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#FF6B35" />
         </View>
@@ -166,10 +167,10 @@ export default function ProfileMenu({ navigation }) {
 
   if (!profile) {
     return (
-      <ScreenLayout title="Profil" navigation={navigation} active="profile">
+      <ScreenLayout title={i18n.t("profile")} navigation={navigation} active="profile">
         <View style={styles.loading}>
           <MaterialCommunityIcons name="account-off" size={80} color="#9CA3AF" />
-          <Text style={styles.errorText}>Profil introuvable</Text>
+          <Text style={styles.errorText}>{i18n.t("profile_not_found")}</Text>
           <TouchableOpacity 
             style={styles.createButtonContainer}
             onPress={() => navigation.navigate("Profile")}
@@ -180,7 +181,7 @@ export default function ProfileMenu({ navigation }) {
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.createButtonText}>Creer mon profil</Text>
+              <Text style={styles.createButtonText}>{i18n.t("create_profile")}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -189,7 +190,7 @@ export default function ProfileMenu({ navigation }) {
   }
 
   return (
-    <ScreenLayout title="Profil" navigation={navigation} active="profile">
+    <ScreenLayout title={i18n.t("profile")} navigation={navigation} active="profile">
       <ScrollView contentContainerStyle={styles.container}>
         {/* HEADER PHOTO + NOM */}
         <View style={styles.profileHeader}>
@@ -200,29 +201,26 @@ export default function ProfileMenu({ navigation }) {
               <MaterialCommunityIcons name="account" size={75} color="#FFF" />
             </View>
           )}
-          <Text style={styles.name}>{profile.name || profile.displayName || "Mon profil"}</Text>
+          <Text style={styles.name}>{profile.name || profile.displayName || i18n.t("my_profile")}</Text>
           <PremiumBadge abonnement={abonnement} size="medium" />
           
           {isPrestataire() && (
             <View style={styles.typeBadge}>
               <MaterialCommunityIcons name="briefcase" size={14} color="#1976D2" />
-              <Text style={styles.typeBadgeText}>Prestataire</Text>
+              <Text style={styles.typeBadgeText}>{i18n.t("provider")}</Text>
             </View>
           )}
           {isVendeur() && (
             <View style={[styles.typeBadge, { backgroundColor: "#E8F5E9" }]}>
               <MaterialCommunityIcons name="store" size={14} color="#4CAF50" />
-              <Text style={[styles.typeBadgeText, { color: "#4CAF50" }]}>Vendeur</Text>
+              <Text style={[styles.typeBadgeText, { color: "#4CAF50" }]}>{i18n.t("seller")}</Text>
             </View>
           )}
         </View>
 
-        {/* ===================== */}
         {/* SECTION PARTICULIER */}
-        {/* ===================== */}
         {isParticulier() && (
           <>
-            {/* VIGNETTES BOOSTS */}
             <View style={styles.quickActionsRow}>
               <TouchableOpacity
                 style={styles.quickActionCard}
@@ -237,7 +235,7 @@ export default function ProfileMenu({ navigation }) {
                 >
                   <MaterialCommunityIcons name="rocket-launch" size={18} color="#FFF" />
                   <Text style={styles.quickActionBoost}>BOOST</Text>
-                  <Text style={styles.quickActionTitle}>Saillie</Text>
+                  <Text style={styles.quickActionTitle}>{i18n.t("stud")}</Text>
                   <Text style={styles.quickActionPrice}>
                     {hasSubscription() ? "49₪" : "99₪"}
                   </Text>
@@ -257,7 +255,7 @@ export default function ProfileMenu({ navigation }) {
                 >
                   <MaterialCommunityIcons name="flash" size={18} color="#FFF" />
                   <Text style={styles.quickActionBoost}>BOOST</Text>
-                  <Text style={styles.quickActionTitle}>Vente</Text>
+                  <Text style={styles.quickActionTitle}>{i18n.t("sale")}</Text>
                   <Text style={styles.quickActionPrice}>
                     {hasSubscription() ? "39₪" : "69₪"}
                   </Text>
@@ -265,7 +263,6 @@ export default function ProfileMenu({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* VIGNETTE SAILLIE - DEGRADE JAUNE-VIOLET */}
             <TouchableOpacity
               style={styles.featuredCard}
               activeOpacity={0.8}
@@ -278,13 +275,13 @@ export default function ProfileMenu({ navigation }) {
                 end={{ x: 1, y: 1 }}
               >
                 <View style={styles.featuredBadge}>
-                  <Text style={styles.featuredBadgeText}>OFFRE LIMITEE</Text>
+                  <Text style={styles.featuredBadgeText}>{i18n.t("early_bird")}</Text>
                 </View>
                 <View style={styles.featuredMain}>
                   <View style={styles.featuredLeft}>
                     <MaterialCommunityIcons name="heart-multiple" size={26} color="#FFF" />
                     <View style={styles.featuredText}>
-                      <Text style={styles.featuredTitle}>Trouvez LA saillie !</Text>
+                      <Text style={styles.featuredTitle}>{i18n.t("stud")} !</Text>
                       <Text style={styles.featuredSubtitle}>Geoloc - Alertes - 48h</Text>
                       <Text style={styles.featuredPrice}>149₪</Text>
                     </View>
@@ -308,9 +305,7 @@ export default function ProfileMenu({ navigation }) {
           </>
         )}
 
-        {/* ===================== */}
         {/* SECTION PRESTATAIRE */}
-        {/* ===================== */}
         {isPrestataire() && (
           <>
             <TouchableOpacity
@@ -326,8 +321,8 @@ export default function ProfileMenu({ navigation }) {
               >
                 <MaterialCommunityIcons name="rocket-launch" size={24} color="#FFF" />
                 <View style={styles.proBoostContent}>
-                  <Text style={styles.proBoostTitle}>BOOST Profil Pro</Text>
-                  <Text style={styles.proBoostSubtitle}>7 jours en top des resultats</Text>
+                  <Text style={styles.proBoostTitle}>BOOST {i18n.t("profile")}</Text>
+                  <Text style={styles.proBoostSubtitle}>{i18n.t("boost_7days")}</Text>
                 </View>
                 <Text style={styles.proBoostPrice}>{hasSubscription() ? "39₪" : "59₪"}</Text>
               </LinearGradient>
@@ -345,32 +340,32 @@ export default function ProfileMenu({ navigation }) {
                 end={{ x: 1, y: 1 }}
               >
                 <MaterialCommunityIcons name="crown" size={20} color="#FFF" />
-                <Text style={styles.subscriptionBannerText}>Gerer mes abonnements</Text>
+                <Text style={styles.subscriptionBannerText}>{i18n.t("manage_subscriptions")}</Text>
                 <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" />
               </LinearGradient>
             </TouchableOpacity>
 
             <View style={styles.dashboardSection}>
-              <Text style={styles.sectionTitle}>Mon activite</Text>
+              <Text style={styles.sectionTitle}>{i18n.t("my_leads")}</Text>
               <MenuItem
                 icon="briefcase"
-                label="Mes demandes (Leads)"
+                label={i18n.t("my_leads")}
                 badge={stats.leadsCount > 0 ? stats.leadsCount : null}
                 onPress={() => navigation.navigate("MesLeads")}
               />
               <MenuItem
                 icon="plus-circle"
-                label="Creer un service"
+                label={i18n.t("create_service")}
                 onPress={() => navigation.navigate("CreateService")}
               />
               <MenuItem
                 icon="file-document"
-                label="Mes factures"
+                label={i18n.t("my_invoices")}
                 onPress={() => navigation.navigate("MesFactures")}
               />
               <MenuItem
                 icon="account-group"
-                label="Mon Parrainage"
+                label={i18n.t("my_referral")}
                 badge={referralPoints > 0 ? referralPoints : null}
                 onPress={() => navigation.navigate("MyReferral")}
                 hideBorder
@@ -379,9 +374,7 @@ export default function ProfileMenu({ navigation }) {
           </>
         )}
 
-        {/* ===================== */}
         {/* SECTION VENDEUR */}
-        {/* ===================== */}
         {isVendeur() && (
           <>
             <TouchableOpacity
@@ -397,8 +390,8 @@ export default function ProfileMenu({ navigation }) {
               >
                 <MaterialCommunityIcons name="flash" size={24} color="#FFF" />
                 <View style={styles.proBoostContent}>
-                  <Text style={styles.proBoostTitle}>BOOST Produit</Text>
-                  <Text style={styles.proBoostSubtitle}>7 jours en top des resultats</Text>
+                  <Text style={styles.proBoostTitle}>BOOST {i18n.t("products")}</Text>
+                  <Text style={styles.proBoostSubtitle}>{i18n.t("boost_7days")}</Text>
                 </View>
                 <Text style={styles.proBoostPrice}>29₪</Text>
               </LinearGradient>
@@ -416,33 +409,33 @@ export default function ProfileMenu({ navigation }) {
                 end={{ x: 1, y: 1 }}
               >
                 <MaterialCommunityIcons name="crown" size={20} color="#FFF" />
-                <Text style={styles.subscriptionBannerText}>Gerer mes abonnements</Text>
+                <Text style={styles.subscriptionBannerText}>{i18n.t("manage_subscriptions")}</Text>
                 <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" />
               </LinearGradient>
             </TouchableOpacity>
 
             <View style={styles.dashboardSection}>
-              <Text style={styles.sectionTitle}>Ma boutique</Text>
+              <Text style={styles.sectionTitle}>{i18n.t("vendor_space")}</Text>
               <MenuItem
                 icon="package-variant"
-                label="Mes produits"
+                label={i18n.t("my_products")}
                 badge={stats.productsCount > 0 ? stats.productsCount : null}
                 onPress={() => navigation.navigate("MesProduits")}
               />
               <MenuItem
                 icon="plus-circle"
-                label="Ajouter un produit"
+                label={i18n.t("add_product")}
                 onPress={() => navigation.navigate("CreateProduct")}
               />
               <MenuItem
                 icon="shopping"
-                label="Mes ventes"
+                label={i18n.t("my_sales")}
                 badge={stats.ordersCount > 0 ? stats.ordersCount : null}
                 onPress={() => navigation.navigate("MesVentes")}
               />
               <MenuItem
                 icon="file-document"
-                label="Mes factures"
+                label={i18n.t("my_invoices")}
                 onPress={() => navigation.navigate("MesFactures")}
                 hideBorder
               />
@@ -450,22 +443,22 @@ export default function ProfileMenu({ navigation }) {
           </>
         )}
 
-        {/* SECTION MARKETPLACE PRO - SI COMPTE PRO VALIDE (legacy) */}
+        {/* SECTION MARKETPLACE PRO LEGACY */}
         {isProfessional && !isPrestataire() && !isVendeur() && (
           <View style={styles.marketplaceSection}>
-            <Text style={styles.sectionTitle}>Mon activite professionnelle</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("services")}</Text>
             
             {activityType === "service_provider" && (
               <>
                 <MenuItem
                   icon="briefcase"
-                  label="Mes demandes (Leads)"
+                  label={i18n.t("my_leads")}
                   badge={stats.leadsCount > 0 ? stats.leadsCount : null}
                   onPress={() => navigation.navigate("MesLeads")}
                 />
                 <MenuItem
                   icon="file-document"
-                  label="Mes factures"
+                  label={i18n.t("my_invoices")}
                   onPress={() => navigation.navigate("MesFactures")}
                   hideBorder
                 />
@@ -476,19 +469,19 @@ export default function ProfileMenu({ navigation }) {
               <>
                 <MenuItem
                   icon="package-variant"
-                  label="Mes produits"
+                  label={i18n.t("my_products")}
                   badge={stats.productsCount > 0 ? stats.productsCount : null}
                   onPress={() => navigation.navigate("MesProduits")}
                 />
                 <MenuItem
                   icon="shopping"
-                  label="Mes ventes"
+                  label={i18n.t("my_sales")}
                   badge={stats.ordersCount > 0 ? stats.ordersCount : null}
                   onPress={() => navigation.navigate("MesVentes")}
                 />
                 <MenuItem
                   icon="file-document"
-                  label="Mes factures"
+                  label={i18n.t("my_invoices")}
                   onPress={() => navigation.navigate("MesFactures")}
                   hideBorder
                 />
@@ -497,27 +490,25 @@ export default function ProfileMenu({ navigation }) {
           </View>
         )}
 
-        {/* ===================== */}
-        {/* SECTION MES DEMANDES DE SERVICES - POUR TOUS */}
-        {/* ===================== */}
+        {/* SECTION MES DEMANDES DE SERVICES */}
         <View style={styles.myServicesSection}>
-          <Text style={styles.sectionTitle}>Services</Text>
+          <Text style={styles.sectionTitle}>{i18n.t("services")}</Text>
           <MenuItem
             icon="star"
-            label="Mes demandes de services"
+            label={i18n.t("my_services")}
             badge={stats.myLeadsCount > 0 ? stats.myLeadsCount : null}
             onPress={() => navigation.navigate("MyLeads")}
             hideBorder
           />
         </View>
 
-        {/* SECTION MES ACHATS - SI AU MOINS 1 ACHAT */}
+        {/* SECTION MES ACHATS */}
         {stats.purchasesCount > 0 && (
           <View style={styles.purchasesSection}>
-            <Text style={styles.sectionTitle}>Mes achats</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("my_purchases")}</Text>
             <MenuItem
               icon="receipt-text"
-              label="Mes factures d'achat"
+              label={i18n.t("my_purchases")}
               badge={stats.purchasesCount > 0 ? stats.purchasesCount : null}
               onPress={() => navigation.navigate("MesFacturesAchat")}
               hideBorder
@@ -529,32 +520,32 @@ export default function ProfileMenu({ navigation }) {
         <View style={styles.menu}>
           <MenuItem
             icon="account-edit"
-            label="Modifier mon profil"
+            label={i18n.t("edit_profile")}
             onPress={() => navigation.navigate("Profile")}
           />
           <MenuItem 
             icon="cog" 
-            label="Reglages" 
+            label={i18n.t("settings")} 
             onPress={() => navigation.navigate("Settings")} 
           />
           <MenuItem 
             icon="translate" 
-            label="Langue / Language / שפה" 
+            label={i18n.t("language")} 
             onPress={() => navigation.navigate("LanguageSettings")} 
           />
           <MenuItem 
             icon="help-circle" 
-            label="Centre d'aide" 
+            label={i18n.t("help_center")} 
             onPress={() => navigation.navigate("HelpCenter")} 
           />
           <MenuItem 
             icon="email" 
-            label="Support" 
+            label={i18n.t("support")} 
             onPress={() => navigation.navigate("Support")} 
           />
           <MenuItem 
             icon="account-multiple-plus" 
-            label="Inviter des amis" 
+            label={i18n.t("invite_friends")} 
             onPress={() => navigation.navigate("InviteFriends")} 
             hideBorder
           />

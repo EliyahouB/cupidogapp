@@ -12,16 +12,24 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth } from "../../../config/firebase";
 import { getLeadsByProvider, updateLeadStatus } from "../../../utils/marketplace";
+import i18n from "../../../utils/i18n";
 
 export default function MesLeads({ navigation }) {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState("pending"); // pending, contacted, completed, cancelled
+  const [filter, setFilter] = useState("pending");
 
   useEffect(() => {
     loadLeads();
   }, []);
+
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
 
   const loadLeads = async () => {
     const user = auth.currentUser;
@@ -70,10 +78,10 @@ export default function MesLeads({ navigation }) {
 
   const getStatusLabel = (status) => {
     const labels = {
-      pending: "En attente",
-      contacted: "Contacté",
-      completed: "Terminé",
-      cancelled: "Annulé",
+      pending: i18n.t("pending"),
+      contacted: i18n.t("contacted"),
+      completed: i18n.t("completed"),
+      cancelled: i18n.t("cancelled"),
     };
     return labels[status] || status;
   };
@@ -89,7 +97,7 @@ export default function MesLeads({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Mes demandes" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_requests")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
         </View>
@@ -101,9 +109,8 @@ export default function MesLeads({ navigation }) {
   const counts = getStatusCounts();
 
   return (
-    <ScreenLayout title="Mes demandes" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("my_requests")} navigation={navigation} showBack>
       <View style={styles.container}>
-        {/* FILTRES */}
         <View style={styles.filters}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
             <TouchableOpacity
@@ -111,7 +118,7 @@ export default function MesLeads({ navigation }) {
               onPress={() => setFilter("pending")}
             >
               <Text style={[styles.filterText, filter === "pending" && styles.filterTextActive]}>
-                En attente ({counts.pending})
+                {i18n.t("pending")} ({counts.pending})
               </Text>
             </TouchableOpacity>
 
@@ -120,7 +127,7 @@ export default function MesLeads({ navigation }) {
               onPress={() => setFilter("contacted")}
             >
               <Text style={[styles.filterText, filter === "contacted" && styles.filterTextActive]}>
-                Contactés ({counts.contacted})
+                {i18n.t("contacted")} ({counts.contacted})
               </Text>
             </TouchableOpacity>
 
@@ -129,7 +136,7 @@ export default function MesLeads({ navigation }) {
               onPress={() => setFilter("completed")}
             >
               <Text style={[styles.filterText, filter === "completed" && styles.filterTextActive]}>
-                Terminés ({counts.completed})
+                {i18n.t("completed")} ({counts.completed})
               </Text>
             </TouchableOpacity>
 
@@ -138,13 +145,12 @@ export default function MesLeads({ navigation }) {
               onPress={() => setFilter("cancelled")}
             >
               <Text style={[styles.filterText, filter === "cancelled" && styles.filterTextActive]}>
-                Annulés ({counts.cancelled})
+                {i18n.t("cancelled")} ({counts.cancelled})
               </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
 
-        {/* LISTE */}
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -154,13 +160,12 @@ export default function MesLeads({ navigation }) {
           {filteredLeads.length === 0 ? (
             <View style={styles.empty}>
               <MaterialCommunityIcons name="inbox" size={80} color="#9CA3AF" />
-              <Text style={styles.emptyText}>Aucune demande {getStatusLabel(filter).toLowerCase()}</Text>
+              <Text style={styles.emptyText}>{i18n.t("no_requests")} {getStatusLabel(filter).toLowerCase()}</Text>
             </View>
           ) : (
             <View style={styles.leadsList}>
               {filteredLeads.map((lead) => (
                 <View key={lead.id} style={styles.leadCard}>
-                  {/* HEADER */}
                   <View style={styles.leadHeader}>
                     <View style={styles.leadHeaderLeft}>
                       <MaterialCommunityIcons name="account" size={20} color="#003366" />
@@ -171,7 +176,6 @@ export default function MesLeads({ navigation }) {
                     </View>
                   </View>
 
-                  {/* CONTACT */}
                   <View style={styles.contactSection}>
                     <View style={styles.contactRow}>
                       <MaterialCommunityIcons name="phone" size={16} color="#6B7280" />
@@ -185,27 +189,24 @@ export default function MesLeads({ navigation }) {
                     )}
                   </View>
 
-                  {/* MESSAGE */}
                   <View style={styles.messageSection}>
-                    <Text style={styles.messageLabel}>Message :</Text>
+                    <Text style={styles.messageLabel}>{i18n.t("message")} :</Text>
                     <Text style={styles.messageText}>{lead.message}</Text>
                   </View>
 
-                  {/* INFO */}
                   <View style={styles.infoSection}>
                     <View style={styles.infoRow}>
                       <MaterialCommunityIcons name="cash" size={16} color="#43A047" />
-                      <Text style={styles.infoText}>Prix du lead : {lead.leadPrice}₪</Text>
+                      <Text style={styles.infoText}>{i18n.t("lead_price")} : {lead.leadPrice}₪</Text>
                     </View>
                     <View style={styles.infoRow}>
                       <MaterialCommunityIcons name="calendar" size={16} color="#6B7280" />
                       <Text style={styles.infoText}>
-                        {lead.createdAt?.toDate?.()?.toLocaleDateString("fr-FR") || "Date inconnue"}
+                        {lead.createdAt?.toDate?.()?.toLocaleDateString(getLocale()) || i18n.t("unknown_date")}
                       </Text>
                     </View>
                   </View>
 
-                  {/* ACTIONS */}
                   {lead.status === "pending" && (
                     <View style={styles.actions}>
                       <TouchableOpacity
@@ -213,7 +214,7 @@ export default function MesLeads({ navigation }) {
                         onPress={() => handleStatusChange(lead.id, "contacted")}
                       >
                         <MaterialCommunityIcons name="phone-check" size={18} color="#FFF" />
-                        <Text style={styles.actionButtonText}>Marquer contacté</Text>
+                        <Text style={styles.actionButtonText}>{i18n.t("mark_contacted")}</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -221,7 +222,7 @@ export default function MesLeads({ navigation }) {
                         onPress={() => handleStatusChange(lead.id, "cancelled")}
                       >
                         <MaterialCommunityIcons name="close-circle" size={18} color="#FFF" />
-                        <Text style={styles.actionButtonText}>Refuser</Text>
+                        <Text style={styles.actionButtonText}>{i18n.t("refuse")}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -233,7 +234,7 @@ export default function MesLeads({ navigation }) {
                         onPress={() => handleStatusChange(lead.id, "completed")}
                       >
                         <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
-                        <Text style={styles.actionButtonText}>Marquer terminé</Text>
+                        <Text style={styles.actionButtonText}>{i18n.t("mark_completed")}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -243,22 +244,21 @@ export default function MesLeads({ navigation }) {
           )}
         </ScrollView>
 
-        {/* STATS BOTTOM */}
         {leads.length > 0 && (
           <View style={styles.statsFooter}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{leads.length}</Text>
-              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statLabel}>{i18n.t("total")}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{counts.completed}</Text>
-              <Text style={styles.statLabel}>Terminés</Text>
+              <Text style={styles.statLabel}>{i18n.t("completed")}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>
                 {counts.completed > 0 ? Math.round((counts.completed / leads.length) * 100) : 0}%
               </Text>
-              <Text style={styles.statLabel}>Taux</Text>
+              <Text style={styles.statLabel}>{i18n.t("rate")}</Text>
             </View>
           </View>
         )}
@@ -270,7 +270,7 @@ export default function MesLeads({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-      },
+  },
   loading: {
     flex: 1,
     justifyContent: "center",

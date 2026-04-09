@@ -8,30 +8,31 @@ import {
   Image,
 } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
 
 export default function Marketplace({ navigation }) {
   const categories = [
     {
       id: 1,
-      title: "Nourriture",
+      title: i18n.t("food"),
       icon: "🍖",
       color: "#FF6B6B",
     },
     {
       id: 2,
-      title: "Accessoires",
+      title: i18n.t("accessories"),
       icon: "🦴",
       color: "#4ECDC4",
     },
     {
       id: 3,
-      title: "Services",
+      title: i18n.t("services"),
       icon: "💉",
       color: "#45B7D1",
     },
     {
       id: 4,
-      title: "Autres",
+      title: i18n.t("other"),
       icon: "🏠",
       color: "#FFA07A",
     },
@@ -45,10 +46,8 @@ export default function Marketplace({ navigation }) {
     <ScreenLayout title="CupiDog Shop" navigation={navigation} active="shop">
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>🛒 Bienvenue au CupiDog Shop</Text>
-          <Text style={styles.subtitle}>
-            Tout pour votre compagnon à quatre pattes
-          </Text>
+          <Text style={styles.title}>🛒 {i18n.t("welcome_shop")}</Text>
+          <Text style={styles.subtitle}>{i18n.t("shop_subtitle")}</Text>
         </View>
 
         <View style={styles.grid}>
@@ -65,11 +64,8 @@ export default function Marketplace({ navigation }) {
         </View>
 
         <View style={styles.comingSoon}>
-          <Text style={styles.comingSoonTitle}>🚀 Bientôt disponible</Text>
-          <Text style={styles.comingSoonText}>
-            Le marketplace complet arrive très prochainement avec des centaines
-            de produits pour votre chien !
-          </Text>
+          <Text style={styles.comingSoonTitle}>🚀 {i18n.t("coming_soon")}</Text>
+          <Text style={styles.comingSoonText}>{i18n.t("marketplace_coming_soon")}</Text>
         </View>
       </ScrollView>
     </ScreenLayout>

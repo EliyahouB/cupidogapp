@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth, db } from "../../../config/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import i18n from "../../../utils/i18n";
 
 export default function MesFacturesAchat({ navigation }) {
   const [invoices, setInvoices] = useState([]);
@@ -13,12 +14,18 @@ export default function MesFacturesAchat({ navigation }) {
     loadInvoices();
   }, []);
 
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
+
   const loadInvoices = async () => {
     const user = auth.currentUser;
     if (!user) return;
 
     try {
-      // RÉCUPÉRER FACTURES CLIENT (customer_invoice)
       const q = query(
         collection(db, "invoices"), 
         where("customerId", "==", user.uid),
@@ -37,7 +44,7 @@ export default function MesFacturesAchat({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Mes factures d'achat" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_purchase_invoices")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
         </View>
@@ -46,13 +53,13 @@ export default function MesFacturesAchat({ navigation }) {
   }
 
   return (
-    <ScreenLayout title="Mes factures d'achat" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("my_purchase_invoices")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
         {invoices.length === 0 ? (
           <View style={styles.empty}>
             <MaterialCommunityIcons name="receipt-text-outline" size={80} color="#9CA3AF" />
-            <Text style={styles.emptyText}>Aucune facture d'achat</Text>
-            <Text style={styles.emptyHint}>Vos factures d'achat apparaîtront ici après vos commandes</Text>
+            <Text style={styles.emptyText}>{i18n.t("no_purchase_invoices")}</Text>
+            <Text style={styles.emptyHint}>{i18n.t("purchase_invoices_appear_here")}</Text>
           </View>
         ) : (
           invoices.map((invoice) => (
@@ -68,7 +75,7 @@ export default function MesFacturesAchat({ navigation }) {
                   <View style={styles.headerText}>
                     <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
                     <Text style={styles.date}>
-                      {invoice.createdAt?.toDate?.()?.toLocaleDateString("fr-FR") || "Date inconnue"}
+                      {invoice.createdAt?.toDate?.()?.toLocaleDateString(getLocale()) || i18n.t("unknown_date")}
                     </Text>
                   </View>
                 </View>
@@ -77,7 +84,7 @@ export default function MesFacturesAchat({ navigation }) {
                   { backgroundColor: invoice.status === "paid" ? "#43A047" : "#FF9900" }
                 ]}>
                   <Text style={styles.statusText}>
-                    {invoice.status === "paid" ? "Payée" : "En attente"}
+                    {invoice.status === "paid" ? i18n.t("paid") : i18n.t("pending")}
                   </Text>
                 </View>
               </View>
@@ -86,7 +93,7 @@ export default function MesFacturesAchat({ navigation }) {
 
               <View style={styles.itemsSection}>
                 <Text style={styles.itemsTitle}>
-                  {invoice.items?.length || 0} article{(invoice.items?.length || 0) > 1 ? "s" : ""}
+                  {invoice.items?.length || 0} {(invoice.items?.length || 0) > 1 ? i18n.t("items") : i18n.t("item")}
                 </Text>
                 {invoice.items && invoice.items.slice(0, 2).map((item, index) => (
                   <Text key={index} style={styles.itemText} numberOfLines={1}>
@@ -95,13 +102,13 @@ export default function MesFacturesAchat({ navigation }) {
                 ))}
                 {invoice.items && invoice.items.length > 2 && (
                   <Text style={styles.moreItems}>
-                    +{invoice.items.length - 2} autre{invoice.items.length - 2 > 1 ? "s" : ""}
+                    +{invoice.items.length - 2} {i18n.t("other")}
                   </Text>
                 )}
               </View>
 
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalLabel}>{i18n.t("total")}</Text>
                 <Text style={styles.totalValue}>₪{invoice.total?.toFixed(0)}</Text>
               </View>
 

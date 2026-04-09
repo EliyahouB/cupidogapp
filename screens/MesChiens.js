@@ -14,6 +14,7 @@ import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import PremiumBadge from "../components/PremiumBadge";
+import i18n from "../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -118,7 +119,7 @@ export default function MesChiens({ navigation }) {
           
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="cake-variant" size={14} color="#6B7280" />
-            <Text style={styles.dogCardDetail}>{item.age} ans</Text>
+            <Text style={styles.dogCardDetail}>{item.age} {i18n.t("years_old")}</Text>
           </View>
           
           <View style={styles.infoRow}>
@@ -130,7 +131,7 @@ export default function MesChiens({ navigation }) {
         <View style={styles.dogCardActions}>
           <View style={styles.locationContainer}>
             <MaterialCommunityIcons name="map-marker" size={16} color="#FF6B35" />
-            <Text style={styles.dogCardCity}>{userCity || "Ville"}</Text>
+            <Text style={styles.dogCardCity}>{userCity || i18n.t("city")}</Text>
           </View>
           
           <View style={styles.separatorVertical} />
@@ -150,17 +151,15 @@ export default function MesChiens({ navigation }) {
   );
 
   return (
-    <ScreenLayout title="Mes Chiens" navigation={navigation} active="paw">
+    <ScreenLayout title={i18n.t("my_dogs")} navigation={navigation} active="paw">
       <View style={styles.container}>
         {loadingDogs ? (
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading")}</Text>
         ) : myDogs.length === 0 ? (
           <View style={styles.empty}>
             <MaterialCommunityIcons name="dog" size={80} color="#D1D5DB" />
-            <Text style={styles.emptyText}>Aucun chien enregistré</Text>
-            <Text style={styles.emptySubtext}>
-              Ajoutez votre premier compagnon !
-            </Text>
+            <Text style={styles.emptyText}>{i18n.t("no_dogs")}</Text>
+            <Text style={styles.emptySubtext}>{i18n.t("add_first_dog")}</Text>
           </View>
         ) : (
           <FlatList
@@ -182,7 +181,7 @@ export default function MesChiens({ navigation }) {
             end={{ x: 1, y: 1 }}
           >
             <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-            <Text style={styles.addButtonText}>Ajouter un nouveau chien</Text>
+            <Text style={styles.addButtonText}>{i18n.t("add_new_dog")}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

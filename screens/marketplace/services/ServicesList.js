@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { getServicesByCategory, getAllServices } from "../../../utils/marketplace";
+import i18n from "../../../utils/i18n";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width - 32;
@@ -58,7 +59,7 @@ export default function ServicesList({ route, navigation }) {
       <ScreenLayout title={categoryName} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Chargement des prestataires...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading_providers")}...</Text>
         </View>
       </ScreenLayout>
     );
@@ -69,15 +70,15 @@ export default function ServicesList({ route, navigation }) {
       <ScreenLayout title={categoryName} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="store-off" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>Aucun prestataire</Text>
+          <Text style={styles.emptyTitle}>{i18n.t("no_provider")}</Text>
           <Text style={styles.emptyText}>
-            Soyez le premier à proposer vos services !
+            {i18n.t("be_first_to_offer_services")}
           </Text>
           <TouchableOpacity
             style={styles.emptyButton}
             onPress={() => navigation.navigate("CreateService")}
           >
-            <Text style={styles.emptyButtonText}>Devenir prestataire</Text>
+            <Text style={styles.emptyButtonText}>{i18n.t("become_provider")}</Text>
           </TouchableOpacity>
         </View>
       </ScreenLayout>
@@ -89,8 +90,10 @@ export default function ServicesList({ route, navigation }) {
       <ScrollView contentContainerStyle={styles.container}>
         
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{services.length} prestataire{services.length > 1 ? "s" : ""} disponible{services.length > 1 ? "s" : ""}</Text>
-          <Text style={styles.headerSubtitle}>Triés par pertinence</Text>
+          <Text style={styles.headerTitle}>
+            {services.length} {services.length > 1 ? i18n.t("providers_available") : i18n.t("provider_available")}
+          </Text>
+          <Text style={styles.headerSubtitle}>{i18n.t("sorted_by_relevance")}</Text>
         </View>
 
         <View style={styles.servicesList}>
@@ -149,7 +152,7 @@ export default function ServicesList({ route, navigation }) {
                       <MaterialCommunityIcons name={service.rating >= 4 ? "star" : "star-outline"} size={18} color="#FFD700" />
                       <MaterialCommunityIcons name={service.rating >= 5 ? "star" : "star-outline"} size={18} color="#FFD700" />
                     </View>
-                    <Text style={styles.reviewsCountText}>({service.reviewsCount} avis)</Text>
+                    <Text style={styles.reviewsCountText}>({service.reviewsCount} {i18n.t("reviews")})</Text>
                   </View>
                 )}
 
@@ -181,7 +184,7 @@ export default function ServicesList({ route, navigation }) {
 
                 {service.priceRange && (
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Tarifs :</Text>
+                    <Text style={styles.priceLabel}>{i18n.t("rates")} :</Text>
                     <Text style={styles.priceValue}>{service.priceRange}</Text>
                   </View>
                 )}
@@ -203,8 +206,8 @@ export default function ServicesList({ route, navigation }) {
           >
             <MaterialCommunityIcons name="account-star" size={32} color="#FFF" />
             <View style={styles.ctaContent}>
-              <Text style={styles.ctaTitle}>Vous êtes prestataire ?</Text>
-              <Text style={styles.ctaText}>Inscrivez-vous et développez votre activité</Text>
+              <Text style={styles.ctaTitle}>{i18n.t("are_you_provider")}</Text>
+              <Text style={styles.ctaText}>{i18n.t("register_grow_business")}</Text>
             </View>
             <MaterialCommunityIcons name="chevron-right" size={28} color="#FFF" />
           </LinearGradient>

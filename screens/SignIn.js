@@ -24,6 +24,7 @@ import {
 import * as SecureStore from "expo-secure-store";
 import { auth } from "../config/firebase";
 import app from "../config/firebase";
+import i18n from "../utils/i18n";
 
 const COUNTRIES = [
   { code: "+972", flag: "🇮🇱", name: "Israël" },
@@ -33,14 +34,12 @@ const COUNTRIES = [
 ];
 
 export default function SignIn({ navigation }) {
-  const [mode, setMode] = useState("email"); // "email" ou "phone"
+  const [mode, setMode] = useState("email");
   
-  // Email
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   
-  // Phone
   const [phone, setPhone] = useState("");
   const [verificationId, setVerificationId] = useState(null);
   const [code, setCode] = useState("");
@@ -72,10 +71,9 @@ export default function SignIn({ navigation }) {
     return selectedCountry.code + cleaned;
   };
 
-  // ============ CONNEXION EMAIL ============
   const handleSignInEmail = async () => {
     if (!email || !password) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs");
+      Alert.alert(i18n.t("error"), i18n.t("fill_all_fields"));
       return;
     }
     
@@ -86,21 +84,21 @@ export default function SignIn({ navigation }) {
       
       if (!user.emailVerified) {
         Alert.alert(
-          "Email non vérifié",
-          "Veuillez vérifier votre email avant de vous connecter.",
+          i18n.t("email_not_verified"),
+          i18n.t("verify_email_first"),
           [
             { 
-              text: "Renvoyer l'email", 
+              text: i18n.t("resend_email"), 
               onPress: async () => {
                 try {
                   await sendEmailVerification(user);
-                  Alert.alert("Email envoyé", "Vérifiez votre boîte mail");
+                  Alert.alert(i18n.t("email_sent"), i18n.t("check_inbox"));
                 } catch (error) {
-                  Alert.alert("Erreur", "Impossible d'envoyer l'email");
+                  Alert.alert(i18n.t("error"), i18n.t("error_sending_email"));
                 }
               }
             },
-            { text: "OK", style: "cancel" }
+            { text: i18n.t("ok"), style: "cancel" }
           ]
         );
         setLoading(false);
@@ -110,12 +108,12 @@ export default function SignIn({ navigation }) {
       await storeUserId(user.uid);
       navigation.replace("Home");
     } catch (e) {
-      let message = "Erreur de connexion";
-      if (e.code === "auth/invalid-email") message = "Email invalide";
-      if (e.code === "auth/user-not-found") message = "Utilisateur introuvable";
-      if (e.code === "auth/wrong-password") message = "Mot de passe incorrect";
-      if (e.code === "auth/invalid-credential") message = "Email ou mot de passe incorrect";
-      Alert.alert("Erreur", message);
+      let message = i18n.t("login_error");
+      if (e.code === "auth/invalid-email") message = i18n.t("invalid_email");
+      if (e.code === "auth/user-not-found") message = i18n.t("user_not_found");
+      if (e.code === "auth/wrong-password") message = i18n.t("wrong_password");
+      if (e.code === "auth/invalid-credential") message = i18n.t("invalid_credentials");
+      Alert.alert(i18n.t("error"), message);
     } finally {
       setLoading(false);
     }
@@ -123,21 +121,20 @@ export default function SignIn({ navigation }) {
 
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert("Erreur", "Entrez votre email pour réinitialiser");
+      Alert.alert(i18n.t("error"), i18n.t("enter_email_reset"));
       return;
     }
     try {
       await sendPasswordResetEmail(auth, email);
-      Alert.alert("Succès", "Email de réinitialisation envoyé");
+      Alert.alert(i18n.t("success"), i18n.t("reset_email_sent"));
     } catch (e) {
-      Alert.alert("Erreur", "Échec de l'envoi de l'email");
+      Alert.alert(i18n.t("error"), i18n.t("error_sending_email"));
     }
   };
 
-  // ============ CONNEXION TÉLÉPHONE ============
   const sendVerificationCode = async () => {
     if (!phone || phone.length < 9) {
-      Alert.alert("Erreur", "Veuillez entrer un numéro de téléphone valide");
+      Alert.alert(i18n.t("error"), i18n.t("enter_valid_phone"));
       return;
     }
 
@@ -153,17 +150,17 @@ export default function SignIn({ navigation }) {
       );
 
       setVerificationId(verId);
-      Alert.alert("Code envoyé", "Un code de vérification a été envoyé au " + formattedPhone);
+      Alert.alert(i18n.t("code_sent"), i18n.t("code_sent_to") + " " + formattedPhone);
     } catch (error) {
       console.log("Erreur envoi SMS:", error);
-      let message = "Erreur d'envoi du SMS";
+      let message = i18n.t("error_sending_sms");
       if (error.code === "auth/invalid-phone-number") {
-        message = "Numéro de téléphone invalide";
+        message = i18n.t("invalid_phone");
       }
       if (error.code === "auth/too-many-requests") {
-        message = "Trop de tentatives, réessayez plus tard";
+        message = i18n.t("too_many_requests");
       }
-      Alert.alert("Erreur", message);
+      Alert.alert(i18n.t("error"), message);
     } finally {
       setLoading(false);
     }
@@ -171,7 +168,7 @@ export default function SignIn({ navigation }) {
 
   const verifyCode = async () => {
     if (!code || code.length !== 6) {
-      Alert.alert("Erreur", "Entrez le code à 6 chiffres");
+      Alert.alert(i18n.t("error"), i18n.t("enter_6_digit_code"));
       return;
     }
 
@@ -186,14 +183,14 @@ export default function SignIn({ navigation }) {
       navigation.replace("Home");
     } catch (error) {
       console.log("Erreur vérification:", error);
-      let message = "Code invalide";
+      let message = i18n.t("invalid_code");
       if (error.code === "auth/invalid-verification-code") {
-        message = "Code incorrect";
+        message = i18n.t("wrong_code");
       }
       if (error.code === "auth/code-expired") {
-        message = "Code expiré, renvoyez un nouveau code";
+        message = i18n.t("code_expired");
       }
-      Alert.alert("Erreur", message);
+      Alert.alert(i18n.t("error"), message);
     } finally {
       setLoading(false);
     }
@@ -208,7 +205,6 @@ export default function SignIn({ navigation }) {
           attemptInvisibleVerification={true}
         />
 
-        {/* MODAL SÉLECTEUR DE PAYS */}
         <Modal
           visible={showCountryPicker}
           transparent={true}
@@ -216,7 +212,7 @@ export default function SignIn({ navigation }) {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Choisir un pays</Text>
+              <Text style={styles.modalTitle}>{i18n.t("choose_country")}</Text>
               {COUNTRIES.map((country) => (
                 <TouchableOpacity
                   key={country.code}
@@ -241,7 +237,7 @@ export default function SignIn({ navigation }) {
                 style={styles.modalClose}
                 onPress={() => setShowCountryPicker(false)}
               >
-                <Text style={styles.modalCloseText}>Fermer</Text>
+                <Text style={styles.modalCloseText}>{i18n.t("close")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -262,9 +258,8 @@ export default function SignIn({ navigation }) {
             <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
           </TouchableOpacity>
 
-          <Text style={styles.title}>Se connecter</Text>
+          <Text style={styles.title}>{i18n.t("login")}</Text>
 
-          {/* ONGLETS EMAIL / TÉLÉPHONE */}
           <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[styles.tab, mode === "email" && styles.tabActive]}
@@ -280,7 +275,7 @@ export default function SignIn({ navigation }) {
                 color={mode === "email" ? "#FFF" : "#666"} 
               />
               <Text style={[styles.tabText, mode === "email" && styles.tabTextActive]}>
-                Email
+                {i18n.t("email")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -293,7 +288,7 @@ export default function SignIn({ navigation }) {
                 color={mode === "phone" ? "#FFF" : "#666"} 
               />
               <Text style={[styles.tabText, mode === "phone" && styles.tabTextActive]}>
-                Téléphone
+                {i18n.t("phone")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -301,10 +296,9 @@ export default function SignIn({ navigation }) {
           <View style={styles.card}>
             {mode === "email" ? (
               <>
-                {/* CONNEXION EMAIL */}
                 <TextInput
                   style={styles.input}
-                  placeholder="Email"
+                  placeholder={i18n.t("email")}
                   placeholderTextColor="#999"
                   value={email}
                   onChangeText={setEmail}
@@ -315,7 +309,7 @@ export default function SignIn({ navigation }) {
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={styles.passwordInput}
-                    placeholder="Mot de passe"
+                    placeholder={i18n.t("password")}
                     placeholderTextColor="#999"
                     value={password}
                     onChangeText={setPassword}
@@ -331,7 +325,7 @@ export default function SignIn({ navigation }) {
                 </View>
 
                 <TouchableOpacity onPress={handleResetPassword}>
-                  <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+                  <Text style={styles.forgotText}>{i18n.t("forgot_password")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -348,19 +342,16 @@ export default function SignIn({ navigation }) {
                     {loading ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (
-                      <Text style={styles.buttonText}>Se connecter</Text>
+                      <Text style={styles.buttonText}>{i18n.t("login")}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                {/* CONNEXION TÉLÉPHONE */}
                 {!verificationId ? (
                   <>
-                    <Text style={styles.phoneHint}>
-                      Entrez votre numéro de téléphone pour recevoir un code SMS
-                    </Text>
+                    <Text style={styles.phoneHint}>{i18n.t("phone_hint")}</Text>
                     
                     <View style={styles.phoneContainer}>
                       <TouchableOpacity
@@ -397,18 +388,16 @@ export default function SignIn({ navigation }) {
                         {loading ? (
                           <ActivityIndicator color="#FFF" />
                         ) : (
-                          <Text style={styles.buttonText}>Recevoir le code</Text>
+                          <Text style={styles.buttonText}>{i18n.t("receive_code")}</Text>
                         )}
                       </LinearGradient>
                     </TouchableOpacity>
                   </>
                 ) : (
                   <>
-                    <Text style={styles.phoneHint}>
-                      Entrez le code à 6 chiffres reçu par SMS
-                    </Text>
+                    <Text style={styles.phoneHint}>{i18n.t("enter_code_hint")}</Text>
                     <Text style={styles.phoneDisplay}>
-                      Envoyé au {formatPhoneNumber(phone)}
+                      {i18n.t("sent_to")} {formatPhoneNumber(phone)}
                     </Text>
                     
                     <TextInput
@@ -436,7 +425,7 @@ export default function SignIn({ navigation }) {
                         {loading ? (
                           <ActivityIndicator color="#FFF" />
                         ) : (
-                          <Text style={styles.buttonText}>Se connecter</Text>
+                          <Text style={styles.buttonText}>{i18n.t("login")}</Text>
                         )}
                       </LinearGradient>
                     </TouchableOpacity>
@@ -448,7 +437,7 @@ export default function SignIn({ navigation }) {
                         setCode("");
                       }}
                     >
-                      <Text style={styles.resendText}>Modifier le numéro</Text>
+                      <Text style={styles.resendText}>{i18n.t("change_number")}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -456,7 +445,7 @@ export default function SignIn({ navigation }) {
                       onPress={sendVerificationCode}
                       disabled={loading}
                     >
-                      <Text style={styles.resendText}>Renvoyer le code</Text>
+                      <Text style={styles.resendText}>{i18n.t("resend_code")}</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -636,7 +625,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  // MODAL PAYS
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",

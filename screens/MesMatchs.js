@@ -25,6 +25,7 @@ import {
 import ScreenLayout from "../components/ScreenLayout";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import PremiumBadge from "../components/PremiumBadge";
+import i18n from "../utils/i18n";
 
 export default function MesMatchs({ navigation, embedded = false }) {
   const [likes, setLikes] = useState([]);
@@ -98,7 +99,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
               fromUserPhoto: profileData.photoUrl,
               fromUserCity: profileData.city,
               fromUserDogIds: fromUserDogIds,
-              likedDogName: myDogsData[dogId]?.dogName || "Chien",
+              likedDogName: myDogsData[dogId]?.dogName || i18n.t("dog"),
               likedDogId: dogId,
               likedDogPhoto: myDogsData[dogId]?.photoUrl,
               createdAt: likeData.createdAt,
@@ -109,7 +110,6 @@ export default function MesMatchs({ navigation, embedded = false }) {
         }
       }
 
-      // Charger les abonnements des utilisateurs
       const usersAbonnementsMap = {};
       const profilesQuery = collection(db, "profiles");
       const allProfiles = await getDocs(profilesQuery);
@@ -132,7 +132,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
       setLikes(allLikes);
     } catch (error) {
       console.error("Erreur chargement likes :", error);
-      Alert.alert("Erreur", "Erreur lors du chargement des likes.");
+      Alert.alert(i18n.t("error"), i18n.t("error_loading_likes"));
     } finally {
       setLoading(false);
     }
@@ -156,7 +156,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
   const handleLikeBack = async (item) => {
     try {
       if (!item.fromUserDogIds || item.fromUserDogIds.length === 0) {
-        Alert.alert("Erreur", "Cet utilisateur n a pas de chien à liker.");
+        Alert.alert(i18n.t("error"), i18n.t("user_no_dog_to_like"));
         return;
       }
 
@@ -170,7 +170,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
         isRead: false,
       });
 
-      Alert.alert("Succes", "Like en retour envoye !");
+      Alert.alert(i18n.t("success"), i18n.t("like_back_sent"));
 
       setLikes((prev) =>
         prev.map((like) =>
@@ -179,27 +179,27 @@ export default function MesMatchs({ navigation, embedded = false }) {
       );
     } catch (error) {
       console.error("Erreur like en retour :", error);
-      Alert.alert("Erreur", "Impossible d envoyer le like.");
+      Alert.alert(i18n.t("error"), i18n.t("error_sending_like"));
     }
   };
 
   const handleDeleteLike = async (likeId) => {
     Alert.alert(
-      "Supprimer ce like ?",
-      "Cette action est irreversible.",
+      i18n.t("delete_this_like"),
+      i18n.t("action_irreversible"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: i18n.t("delete"),
           style: "destructive",
           onPress: async () => {
             try {
               await deleteDoc(doc(db, "likes", likeId));
               setLikes((prev) => prev.filter((like) => like.id !== likeId));
-              Alert.alert("Succes", "Like supprime.");
+              Alert.alert(i18n.t("success"), i18n.t("like_deleted"));
             } catch (error) {
               console.error("Erreur suppression :", error);
-              Alert.alert("Erreur", "Impossible de supprimer.");
+              Alert.alert(i18n.t("error"), i18n.t("error_deleting"));
             }
           },
         },
@@ -244,7 +244,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
       onPress={() => {
         Alert.alert(
           item.dogName,
-          item.likesCount + " personne(s) ont like ce chien"
+          i18n.t("people_liked_dog", { count: item.likesCount })
         );
       }}
     >
@@ -258,11 +258,11 @@ export default function MesMatchs({ navigation, embedded = false }) {
       <View style={styles.groupedInfo}>
         <Text style={styles.groupedDogName}>{item.dogName}</Text>
         <Text style={styles.groupedCount}>
-          {item.likesCount} {item.likesCount > 1 ? "personnes interessees" : "personne interessee"}
+          {item.likesCount} {item.likesCount > 1 ? i18n.t("people_interested") : i18n.t("person_interested")}
         </Text>
         {item.unreadCount > 0 && (
           <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{item.unreadCount} nouveau(x)</Text>
+            <Text style={styles.unreadText}>{item.unreadCount} {i18n.t("new")}</Text>
           </View>
         )}
       </View>
@@ -281,7 +281,6 @@ export default function MesMatchs({ navigation, embedded = false }) {
       try {
         const currentUser = auth.currentUser;
         
-        // Cherche conversation existante
         const conversationsRef = collection(db, "conversations");
         const q = query(
           conversationsRef,
@@ -291,7 +290,6 @@ export default function MesMatchs({ navigation, embedded = false }) {
         
         let conversationId = null;
         
-        // Trouve conversation avec cet utilisateur
         conversationsSnap.forEach((doc) => {
           const data = doc.data();
           if (data.participants.includes(item.fromUserId)) {
@@ -299,7 +297,6 @@ export default function MesMatchs({ navigation, embedded = false }) {
           }
         });
         
-        // Si pas de conversation, créer
         if (!conversationId) {
           const newConvRef = await addDoc(collection(db, "conversations"), {
             participants: [currentUser.uid, item.fromUserId],
@@ -316,7 +313,6 @@ export default function MesMatchs({ navigation, embedded = false }) {
           conversationId = newConvRef.id;
         }
         
-        // Navigation avec bons params
         navigation.navigate("Chat", {
           conversationId: conversationId,
           otherUserId: item.fromUserId,
@@ -324,7 +320,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
         });
       } catch (error) {
         console.error("Erreur ouverture chat:", error);
-        Alert.alert("Erreur", "Impossible d'ouvrir la conversation");
+        Alert.alert(i18n.t("error"), i18n.t("error_opening_conversation"));
       }
     };
 
@@ -355,7 +351,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
           </View>
           <Text style={styles.city}>{item.fromUserCity}</Text>
           <View style={styles.likedDogContainer}>
-            <Text style={styles.likedDog}>A like : </Text>
+            <Text style={styles.likedDog}>{i18n.t("liked")}: </Text>
             <Text style={styles.dogName}>{item.likedDogName}</Text>
           </View>
         </View>
@@ -402,24 +398,21 @@ export default function MesMatchs({ navigation, embedded = false }) {
   const filteredLikes = getFilteredLikes();
   const groupedLikes = getGroupedLikes();
   const unreadCount = likes.filter((l) => !l.isRead).length;
-  const titleText = "Interesses" + (unreadCount > 0 ? " (" + unreadCount + ")" : "");
+  const titleText = i18n.t("interested") + (unreadCount > 0 ? " (" + unreadCount + ")" : "");
 
-  // MODE EMBEDDED (dans LikesHub)
   if (embedded) {
     return (
       <>
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FF6B35" />
-            <Text style={styles.loadingText}>Chargement...</Text>
+            <Text style={styles.loadingText}>{i18n.t("loading")}</Text>
           </View>
         ) : likes.length === 0 ? (
           <View style={styles.empty}>
             <MaterialCommunityIcons name="heart-outline" size={80} color="#D1D5DB" />
-            <Text style={styles.emptyText}>Aucun like pour le moment</Text>
-            <Text style={styles.emptySubtext}>
-              Partagez vos chiens pour recevoir des likes !
-            </Text>
+            <Text style={styles.emptyText}>{i18n.t("no_likes_yet")}</Text>
+            <Text style={styles.emptySubtext}>{i18n.t("share_dogs_to_get_likes")}</Text>
           </View>
         ) : (
           <>
@@ -430,7 +423,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                   onPress={() => setFilter("all")}
                 >
                   <Text style={[styles.filterText, filter === "all" && styles.filterTextActive]}>
-                    Tous ({likes.length})
+                    {i18n.t("all")} ({likes.length})
                   </Text>
                 </TouchableOpacity>
 
@@ -439,7 +432,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                   onPress={() => setFilter("unread")}
                 >
                   <Text style={[styles.filterText, filter === "unread" && styles.filterTextActive]}>
-                    Non lus ({unreadCount})
+                    {i18n.t("unread")} ({unreadCount})
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -490,21 +483,18 @@ export default function MesMatchs({ navigation, embedded = false }) {
     );
   }
 
-  // MODE STANDALONE (écran indépendant)
   return (
     <ScreenLayout title={titleText} navigation={navigation} active="likes">
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B35" />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading")}</Text>
         </View>
       ) : likes.length === 0 ? (
         <View style={styles.empty}>
           <MaterialCommunityIcons name="heart-outline" size={80} color="#D1D5DB" />
-          <Text style={styles.emptyText}>Aucun like pour le moment</Text>
-          <Text style={styles.emptySubtext}>
-            Partagez vos chiens pour recevoir des likes !
-          </Text>
+          <Text style={styles.emptyText}>{i18n.t("no_likes_yet")}</Text>
+          <Text style={styles.emptySubtext}>{i18n.t("share_dogs_to_get_likes")}</Text>
         </View>
       ) : (
         <>
@@ -515,7 +505,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                 onPress={() => setFilter("all")}
               >
                 <Text style={[styles.filterText, filter === "all" && styles.filterTextActive]}>
-                  Tous ({likes.length})
+                  {i18n.t("all")} ({likes.length})
                 </Text>
               </TouchableOpacity>
 
@@ -524,7 +514,7 @@ export default function MesMatchs({ navigation, embedded = false }) {
                 onPress={() => setFilter("unread")}
               >
                 <Text style={[styles.filterText, filter === "unread" && styles.filterTextActive]}>
-                  Non lus ({unreadCount})
+                  {i18n.t("unread")} ({unreadCount})
                 </Text>
               </TouchableOpacity>
             </View>

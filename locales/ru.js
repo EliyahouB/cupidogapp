@@ -1,216 +1,819 @@
 export default {
-  // GENERAL
+  // ============================================
+  // ОБЩИЕ
+  // ============================================
   app_name: "CupiDog",
-  loading: "Загрузка...",
+  loading: "Загрузка",
   error: "Ошибка",
-  success: "Успех",
+  success: "Успешно",
+  ok: "OK",
+  yes: "Да",
+  no: "Нет",
   cancel: "Отмена",
-  confirm: "Подтвердить",
+  close: "Закрыть",
   save: "Сохранить",
+  saving: "Сохранение",
   delete: "Удалить",
   edit: "Редактировать",
-  back: "Назад",
-  next: "Далее",
-  done: "Готово",
-  close: "Закрыть",
+  add: "Добавить",
+  send: "Отправить",
+  sending: "Отправка",
   search: "Поиск",
   filter: "Фильтр",
   sort: "Сортировка",
   share: "Поделиться",
   copy: "Копировать",
   copied: "Скопировано!",
-  yes: "Да",
-  no: "Нет",
-  ok: "OK",
+  later: "Позже",
+  continue: "Продолжить",
+  back: "Назад",
+  next: "Далее",
+  previous: "Предыдущий",
+  confirm: "Подтвердить",
+  optional: "Необязательно",
+  recommended: "Рекомендуется",
+  required: "Обязательно",
+  free: "Бесплатно",
+  total: "Итого",
+  subtotal: "Промежуточный итог",
+  you: "Вы",
+  new: "Новый",
+  all: "Все",
+  none: "Нет",
+  other: "Другое",
+  unknown: "Неизвестно",
+  done: "Готово",
   
-  // AUTH
-  login: "Войти",
+  // ============================================
+  // ДАТЫ / ВРЕМЯ
+  // ============================================
+  today: "Сегодня",
+  yesterday: "Вчера",
+  tomorrow: "Завтра",
+  day: "день",
+  days: "дней",
+  week: "неделя",
+  weeks: "недель",
+  month: "месяц",
+  months: "месяцев",
+  year: "год",
+  years: "лет",
+  years_old: "лет",
+  january: "Январь",
+  february: "Февраль",
+  march: "Март",
+  april: "Апрель",
+  may: "Май",
+  june: "Июнь",
+  july: "Июль",
+  august: "Август",
+  september: "Сентябрь",
+  october: "Октябрь",
+  november: "Ноябрь",
+  december: "Декабрь",
+  
+  // ============================================
+  // АВТОРИЗАЦИЯ
+  // ============================================
+  welcome: "Добро пожаловать",
+  welcome_to_cupidog: "Добро пожаловать в CupiDog",
+  sign_in: "Войти",
+  sign_up: "Регистрация",
+  sign_out: "Выйти",
+  log_out: "Выход",
+  login: "Вход",
   logout: "Выйти",
   signup: "Регистрация",
   email: "Эл. почта",
   password: "Пароль",
+  phone: "Телефон",
   forgot_password: "Забыли пароль?",
+  reset_password: "Сбросить пароль",
+  create_account: "Создать аккаунт",
+  already_have_account: "Уже есть аккаунт?",
+  dont_have_account: "Нет аккаунта?",
   no_account: "Нет аккаунта?",
   have_account: "Уже есть аккаунт?",
+  or: "или",
+  continue_with_google: "Продолжить с Google",
+  continue_with_apple: "Продолжить с Apple",
+  continue_with_email: "Продолжить с Email",
+  continue_with_phone: "Продолжить с телефоном",
+  verify_phone: "Подтвердить телефон",
+  verification_code: "Код подтверждения",
+  send_code: "Отправить код",
+  resend_code: "Отправить код повторно",
+  user_not_connected: "Пользователь не подключен",
+  session_expired: "Сессия истекла",
   
-  // HOME
+  // ============================================
+  // ОНБОРДИНГ
+  // ============================================
+  user_type_select: "Что вы ищете?",
+  i_am_looking: "Я ищу",
+  i_am_provider: "Я поставщик услуг",
+  dog_owner: "Владелец собаки",
+  service_provider: "Поставщик услуг",
+  choose_your_profile: "Выберите свой профиль",
+  referral_code_optional: "Реферальный код (необязательно)",
+  referral_code_placeholder: "Например: CUPIDOG123",
+  
+  // ============================================
+  // ПРОФИЛЬ
+  // ============================================
+  profile: "Профиль",
+  my_profile: "Мой профиль",
+  edit_profile: "Редактировать профиль",
+  name: "Имя",
+  first_name: "Имя",
+  last_name: "Фамилия",
+  full_name: "Полное имя",
+  full_name_example: "Например: Иван Иванов",
+  city: "Город",
+  city_example: "Например: Тель-Авив",
+  description: "Описание",
+  bio: "Биография",
+  age: "Возраст",
+  gender: "Пол",
+  male: "Мужской",
+  female: "Женский",
+  photo: "Фото",
+  add_photo: "Добавить фото",
+  change_photo: "Изменить фото",
+  choose_source: "Выбрать источник",
+  camera: "Камера",
+  gallery: "Галерея",
+  permission_denied: "Доступ запрещен",
+  camera_permission_required: "Требуется доступ к камере",
+  profile_not_found: "Профиль не найден",
+  create_profile: "Создать мой профиль",
+  provider: "Поставщик",
+  seller: "Продавец",
+  individual: "Частное лицо",
+  
+  // ============================================
+  // СОБАКИ
+  // ============================================
+  my_dogs: "Мои собаки",
+  dogs: "собак",
+  add_dog: "Добавить собаку",
+  edit_dog: "Редактировать собаку",
+  dog_details: "Информация о собаке",
+  dog_profile: "Профиль собаки",
+  dog_name: "Кличка собаки",
+  dog_name_required: "Кличка собаки обязательна",
+  breed: "Порода",
+  select_breed: "Выбрать породу",
+  mixed_breed: "Метис",
+  male_dog: "Кобель",
+  female_dog: "Сука",
+  purpose: "Цель",
+  meetup: "Встреча",
+  sale: "Продажа",
+  stud: "Вязка",
+  pedigree: "Родословная",
+  contest: "Конкурс",
+  vaccinated: "Привит",
+  sterilized: "Стерилизован",
+  microchipped: "Чипирован",
+  no_dogs_yet: "Пока нет собак",
+  add_first_dog: "Добавьте свою первую собаку",
+  dog_added: "Собака добавлена",
+  dog_updated: "Собака обновлена",
+  dog_deleted: "Собака удалена",
+  delete_dog: "Удалить собаку",
+  confirm_delete_dog: "Вы уверены, что хотите удалить эту собаку?",
+  
+  // ============================================
+  // ВСТРЕЧИ / СОВПАДЕНИЯ
+  // ============================================
+  encounters: "Встречи",
+  matches: "Совпадения",
+  my_matches: "Мои совпадения",
+  likes: "Лайки",
+  likes_received: "Полученные лайки",
+  likes_sent: "Отправленные лайки",
+  its_a_match: "Совпадение!",
+  no_more_dogs: "Больше нет собак для просмотра",
+  come_back_later: "Возвращайтесь позже",
+  superlike: "Суперлайк",
+  pass: "Пропустить",
+  undo: "Отменить",
+  
+  // ============================================
+  // ИЗБРАННОЕ
+  // ============================================
+  favorites: "Избранное",
+  my_favorites: "Моё избранное",
+  add_to_favorites: "Добавить в избранное",
+  remove_from_favorites: "Удалить из избранного",
+  no_favorites: "Нет избранного",
+  
+  // ============================================
+  // ЧАТ / СООБЩЕНИЯ
+  // ============================================
+  messages: "Сообщения",
+  conversations: "Диалоги",
+  chat: "Чат",
+  new_message: "Новое сообщение",
+  type_message: "Введите сообщение...",
+  send_message: "Отправить сообщение",
+  no_messages: "Нет сообщений",
+  no_conversations: "Нет диалогов",
+  start_conversation: "Начать диалог",
+  message_sent: "Сообщение отправлено",
+  
+  // ============================================
+  // МАРКЕТПЛЕЙС ОБЩЕЕ
+  // ============================================
+  marketplace: "Маркетплейс",
+  services: "Услуги",
+  shop: "Магазин",
+  products: "Товары",
+  my_products: "Мои товары",
+  my_sales: "Мои продажи",
+  my_purchases: "Мои покупки",
+  my_orders: "Мои заказы",
+  orders: "Заказы",
+  
+  // ============================================
+  // МАГАЗИН
+  // ============================================
+  add_product: "Добавить товар",
+  edit_product: "Редактировать товар",
+  product_details: "Информация о товаре",
+  product_name: "Название товара",
+  product_description: "Описание товара",
+  price: "Цена",
+  quantity: "Количество",
+  stock: "В наличии",
+  category: "Категория",
+  categories: "Категории",
+  all_categories: "Все категории",
+  cart: "Корзина",
+  my_cart: "Моя корзина",
+  add_to_cart: "В корзину",
+  remove_from_cart: "Удалить из корзины",
+  empty_cart: "Корзина пуста",
+  checkout: "Оформить заказ",
+  proceed_to_checkout: "Перейти к оплате",
+  order_placed: "Заказ оформлен",
+  order_confirmed: "Заказ подтвержден",
+  view_order: "Посмотреть заказ",
+  continue_shopping: "Продолжить покупки",
+  items: "товаров",
+  item: "товар",
+  delivery: "Доставка",
+  delivery_address: "Адрес доставки",
+  shipping: "Доставка",
+  payment: "Оплата",
+  pay_now: "Оплатить сейчас",
+  order_summary: "Итого по заказу",
+  
+  // ============================================
+  // СТАТУС ЗАКАЗОВ
+  // ============================================
+  pending: "Ожидает",
+  processing: "Обрабатывается",
+  shipped: "Отправлен",
+  delivered: "Доставлен",
+  cancelled: "Отменен",
+  completed: "Завершен",
+  active: "Активен",
+  inactive: "Неактивен",
+  suspended: "Приостановлен",
+  sold: "Продан",
+  
+  // ============================================
+  // ТОВАРЫ - ДЕЙСТВИЯ
+  // ============================================
+  no_products: "Нет товаров",
+  no_products_for_sale: "Нет товаров на продажу",
+  product_added: "Товар добавлен",
+  product_updated: "Товар обновлен",
+  product_deleted: "Товар удален",
+  delete_product: "Удалить товар",
+  confirm_delete_product: "Вы уверены, что хотите удалить этот товар?",
+  error_deleting_product: "Ошибка при удалении товара",
+  error_changing_status: "Ошибка при изменении статуса",
+  activate: "Активировать",
+  suspend: "Приостановить",
+  earnings: "Заработок",
+  
+  // ============================================
+  // ПРОДАЖИ
+  // ============================================
+  no_sales: "Нет продаж",
+  my_products_in_order: "Мои товары в этом заказе",
+  
+  // ============================================
+  // СЧЕТА
+  // ============================================
+  invoices: "Счета",
+  my_invoices: "Мои счета",
+  my_purchase_invoices: "Мои счета за покупки",
+  no_purchase_invoices: "Нет счетов за покупки",
+  purchase_invoices_appear_here: "Ваши счета за покупки появятся здесь",
+  invoice_details: "Детали счета",
+  invoice_not_found: "Счет не найден",
+  download_pdf: "Скачать PDF",
+  error_generating_pdf: "Ошибка при создании PDF",
+  paid: "Оплачено",
+  unpaid: "Не оплачено",
+  information: "Информация",
+  date: "Дата",
+  period: "Период",
+  due_date: "Срок оплаты",
+  month_summary: "Итоги месяца",
+  number_of_sales: "Количество продаж",
+  total_sales: "Всего продаж",
+  cupidog_commission: "Комиссия CupiDog",
+  you_receive: "Вы получаете",
+  sales_detail: "Детали продаж",
+  leads_detail: "Детали лидов",
+  number_of_leads: "Количество лидов",
+  total_leads: "Всего лидов",
+  leads_list: "Список лидов",
+  amount_to_pay: "Сумма к оплате",
+  vat: "НДС",
+  total_with_vat: "Итого с НДС",
+  customer_info: "Информация о клиенте",
+  ordered_items: "Заказанные товары",
+  sellers: "Продавцы",
+  company: "Компания",
+  invoice_generated_on: "Счет создан",
+  price_per_lead: "Цена за лид",
+  variable: "Переменная",
+  generate_last_month_invoice: "Создать счет за прошлый месяц",
+  generate_current_month_invoice: "Создать счет за текущий месяц",
+  last_month: "Прошлый месяц",
+  current_month: "Текущий месяц",
+  invoice_already_generated: "Счет уже создан",
+  invoice_for: "Счет за",
+  already_exists: "уже существует",
+  regenerate_question: "Хотите создать заново?",
+  regenerate: "Создать заново",
+  generate_invoice: "Создать счет",
+  generate_invoice_for: "Создать счет за",
+  generate: "Создать",
+  invoice_generated: "Счет создан",
+  no_activity_this_month: "Нет активности в этом месяце",
+  error_generating_invoice: "Ошибка при создании счета",
+  no_invoices: "Нет счетов",
+  click_buttons_to_generate: "Нажмите кнопки для создания счетов",
+  unknown_date: "Неизвестная дата",
+  
+  // ============================================
+  // ЛИДЫ / ЗАЯВКИ (ПОСТАВЩИК)
+  // ============================================
+  leads: "Лиды",
+  my_leads: "Мои лиды",
+  my_requests: "Мои заявки",
+  my_services: "Мои заявки на услуги",
+  no_requests: "Нет заявок",
+  contacted: "Связались",
+  mark_contacted: "Отметить как связались",
+  mark_completed: "Отметить как завершено",
+  refuse: "Отказать",
+  lead_price: "Цена лида",
+  message: "Сообщение",
+  
+  // ============================================
+  // ЛИДЫ / ЗАЯВКИ (КЛИЕНТ)
+  // ============================================
+  no_provider_contacted_yet: "Вы еще не связывались с поставщиком",
+  discover_services: "Найти услуги",
+  can_rate_after_10_days: "Вы можете оценить поставщика через 10 дней после заявки",
+  rated: "Оценено",
+  edit_my_rating: "Изменить мою оценку",
+  rate_this_provider: "Оценить этого поставщика",
+  can_rate_in: "Можно оценить через",
+  
+  // ============================================
+  // ОЦЕНКИ / ОТЗЫВЫ
+  // ============================================
+  rate: "Оценить",
+  rating: "Рейтинг",
+  reviews: "отзывов",
+  rate_provider: "Оценить поставщика",
+  rate_service: "Оценить услугу",
+  please_select_rating: "Пожалуйста, выберите оценку",
+  rating_updated: "Ваша оценка обновлена!",
+  thank_you_for_rating: "Спасибо за оценку!",
+  error_saving_rating: "Не удалось сохранить оценку. Попробуйте снова.",
+  error_occurred: "Произошла ошибка.",
+  very_unsatisfied: "Очень недоволен",
+  unsatisfied: "Недоволен",
+  average: "Нормально",
+  satisfied: "Доволен",
+  very_satisfied: "Очень доволен",
+  select_rating: "Выберите оценку",
+  request_from: "Заявка от",
+  edit_your_rating: "Изменить вашу оценку",
+  how_was_your_experience: "Как прошел ваш опыт?",
+  can_edit_anytime: "Вы можете изменить оценку в любое время.",
+  your_review_helps_others: "Ваш отзыв помогает другим пользователям.",
+  current_rating: "Текущая оценка",
+  send_my_rating: "Отправить мою оценку",
+  leave_review: "Оставить отзыв",
+  
+  // ============================================
+  // РЕФЕРАЛЫ
+  // ============================================
+  my_referral: "Моя реферальная программа",
+  referral: "Реферал",
+  referral_code: "Реферальный код",
+  your_referral_code: "Ваш реферальный код",
+  no_referral_code_yet: "Пока нет реферального кода",
+  no_referral_code: "Нет реферального кода",
+  create_code_earn_rewards: "Создайте свой код и получайте награды за каждого нового участника!",
+  create_referral: "Создайте свой код и получайте награды за каждого нового участника!",
+  create_my_referral_code: "Создать мой реферальный код",
+  create_code: "Создать мой реферальный код",
+  code_created: "Код создан!",
+  your_code: "Ваш реферальный код:",
+  error_creating_code: "Не удалось создать код",
+  code_copied_clipboard: "Код скопирован в буфер обмена",
+  join_cupidog_with_code: "Присоединяйся к CupiDog с моим реферальным кодом",
+  download_app: "Скачай приложение",
+  founding_partner: "Партнер-основатель",
+  founder_partner: "Партнер-основатель",
+  points: "Баллы",
+  referees: "Рефералы",
+  referrals: "Рефералы",
+  your_rewards: "Ваши награды",
+  free_leads_earned: "Бесплатные лиды",
+  boosts_earned: "Бусты получены",
+  boosts: "бустов",
+  free_months_earned: "Бесплатные месяцы",
+  next_rewards: "Следующие награды",
+  next_2_free_leads_in: "Следующие 2 бесплатных лида через",
+  next_free_leads: "Следующие 2 бесплатных лида через",
+  next_boost_in: "Следующий буст через",
+  next_boost: "Следующий буст через",
+  next_free_month_in: "Следующий бесплатный месяц через",
+  next_free_month: "Следующий бесплатный месяц через",
+  how_it_works: "Как это работает?",
+  share_code_with_clients: "Поделитесь кодом с клиентами",
+  step1: "Поделитесь кодом с клиентами",
+  they_signup_with_code: "Они регистрируются с вашим кодом",
+  step2: "Они регистрируются с вашим кодом",
+  earn_1_point_per_signup: "Вы получаете 1 балл за регистрацию",
+  step3: "Вы получаете 1 балл за регистрацию",
+  points_rewards_info: "10 баллов = 2 лида, 25 баллов = 1 буст, 50 баллов = 1 месяц бесплатно",
+  step4: "10 баллов = 2 лида, 25 баллов = 1 буст, 50 баллов = 1 месяц бесплатно",
+  recent_referees: "Последние рефералы",
+  last_referrals: "Последние рефералы",
+  share_message: "Присоединяйся к CupiDog с моим реферальным кодом: %{code}\n\nСкачай приложение: https://cupidog.app",
+  
+  // ============================================
+  // УСЛУГИ - КАТЕГОРИИ
+  // ============================================
+  veterinarian: "Ветеринар",
+  groomer: "Грумер",
+  dog_walker_boarding: "Выгул и передержка",
+  trainer_educator: "Тренер / Кинолог",
+  dog_boarding: "Передержка собак",
+  dog_transport: "Перевозка собак",
+  animal_photographer: "Фотограф животных",
+  care_consultations: "Уход и консультации",
+  professional_grooming: "Профессиональный груминг",
+  walking_boarding: "Выгул и передержка",
+  training_behavior: "Дрессировка и поведение",
+  long_term_care: "Долгосрочный уход",
+  taxi_specialized_transport: "Такси и специализированная перевозка",
+  professional_shooting: "Профессиональная съемка",
+  all_services: "Все услуги",
+  browse_all_providers: "Все поставщики",
+  
+  // ============================================
+  // УСЛУГИ - ГЛАВНАЯ
+  // ============================================
+  select_service_needed: "Выберите нужную услугу",
+  boost_visibility: "Повысьте свою видимость!",
+  appear_top_results: "Появляйтесь в топе результатов и получайте больше заявок",
+  discover_boosts: "Узнать о бустах",
+  are_you_provider: "Вы поставщик услуг?",
+  register_receive_requests: "Зарегистрируйтесь, чтобы получать заявки и развивать свой бизнес.",
+  become_provider: "Стать поставщиком",
+  
+  // ============================================
+  // УСЛУГИ - СПИСОК
+  // ============================================
+  providers_available: "поставщиков доступно",
+  provider_available: "поставщик доступен",
+  sorted_by_relevance: "Отсортировано по релевантности",
+  no_provider: "Нет поставщиков",
+  be_first_to_offer_services: "Станьте первым, кто предложит свои услуги!",
+  loading_providers: "Загрузка поставщиков",
+  rates: "Тарифы",
+  register_grow_business: "Зарегистрируйтесь и развивайте бизнес",
+  
+  // ============================================
+  // УСЛУГИ - ДЕТАЛИ
+  // ============================================
+  service_not_found: "Услуга не найдена",
+  about: "О нас",
+  services_offered: "Предлагаемые услуги",
+  practical_info: "Практическая информация",
+  location: "Местоположение",
+  other_cities: "другие города",
+  requests_received: "Получено заявок",
+  response_rate: "Процент ответов",
+  request_quote: "Запросить расценки",
+  
+  // ============================================
+  // ФОРМА ЛИДА
+  // ============================================
+  enter_your_name: "Введите ваше имя",
+  enter_your_phone: "Введите ваш телефон",
+  describe_your_request: "Опишите вашу заявку",
+  confirm_request: "Подтвердить заявку",
+  by_sending_request: "Отправляя эту заявку",
+  will_receive_your_contact: "получит ваши контактные данные",
+  request_sent: "Заявка отправлена",
+  received_your_request: "получил вашу заявку",
+  error_sending_request: "Ошибка при отправке заявки",
+  your_contact_info: "Ваши контактные данные",
+  your_request: "Ваша заявка",
+  describe_your_need: "Опишите вашу потребность",
+  send_request: "Отправить заявку",
+  
+  // ============================================
+  // СОЗДАНИЕ УСЛУГИ
+  // ============================================
+  create_professional_profile: "Создать мой профессиональный профиль",
+  create_service: "Создать услугу",
+  receive_requests_grow_business: "Получайте заявки и развивайте бизнес",
+  presentation_photo: "Фото для презентации",
+  professional_photo_recommended: "Рекомендуется профессиональное фото",
+  describe_services_experience: "Опишите ваши услуги и опыт",
+  price_range: "Диапазон цен",
+  price_range_example: "Например: 50-100₪",
+  normal_lead_price: "Обычная цена лида",
+  top_results: "В топе результатов",
+  reduced_lead_price: "Сниженная цена лида",
+  creating: "Создание",
+  create_my_profile: "Создать мой профиль",
+  service_created: "Профиль создан!",
+  professional_profile_active: "Ваш профессиональный профиль активен",
+  error_creating_service: "Ошибка при создании профиля",
+  photos_portfolio: "Фото / Портфолио",
+  
+  // ============================================
+  // РЕГИСТРАЦИЯ ПРО
+  // ============================================
+  professional_account: "Профессиональный аккаунт",
+  sell_products_or_services: "Продавайте товары или предлагайте услуги",
+  validation_48h_info: "Ваша заявка будет рассмотрена в течение 48 часов",
+  activity_type: "Тип деятельности",
+  service_provider_examples: "Ветеринар, грумер, тренер...",
+  product_seller: "Продавец товаров",
+  product_seller_examples: "Аксессуары, корм, одежда...",
+  service_category: "Категория услуги",
+  choose_subscription: "Выбрать подписку",
+  per_month: "/месяц",
+  click_for_details: "Нажмите для подробностей",
+  business_type: "Тип бизнеса",
+  certification_required_warning: "Для этой категории требуется сертификация",
+  dogwalker_no_osek_required: "Для выгула собак не требуется номер Osek",
+  company_logo_optional: "Логотип компании (необязательно)",
+  add_logo: "Добавить логотип",
+  company_name: "Название компании",
+  company_name_example: "Например: Моя компания ООО",
+  osek_number: "Номер Osek",
+  minimum_9_digits: "Минимум 9 цифр",
+  hp_number: "Номер HP",
+  business_address: "Рабочий адрес",
+  street: "Улица",
+  professional_phone: "Рабочий телефон",
+  professional_email: "Рабочий email",
+  teudat_osek_certificate: "Сертификат Teudat Osek",
+  select_document: "Выбрать документ",
+  recommended_for_fast_validation: "Рекомендуется для быстрой проверки",
+  professional_terms_agreement: "Я принимаю профессиональные условия",
+  submit_request: "Отправить заявку",
+  subscription_selected: "Подписка выбрана",
+  you_chose_offer: "Вы выбрали предложение",
+  permission_required: "Требуется разрешение",
+  error_selecting_document: "Ошибка при выборе документа",
+  company_name_required: "Требуется название компании",
+  valid_osek_required: "Требуется действительный номер Osek",
+  valid_hp_required: "Требуется действительный номер HP",
+  full_address_required: "Требуется полный адрес",
+  error_saving_professional: "Ошибка при сохранении",
+  professional_account_pending: "Ваш профессиональный аккаунт ожидает проверки",
+  subscription: "Подписка",
+  selected: "выбрано",
+  email_within_48h: "Вы получите email в течение 48 часов",
+  reason_not_specified: "Причина не указана",
+  included_in_offer: "Включено в предложение",
+  included: "Включено в предложение",
+  choose_this_offer: "Выбрать это предложение",
+  receive_client_requests: "Получайте заявки от клиентов",
+  leads_vet_groomer_price: "Лиды ветеринар/грумер: 15₪",
+  leads_walker_transport_price: "Лиды выгул/перевозка: 10₪",
+  standard_support: "Стандартная поддержка",
+  basic_statistics: "Базовая статистика",
+  everything_from_pro_plus: "Всё из PRO, плюс:",
+  pro_plus_badge: "Значок PRO+",
+  leads_vet_groomer_discount: "Лиды ветеринар/грумер: 10₪",
+  leads_walker_transport_discount: "Лиды выгул/перевозка: 7₪",
+  search_priority: "Приоритет в поиске",
+  priority_support: "Приоритетная поддержка",
+  advanced_statistics: "Расширенная статистика",
+  
+  // ============================================
+  // ПОДПИСКИ
+  // ============================================
+  subscriptions: "Подписки",
+  manage_subscriptions: "Управление подписками",
+  my_subscription: "Моя подписка",
+  choose_plan: "Выбрать план",
+  current_plan: "Текущий план",
+  upgrade: "Улучшить",
+  downgrade: "Понизить",
+  cancel_subscription: "Отменить подписку",
+  subscription_active: "Подписка активна",
+  subscription_expired: "Подписка истекла",
+  renew: "Продлить",
+  expires_on: "Истекает",
+  free_plan: "Бесплатный план",
+  pro_plan: "План PRO",
+  pro_plus_plan: "План PRO+",
+  most_popular: "Самый популярный",
+  best_value: "Лучшее соотношение цены и качества",
+  features_included: "Включенные функции",
+  subscribe: "Подписаться",
+  subscribe_offer: "Подписаться на этот план",
+  start_free: "Начать бесплатно",
+  pro_offers: "Планы для поставщиков",
+  pro_subtitle: "Развивайте бизнес и получайте клиентов",
+  swipe_offers: "Свайпните, чтобы увидеть все планы",
+  early_bird: "ОГРАНИЧЕННОЕ ПРЕДЛОЖЕНИЕ",
+  
+  // ============================================
+  // БУСТЫ
+  // ============================================
+  boost: "Буст",
+  boost_my_profile: "Бустить мой профиль",
+  boost_active: "Буст активен",
+  boost_expired: "Буст истек",
+  days_remaining: "дней осталось",
+  boost_3days: "Буст на 3 дня",
+  boost_7days: "Буст на 7 дней",
+  boost_desc: "Главная страница + Топ вашей категории",
+  popular: "ПОПУЛЯРНОЕ",
+  
+  // ============================================
+  // ОПЛАТА
+  // ============================================
+  payment_method: "Способ оплаты",
+  credit_card: "Кредитная карта",
+  card_number: "Номер карты",
+  expiry_date: "Срок действия",
+  expiry: "Срок",
+  cvv: "CVV",
+  cardholder_name: "Имя владельца",
+  card_holder: "Имя владельца",
+  billing_address: "Платежный адрес",
+  pay: "Оплатить",
+  payment_successful: "Оплата успешна",
+  payment_success: "Оплата успешна!",
+  payment_failed: "Оплата не удалась",
+  try_again: "Попробовать снова",
+  secure_payment: "Безопасная оплата",
+  payment_info: "Информация об оплате",
+  auto_renewal: "Автопродление",
+  cancel_anytime: "Отмена в любое время",
+  payment_secure: "Безопасная оплата Tranzila - Ваши данные защищены",
+  invalid_card: "Неверный номер карты",
+  invalid_expiry: "Неверный срок действия",
+  invalid_cvv: "Неверный CVV",
+  invalid_holder: "Неверное имя владельца",
+  secure_payment_footer: "Безопасная оплата • Отмена в любое время",
+  
+  // ============================================
+  // НАСТРОЙКИ
+  // ============================================
+  settings: "Настройки",
+  account_settings: "Настройки аккаунта",
+  notification_settings: "Настройки уведомлений",
+  privacy_settings: "Настройки конфиденциальности",
+  language: "Язык / Language / שפה / Langue",
+  language_settings: "Настройки языка",
+  select_language: "Выберите язык",
+  language_changed: "Язык изменен",
+  restart_app: "Перезапустите приложение для применения всех изменений",
+  dark_mode: "Темная тема",
+  notifications: "Уведомления",
+  push_notifications: "Push-уведомления",
+  email_notifications: "Email-уведомления",
+  privacy: "Конфиденциальность",
+  version: "Версия",
+  
+  // ============================================
+  // ПОМОЩЬ / ПОДДЕРЖКА
+  // ============================================
+  help: "Помощь",
+  help_center: "Центр помощи",
+  support: "Поддержка",
+  contact_us: "Связаться с нами",
+  faq: "FAQ",
+  report_problem: "Сообщить о проблеме",
+  feedback: "Обратная связь",
+  
+  // ============================================
+  // ЮРИДИЧЕСКОЕ
+  // ============================================
+  terms: "Условия использования",
+  terms_of_service: "Условия обслуживания",
+  privacy_policy: "Политика конфиденциальности",
+  accept_terms: "Я принимаю условия",
+  read_and_accept: "Я прочитал и принимаю",
+  
+  // ============================================
+  // ЗАБЛОКИРОВАННЫЕ ПОЛЬЗОВАТЕЛИ
+  // ============================================
+  blocked_users: "Заблокированные пользователи",
+  block_user: "Заблокировать пользователя",
+  unblock_user: "Разблокировать",
+  no_blocked_users: "Нет заблокированных пользователей",
+  user_blocked: "Пользователь заблокирован",
+  user_unblocked: "Пользователь разблокирован",
+  
+  // ============================================
+  // ПРИГЛАСИТЬ ДРУЗЕЙ
+  // ============================================
+  invite_friends: "Пригласить друзей",
+  share_with_friends: "Поделиться с друзьями",
+  invite_text: "Присоединяйся к CupiDog, приложению для любителей собак!",
+  
+  // ============================================
+  // ОШИБКИ
+  // ============================================
+  error_loading: "Ошибка загрузки",
+  error_saving: "Ошибка сохранения",
+  error_network: "Ошибка сети",
+  error_unknown: "Неизвестная ошибка",
+  try_again_later: "Попробуйте позже",
+  something_went_wrong: "Что-то пошло не так",
+  
+  // ============================================
+  // POPUP ПРИВЕТСТВИЯ
+  // ============================================
+  welcome_popup_title: "Добро пожаловать в CupiDog!",
+  welcome_popup_message: "Спасибо, что вы один из наших первых пользователей!",
+  welcome_title: "Добро пожаловать в CupiDog!",
+  welcome_badge: "Вы среди наших первых пользователей!",
+  welcome_text1: "Мы создали это приложение, чтобы изменить способ знакомства владельцев собак.",
+  welcome_text2: "Как новое сообщество, профили продолжают расти. Оставьте приложение установленным - новые участники присоединяются к нам каждый день!",
+  welcome_patience: "Ваше терпение помогает нам создавать что-то особенное",
+  welcome_button: "Поехали!",
+  founding_members: "Участники-основатели",
+  special_offer: "Специальное предложение",
+  
+  // ============================================
+  // ГЛАВНАЯ
+  // ============================================
   home: "Главная",
+  discover: "Обзор",
+  explore: "Исследовать",
+  see_all: "Смотреть все",
+  see_more: "Показать еще",
+  recent: "Недавние",
   cupidog_shop: "Магазин CupiDog",
   meeting_park: "Встреча / Парк",
   buy_sell: "Купить / Продать",
   breeder_stud: "Заводчик / Вязка",
+  nearby: "Рядом",
   
-  // WELCOME POPUP
-  welcome_title: "Добро пожаловать в CupiDog!",
-  welcome_badge: "Вы среди наших первых участников!",
-  welcome_text1: "Мы создали это приложение, чтобы изменить способ знакомства владельцев собак.",
-  welcome_text2: "Как новое сообщество, профили продолжают расти. Оставьте приложение установленным - новые участники присоединяются к нам каждый день!",
-  welcome_patience: "Ваше терпение помогает нам создать что-то особенное",
-  welcome_button: "Поехали!",
+  // ============================================
+  // РЕЗУЛЬТАТ
+  // ============================================
+  result: "Результат",
+  results: "Результаты",
+  no_results: "Нет результатов",
+  search_results: "Результаты поиска",
   
-  // PROFILE
-  profile: "Профиль",
-  my_profile: "Мой профиль",
-  edit_profile: "Редактировать профиль",
-  settings: "Настройки",
-  help_center: "Центр помощи",
-  support: "Поддержка",
-  invite_friends: "Пригласить друзей",
-  profile_not_found: "Профиль не найден",
-  create_profile: "Создать профиль",
-  
-  // PROFILE TYPES
-  provider: "Поставщик услуг",
-  seller: "Продавец",
-  individual: "Частное лицо",
-  
-  // SUBSCRIPTIONS
-  subscriptions: "Подписки",
-  manage_subscriptions: "Управление подписками",
-  subscribe: "Подписаться",
-  current_plan: "Текущий",
-  free: "Бесплатно",
-  per_month: "в месяц",
-  early_bird: "Early Bird",
-  recommended: "РЕКОМЕНДУЕМ",
-  
-  // PRO PLANS
-  pro_offers: "Предложения для специалистов",
-  pro_subtitle: "Развивайте свой бизнес и получайте клиентов",
-  swipe_offers: "Листайте, чтобы увидеть все предложения",
-  start_free: "Начать бесплатно",
-  subscribe_offer: "Подписаться на этот план",
-  included: "Включено в план:",
-  
-  // BOOSTS
-  boosts: "Бусты",
-  boost_visibility: "Увеличьте свою видимость",
-  boost_3days: "Буст на 3 дня",
-  boost_7days: "Буст на 7 дней",
-  boost_desc: "Главная страница + Топ вашей категории",
-  popular: "ПОПУЛЯРНО",
-  
-  // PAYMENT
-  secure_payment: "Безопасная оплата",
-  card_number: "Номер карты",
-  expiry: "Срок действия",
-  card_holder: "Имя владельца карты",
-  payment_info: "Платежная информация",
-  auto_renewal: "Автопродление",
-  cancel_anytime: "Отмена в любое время",
-  pay: "Оплатить",
-  payment_success: "Оплата прошла успешно!",
-  payment_failed: "Оплата не прошла. Попробуйте снова.",
-  payment_secure: "Безопасная оплата через Tranzila - Ваши данные защищены",
-  
-  // REFERRAL
-  referral: "Реферальная программа",
-  my_referral: "Мои рефералы",
-  referral_code: "Ваш реферальный код",
-  no_referral_code: "Реферальный код ещё не создан",
-  create_referral: "Создайте свой код и получайте награды за каждого нового участника, который зарегистрируется с вашим кодом!",
-  create_code: "Создать реферальный код",
-  code_created: "Код создан!",
-  your_code: "Ваш реферальный код:",
-  points: "Баллы",
-  referrals: "Рефералы",
-  your_rewards: "Ваши награды",
-  free_leads_earned: "Бесплатные лиды получены",
-  boosts_earned: "Бусты получены",
-  free_months_earned: "Бесплатные месяцы получены",
-  next_rewards: "Следующие награды",
-  next_free_leads: "Следующие 2 бесплатных лида через",
-  next_boost: "Следующий буст через",
-  next_free_month: "Следующий бесплатный месяц через",
-  how_it_works: "Как это работает?",
-  step1: "Поделитесь своим кодом с клиентами",
-  step2: "Они регистрируются с вашим кодом",
-  step3: "Вы получаете 1 балл за каждую регистрацию",
-  step4: "10 баллов = 2 лида, 25 баллов = 1 буст, 50 баллов = 1 бесплатный месяц",
-  last_referrals: "Последние рефералы",
-  founder_partner: "Партнёр-основатель",
-  share_message: "Присоединяйся к CupiDog с моим реферальным кодом: %{code}\n\nСкачай приложение: https://cupidog.app",
-  
-  // MARKETPLACE
-  marketplace: "Маркетплейс",
-  services: "Услуги",
-  products: "Товары",
-  discover_services: "Найти услуги",
-  
-  // SERVICES
-  my_leads: "Мои лиды",
-  my_services: "Мои запросы на услуги",
-  create_service: "Создать услугу",
-  my_invoices: "Мои счета",
-  rate_service: "Оценить услугу",
-  
-  // PRODUCTS
-  my_products: "Мои товары",
-  add_product: "Добавить товар",
-  my_sales: "Мои продажи",
-  my_purchases: "Мои счета за покупки",
-  
-  // VENDOR
+  // ============================================
+  // VENDOR / ПРОДАВЕЦ
+  // ============================================
   vendor_space: "Пространство продавца",
-  vendor_subtitle: "Продавайте свои товары на CupiDog",
+  vendor_subtitle: "Продавайте товары на CupiDog",
   unlimited_products: "Неограниченное количество товаров",
   no_monthly_fee: "Без ежемесячной подписки",
   commission: "Единая комиссия: 15% с продажи",
   boost_sales: "Увеличьте продажи",
-  boost_products: "Продвигайте свои товары",
+  boost_products: "Выделите ваши товары",
   per_product: "/ товар",
   
-  // PARTICULIER
-  choose_offer: "Выберите свой план",
-  particulier_subtitle: "Продавайте, находите вязки и развивайте разведение",
-  sale: "Продажа",
-  stud: "Вязка",
+  // ============================================
+  // ЧАСТНОЕ ЛИЦО
+  // ============================================
+  choose_offer: "Выберите план",
+  particulier_subtitle: "Продавайте, находите партнеров для вязки",
   essential: "Базовый",
   premium: "Премиум",
-  days: "дней",
   publish: "Опубликовать",
-  
-  // DOGS
-  dogs: "Собаки",
-  my_dogs: "Мои собаки",
-  add_dog: "Добавить собаку",
-  dog_profile: "Профиль собаки",
-  breed: "Порода",
-  age: "Возраст",
-  gender: "Пол",
-  male: "Кобель",
-  female: "Сука",
-  
-  // CHAT
-  conversations: "Сообщения",
-  no_messages: "Нет сообщений",
-  type_message: "Введите сообщение...",
-  send: "Отправить",
-  
-  // RATINGS
-  rate: "Оценить",
-  rating: "Рейтинг",
-  reviews: "Отзывы",
-  leave_review: "Оставить отзыв",
-  
-  // SETTINGS
-  language: "Язык",
-  notifications: "Уведомления",
-  privacy: "Конфиденциальность",
-  terms: "Условия использования",
-  about: "О приложении",
-  version: "Версия",
-  
-  // FOOTER
-  secure_payment_footer: "Безопасная оплата • Отмена в любое время",
-  
-  // ERRORS
-  error_loading: "Ошибка загрузки",
-  error_saving: "Ошибка сохранения",
-  error_network: "Ошибка сети",
-  session_expired: "Сессия истекла",
-  invalid_card: "Неверный номер карты",
-  invalid_expiry: "Неверный срок действия",
-  invalid_cvv: "Неверный CVV",
-  invalid_holder: "Неверное имя владельца карты",
 };

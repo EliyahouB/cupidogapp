@@ -20,14 +20,15 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, db, auth } from "../../../config/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import ScreenLayout from "../../../components/ScreenLayout";
+import i18n from "../../../utils/i18n";
 
 export default function InscriptionPro({ navigation }) {
   const user = auth.currentUser;
 
   const [formData, setFormData] = useState({
-    activityType: "service_provider", // service_provider ou seller
-    serviceCategory: "veterinaire", // Pour les prestataires
-    businessType: "osek_patur", // osek_patur, osek_mursheh, hevra
+    activityType: "service_provider",
+    serviceCategory: "veterinaire",
+    businessType: "osek_patur",
     companyName: "",
     osekNumber: "",
     hpNumber: "",
@@ -36,8 +37,8 @@ export default function InscriptionPro({ navigation }) {
     postalCode: "",
     phone: "",
     email: user?.email || "",
-    requiresCertification: true, // true ou false
-    subscriptionPlan: null, // "pro" ou "pro+"
+    requiresCertification: true,
+    subscriptionPlan: null,
   });
 
   const [logo, setLogo] = useState(null);
@@ -47,13 +48,13 @@ export default function InscriptionPro({ navigation }) {
   const [selectedPlan, setSelectedPlan] = useState(null);
 
   const serviceCategories = [
-    { id: "veterinaire", name: "Vétérinaire", needsCert: true },
-    { id: "toiletteur", name: "Toiletteur", needsCert: false },
-    { id: "dogwalker", name: "Dog Walker / Gardiennage", needsCert: false },
-    { id: "educateur", name: "Éducateur / Dresseur", needsCert: true },
-    { id: "pension", name: "Pension canine", needsCert: true },
-    { id: "transport", name: "Transport canin", needsCert: false },
-    { id: "photographe", name: "Photographe", needsCert: false },
+    { id: "veterinaire", name: i18n.t("veterinarian"), needsCert: true },
+    { id: "toiletteur", name: i18n.t("groomer"), needsCert: false },
+    { id: "dogwalker", name: i18n.t("dog_walker_boarding"), needsCert: false },
+    { id: "educateur", name: i18n.t("trainer_educator"), needsCert: true },
+    { id: "pension", name: i18n.t("dog_boarding"), needsCert: true },
+    { id: "transport", name: i18n.t("dog_transport"), needsCert: false },
+    { id: "photographe", name: i18n.t("photographer"), needsCert: false },
   ];
 
   const getProPlanDetails = (plan) => {
@@ -61,29 +62,29 @@ export default function InscriptionPro({ navigation }) {
       return {
         name: "PRO",
         price: "159₪",
-        duration: "par mois",
+        duration: i18n.t("per_month"),
         features: [
-          "Créer votre profil professionnel",
-          "Recevoir des demandes de clients",
-          "Leads Vétérinaire/Toiletteur/Éducateur/Pension/Photographe : 20₪",
-          "Leads Dog Walker/Transport : 18₪",
-          "Support standard",
-          "Statistiques de base",
+          i18n.t("create_professional_profile"),
+          i18n.t("receive_client_requests"),
+          i18n.t("leads_vet_groomer_price"),
+          i18n.t("leads_walker_transport_price"),
+          i18n.t("standard_support"),
+          i18n.t("basic_statistics"),
         ],
       };
     } else {
       return {
         name: "PRO+",
         price: "299₪",
-        duration: "par mois",
+        duration: i18n.t("per_month"),
         features: [
-          "Tout de PRO +",
-          "Badge PRO+ sur votre profil 🏆",
-          "Leads Vétérinaire/Toiletteur/Éducateur/Pension/Photographe : 15₪ (-25%)",
-          "Leads Dog Walker/Transport : 13₪ (-28%)",
-          "Priorité dans les résultats de recherche",
-          "Support prioritaire",
-          "Statistiques avancées",
+          i18n.t("everything_from_pro_plus"),
+          i18n.t("pro_plus_badge"),
+          i18n.t("leads_vet_groomer_discount"),
+          i18n.t("leads_walker_transport_discount"),
+          i18n.t("search_priority"),
+          i18n.t("priority_support"),
+          i18n.t("advanced_statistics"),
         ],
       };
     }
@@ -97,14 +98,14 @@ export default function InscriptionPro({ navigation }) {
   const handleSubscribePlan = () => {
     setFormData({ ...formData, subscriptionPlan: selectedPlan });
     setModalVisible(false);
-    Alert.alert("Abonnement sélectionné !", `Vous avez choisi l'offre ${selectedPlan === "pro" ? "PRO" : "PRO+"}`);
+    Alert.alert(i18n.t("subscription_selected"), `${i18n.t("you_chose_offer")} ${selectedPlan === "pro" ? "PRO" : "PRO+"}`);
   };
 
   const pickLogo = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (!permissionResult.granted) {
-      Alert.alert("Permission requise", "Accès à la galerie requis");
+      Alert.alert(i18n.t("permission_required"), i18n.t("gallery_access_required"));
       return;
     }
 
@@ -132,7 +133,7 @@ export default function InscriptionPro({ navigation }) {
       }
     } catch (error) {
       console.error("Erreur pickDocument:", error);
-      Alert.alert("Erreur", "Impossible de sélectionner le document");
+      Alert.alert(i18n.t("error"), i18n.t("error_selecting_document"));
     }
   };
 
@@ -157,46 +158,42 @@ export default function InscriptionPro({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    // VALIDATION
     if (!formData.companyName.trim()) {
-      Alert.alert("Erreur", "Nom de l'entreprise requis");
+      Alert.alert(i18n.t("error"), i18n.t("company_name_required"));
       return;
     }
 
-    // Vérifier abonnement (si prestataire)
     if (formData.activityType === "service_provider" && !formData.subscriptionPlan) {
-      Alert.alert("Erreur", "Veuillez choisir un abonnement PRO ou PRO+");
+      Alert.alert(i18n.t("error"), i18n.t("choose_subscription"));
       return;
     }
 
-    // Vérifier le numéro Osek/HP selon le type
     if (formData.requiresCertification) {
       if (formData.businessType === "osek_patur" || formData.businessType === "osek_mursheh") {
         if (!formData.osekNumber.trim() || formData.osekNumber.length < 9) {
-          Alert.alert("Erreur", "Numéro Osek valide requis (9 chiffres minimum)");
+          Alert.alert(i18n.t("error"), i18n.t("valid_osek_required"));
           return;
         }
       } else if (formData.businessType === "hevra") {
         if (!formData.hpNumber.trim() || formData.hpNumber.length < 9) {
-          Alert.alert("Erreur", "Numéro H.P. valide requis (9 chiffres minimum)");
+          Alert.alert(i18n.t("error"), i18n.t("valid_hp_required"));
           return;
         }
       }
     }
 
     if (!formData.street.trim() || !formData.city.trim()) {
-      Alert.alert("Erreur", "Adresse complète requise");
+      Alert.alert(i18n.t("error"), i18n.t("full_address_required"));
       return;
     }
     if (!formData.phone.trim()) {
-      Alert.alert("Erreur", "Téléphone requis");
+      Alert.alert(i18n.t("error"), i18n.t("phone_required"));
       return;
     }
 
     setLoading(true);
 
     try {
-      // Upload logo et documents
       const logoURL = await uploadFile(logo, "professional/logos");
       const docURL = await uploadFile(teoudatOsek, "professional/documents");
 
@@ -220,7 +217,7 @@ export default function InscriptionPro({ navigation }) {
         requiresCertification: formData.requiresCertification,
         logo: logoURL,
         teoudatOsek: docURL,
-        status: "pending", // pending, approved, rejected
+        status: "pending",
         createdAt: new Date(),
         approvedAt: null,
         rejectedAt: null,
@@ -230,18 +227,18 @@ export default function InscriptionPro({ navigation }) {
       await setDoc(doc(db, "professional_accounts", user.uid), professionalData);
 
       Alert.alert(
-        "Demande envoyée !",
-        `Votre compte professionnel est en cours de validation. ${formData.activityType === "service_provider" ? `Abonnement ${formData.subscriptionPlan === "pro" ? "PRO" : "PRO+"} sélectionné.` : ""}\n\nVous recevrez un email sous 48h.`,
+        i18n.t("request_sent"),
+        `${i18n.t("professional_account_pending")} ${formData.activityType === "service_provider" ? `${i18n.t("subscription")} ${formData.subscriptionPlan === "pro" ? "PRO" : "PRO+"} ${i18n.t("selected")}.` : ""}\n\n${i18n.t("email_within_48h")}`,
         [
           {
-            text: "OK",
+            text: i18n.t("ok"),
             onPress: () => navigation.goBack()
           }
         ]
       );
     } catch (error) {
       console.error("Erreur handleSubmit:", error);
-      Alert.alert("Erreur", "Impossible d'enregistrer votre compte professionnel");
+      Alert.alert(i18n.t("error"), i18n.t("error_saving_professional"));
     } finally {
       setLoading(false);
     }
@@ -250,33 +247,30 @@ export default function InscriptionPro({ navigation }) {
   const selectedCategory = serviceCategories.find(c => c.id === formData.serviceCategory);
 
   return (
-    <ScreenLayout title="Compte Professionnel" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("professional_account")} navigation={navigation} showBack>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* HEADER */}
           <View style={styles.header}>
             <MaterialCommunityIcons name="briefcase-check" size={60} color="#1976D2" />
-            <Text style={styles.headerTitle}>Devenez Professionnel</Text>
+            <Text style={styles.headerTitle}>{i18n.t("become_professional")}</Text>
             <Text style={styles.headerSubtitle}>
-              Vendez vos produits ou proposez vos services sur CupiDog
+              {i18n.t("sell_products_or_services")}
             </Text>
           </View>
 
-          {/* INFO BOX */}
           <View style={styles.infoBox}>
             <MaterialCommunityIcons name="information" size={20} color="#1976D2" />
             <Text style={styles.infoText}>
-              Validation sous 48h • Conformité légale • Facturation automatique
+              {i18n.t("validation_48h_info")}
             </Text>
           </View>
 
-          {/* TYPE ACTIVITÉ */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Type d'activité *</Text>
+            <Text style={styles.label}>{i18n.t("activity_type")} *</Text>
             <View style={styles.radioGroup}>
               <TouchableOpacity
                 style={[styles.radioOption, formData.activityType === "service_provider" && styles.radioOptionActive]}
@@ -288,9 +282,9 @@ export default function InscriptionPro({ navigation }) {
                   color={formData.activityType === "service_provider" ? "#1976D2" : "#9CA3AF"} 
                 />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.radioText}>Prestataire de services</Text>
+                  <Text style={styles.radioText}>{i18n.t("service_provider")}</Text>
                   <Text style={styles.radioHint}>
-                    Vétérinaire, toiletteur, dog walker, éducateur...
+                    {i18n.t("service_provider_examples")}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -305,19 +299,18 @@ export default function InscriptionPro({ navigation }) {
                   color={formData.activityType === "seller" ? "#1976D2" : "#9CA3AF"} 
                 />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.radioText}>Vendeur de produits</Text>
+                  <Text style={styles.radioText}>{i18n.t("product_seller")}</Text>
                   <Text style={styles.radioHint}>
-                    Boutique, grossiste, fabricant...
+                    {i18n.t("product_seller_examples")}
                   </Text>
                 </View>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* CATÉGORIE SERVICE (si prestataire) */}
           {formData.activityType === "service_provider" && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Catégorie de service *</Text>
+              <Text style={styles.label}>{i18n.t("service_category")} *</Text>
               <View style={styles.categoryGrid}>
                 {serviceCategories.map((cat) => (
                   <TouchableOpacity
@@ -349,12 +342,10 @@ export default function InscriptionPro({ navigation }) {
             </View>
           )}
 
-          {/* CHOIX ABONNEMENT (si prestataire) */}
           {formData.activityType === "service_provider" && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Choisissez votre abonnement *</Text>
+              <Text style={styles.label}>{i18n.t("choose_subscription")} *</Text>
               <View style={styles.subscriptionRow}>
-                {/* PRO */}
                 <TouchableOpacity
                   style={[
                     styles.subscriptionCard,
@@ -374,12 +365,11 @@ export default function InscriptionPro({ navigation }) {
                     <MaterialCommunityIcons name="briefcase" size={32} color="#FFF" />
                     <Text style={styles.subscriptionTitle}>PRO</Text>
                     <Text style={styles.subscriptionPrice}>159₪</Text>
-                    <Text style={styles.subscriptionDuration}>par mois</Text>
-                    <Text style={styles.subscriptionHint}>Leads 18-20₪</Text>
+                    <Text style={styles.subscriptionDuration}>{i18n.t("per_month")}</Text>
+                    <Text style={styles.subscriptionHint}>{i18n.t("leads")} 18-20₪</Text>
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* PRO+ */}
                 <TouchableOpacity
                   style={[
                     styles.subscriptionCard,
@@ -402,18 +392,17 @@ export default function InscriptionPro({ navigation }) {
                     <MaterialCommunityIcons name="crown" size={32} color="#FFF" />
                     <Text style={styles.subscriptionTitle}>PRO+</Text>
                     <Text style={styles.subscriptionPrice}>299₪</Text>
-                    <Text style={styles.subscriptionDuration}>par mois</Text>
-                    <Text style={styles.subscriptionHint}>Leads 13-15₪</Text>
+                    <Text style={styles.subscriptionDuration}>{i18n.t("per_month")}</Text>
+                    <Text style={styles.subscriptionHint}>{i18n.t("leads")} 13-15₪</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.hint}>Cliquez pour voir les détails de chaque offre</Text>
+              <Text style={styles.hint}>{i18n.t("click_for_details")}</Text>
             </View>
           )}
 
-          {/* TYPE ENTREPRISE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Type d'entreprise *</Text>
+            <Text style={styles.label}>{i18n.t("business_type")} *</Text>
             <View style={styles.radioGroup}>
               <TouchableOpacity
                 style={[styles.radioOption, formData.businessType === "osek_patur" && styles.radioOptionActive]}
@@ -453,12 +442,11 @@ export default function InscriptionPro({ navigation }) {
             </View>
           </View>
 
-          {/* CERTIFICATION INFO */}
           {formData.activityType === "service_provider" && selectedCategory?.needsCert && (
             <View style={styles.warningBox}>
               <MaterialCommunityIcons name="alert-circle" size={20} color="#FF9900" />
               <Text style={styles.warningText}>
-                Cette activité nécessite une certification professionnelle et un numéro Osek/H.P.
+                {i18n.t("certification_required_warning")}
               </Text>
             </View>
           )}
@@ -467,14 +455,13 @@ export default function InscriptionPro({ navigation }) {
             <View style={styles.successBox}>
               <MaterialCommunityIcons name="check-circle" size={20} color="#43A047" />
               <Text style={styles.successText}>
-                Pour le Dog Walking, le numéro Osek/H.P. n'est pas obligatoire si activité occasionnelle.
+                {i18n.t("dogwalker_no_osek_required")}
               </Text>
             </View>
           )}
 
-          {/* LOGO */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Logo de l'entreprise (optionnel)</Text>
+            <Text style={styles.label}>{i18n.t("company_logo_optional")}</Text>
             <TouchableOpacity
               style={styles.uploadButton}
               onPress={pickLogo}
@@ -484,29 +471,27 @@ export default function InscriptionPro({ navigation }) {
               ) : (
                 <View style={styles.uploadPlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={40} color="#9CA3AF" />
-                  <Text style={styles.uploadText}>Ajouter un logo</Text>
+                  <Text style={styles.uploadText}>{i18n.t("add_logo")}</Text>
                 </View>
               )}
             </TouchableOpacity>
           </View>
 
-          {/* NOM ENTREPRISE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom de l'entreprise *</Text>
+            <Text style={styles.label}>{i18n.t("company_name")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Clinique Vétérinaire Tel Aviv"
+              placeholder={i18n.t("company_name_example")}
               value={formData.companyName}
               onChangeText={(text) => setFormData({ ...formData, companyName: text })}
             />
           </View>
 
-          {/* NUMÉROS LÉGAUX */}
           {formData.requiresCertification && (
             <>
               {(formData.businessType === "osek_patur" || formData.businessType === "osek_mursheh") && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Numéro Osek {formData.serviceCategory === "dogwalker" ? "(optionnel)" : "*"}</Text>
+                  <Text style={styles.label}>{i18n.t("osek_number")} {formData.serviceCategory === "dogwalker" ? `(${i18n.t("optional")})` : "*"}</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="123456789"
@@ -515,13 +500,13 @@ export default function InscriptionPro({ navigation }) {
                     value={formData.osekNumber}
                     onChangeText={(text) => setFormData({ ...formData, osekNumber: text.replace(/\s/g, '') })}
                   />
-                  <Text style={styles.hint}>9 chiffres minimum</Text>
+                  <Text style={styles.hint}>{i18n.t("minimum_9_digits")}</Text>
                 </View>
               )}
 
               {formData.businessType === "hevra" && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Numéro H.P. (חברה) *</Text>
+                  <Text style={styles.label}>{i18n.t("hp_number")} (חברה) *</Text>
                   <TextInput
                     style={styles.input}
                     placeholder="512345678"
@@ -530,31 +515,30 @@ export default function InscriptionPro({ navigation }) {
                     value={formData.hpNumber}
                     onChangeText={(text) => setFormData({ ...formData, hpNumber: text.replace(/\s/g, '') })}
                   />
-                  <Text style={styles.hint}>9 chiffres minimum</Text>
+                  <Text style={styles.hint}>{i18n.t("minimum_9_digits")}</Text>
                 </View>
               )}
             </>
           )}
 
-          {/* ADRESSE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Adresse de l'entreprise *</Text>
+            <Text style={styles.label}>{i18n.t("business_address")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Rue"
+              placeholder={i18n.t("street")}
               value={formData.street}
               onChangeText={(text) => setFormData({ ...formData, street: text })}
             />
             <View style={styles.row}>
               <TextInput
                 style={[styles.input, styles.inputHalf]}
-                placeholder="Ville"
+                placeholder={i18n.t("city")}
                 value={formData.city}
                 onChangeText={(text) => setFormData({ ...formData, city: text })}
               />
               <TextInput
                 style={[styles.input, styles.inputHalf]}
-                placeholder="Code postal"
+                placeholder={i18n.t("postal_code")}
                 keyboardType="numeric"
                 value={formData.postalCode}
                 onChangeText={(text) => setFormData({ ...formData, postalCode: text })}
@@ -562,9 +546,8 @@ export default function InscriptionPro({ navigation }) {
             </View>
           </View>
 
-          {/* CONTACT */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Téléphone professionnel *</Text>
+            <Text style={styles.label}>{i18n.t("professional_phone")} *</Text>
             <TextInput
               style={styles.input}
               placeholder="054-123-4567"
@@ -575,20 +558,19 @@ export default function InscriptionPro({ navigation }) {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email professionnel *</Text>
+            <Text style={styles.label}>{i18n.t("professional_email")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="contact@entreprise.com"
+              placeholder="contact@company.com"
               keyboardType="email-address"
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
             />
           </View>
 
-          {/* DOCUMENTS */}
           {formData.requiresCertification && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Teoudat Osek / Certificat {formData.serviceCategory === "dogwalker" ? "(optionnel)" : "(recommandé)"}</Text>
+              <Text style={styles.label}>{i18n.t("teudat_osek_certificate")} {formData.serviceCategory === "dogwalker" ? `(${i18n.t("optional")})` : `(${i18n.t("recommended")})`}</Text>
               <TouchableOpacity
                 style={styles.documentButton}
                 onPress={pickDocument}
@@ -599,26 +581,24 @@ export default function InscriptionPro({ navigation }) {
                   color={teoudatOsek ? "#43A047" : "#1976D2"} 
                 />
                 <Text style={styles.documentButtonText}>
-                  {teoudatOsek ? teoudatOsek.name : "Sélectionner un document (PDF ou image)"}
+                  {teoudatOsek ? teoudatOsek.name : i18n.t("select_document")}
                 </Text>
               </TouchableOpacity>
               <Text style={styles.hint}>
-                Recommandé pour validation rapide
+                {i18n.t("recommended_for_fast_validation")}
               </Text>
             </View>
           )}
 
-          {/* CONDITIONS */}
           <View style={styles.conditionsBox}>
             <MaterialCommunityIcons name="shield-check" size={20} color="#43A047" />
             <Text style={styles.conditionsText}>
-              En créant un compte professionnel, vous acceptez de fournir des informations exactes et de respecter la législation israélienne en vigueur.
+              {i18n.t("professional_terms_agreement")}
             </Text>
           </View>
 
         </ScrollView>
 
-        {/* BOUTON SUBMIT */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.submitButtonContainer}
@@ -633,18 +613,17 @@ export default function InscriptionPro({ navigation }) {
               end={{ x: 1, y: 0 }}
             >
               {loading ? (
-                <Text style={styles.submitButtonText}>Envoi en cours...</Text>
+                <Text style={styles.submitButtonText}>{i18n.t("sending")}...</Text>
               ) : (
                 <>
                   <MaterialCommunityIcons name="send" size={20} color="#FFF" />
-                  <Text style={styles.submitButtonText}>Soumettre ma demande</Text>
+                  <Text style={styles.submitButtonText}>{i18n.t("submit_request")}</Text>
                 </>
               )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* MODAL DÉTAILS ABONNEMENT */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -677,7 +656,7 @@ export default function InscriptionPro({ navigation }) {
                   </LinearGradient>
 
                   <ScrollView style={styles.modalBody}>
-                    <Text style={styles.modalFeaturesTitle}>Inclus dans l'offre :</Text>
+                    <Text style={styles.modalFeaturesTitle}>{i18n.t("included_in_offer")} :</Text>
                     {getProPlanDetails(selectedPlan).features.map((feature, index) => (
                       <View key={index} style={styles.modalFeatureRow}>
                         <MaterialCommunityIcons name="check-circle" size={20} color="#43A047" />
@@ -695,7 +674,7 @@ export default function InscriptionPro({ navigation }) {
                       colors={selectedPlan === "pro" ? ["#64B5F6", "#90CAF9"] : ["#1976D2", "#42A5F5"]}
                       style={styles.modalSubscribeButton}
                     >
-                      <Text style={styles.modalSubscribeButtonText}>Choisir cette offre</Text>
+                      <Text style={styles.modalSubscribeButtonText}>{i18n.t("choose_this_offer")}</Text>
                     </LinearGradient>
                   </TouchableOpacity>
                 </>
@@ -1000,7 +979,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFF",
   },
-  // MODAL
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",

@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
+import i18n from "../../../utils/i18n";
 
 const { width, height } = Dimensions.get("window");
 const DRAWER_WIDTH = width * 0.75;
@@ -26,33 +27,33 @@ export default function BoutiqueHome({ navigation }) {
     {
       id: 1,
       category: "nourriture",
-      name: "Nourriture",
+      name: i18n.t("food"),
       icon: "food-drumstick",
-      description: "Alimentation premium",
+      description: i18n.t("premium_food"),
       gradient: ["#0D47A1", "#1976D2", "#42A5F5"],
     },
     {
       id: 2,
       category: "jouets",
-      name: "Jouets",
+      name: i18n.t("toys"),
       icon: "tennis-ball",
-      description: "Jouets et distractions",
+      description: i18n.t("toys_entertainment"),
       gradient: ["#2E7D32", "#43A047", "#66BB6A"],
     },
     {
       id: 3,
       category: "accessoires",
-      name: "Accessoires",
+      name: i18n.t("accessories"),
       icon: "dog-service",
-      description: "Colliers, laisses, harnais",
+      description: i18n.t("collars_leashes"),
       gradient: ["#6A1B9A", "#8E24AA", "#AB47BC"],
     },
     {
       id: 4,
       category: "hygiene",
-      name: "Hygiène",
+      name: i18n.t("hygiene"),
       icon: "spray-bottle",
-      description: "Shampooings et soins",
+      description: i18n.t("shampoos_care"),
       gradient: ["#E65100", "#F57C00", "#FFA726"],
     },
   ];
@@ -98,7 +99,7 @@ export default function BoutiqueHome({ navigation }) {
     setTimeout(() => {
       navigation.navigate("ProductsList", { 
         category: "all",
-        categoryName: "Tous les produits" 
+        categoryName: i18n.t("all_products") 
       });
     }, 200);
   };
@@ -144,10 +145,9 @@ export default function BoutiqueHome({ navigation }) {
   const DRAWER_HEADER_HEIGHT = 50;
 
   return (
-    <ScreenLayout title="Boutique" navigation={navigation} showBack showCart>
+    <ScreenLayout title={i18n.t("shop")} navigation={navigation} showBack showCart>
       <View style={styles.mainContainer}>
         
-        {/* BOUTON CATÉGORIES EN HAUT À GAUCHE */}
         <TouchableOpacity
           style={styles.categoryButton}
           onPress={toggleDrawer}
@@ -158,24 +158,20 @@ export default function BoutiqueHome({ navigation }) {
             size={20} 
             color="#FFF" 
           />
-          <Text style={styles.categoryButtonText}>Catégories</Text>
+          <Text style={styles.categoryButtonText}>{i18n.t("categories")}</Text>
         </TouchableOpacity>
 
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* HEADER */}
           <View style={styles.header}>
             <Image 
               source={require("../../../assets/logo_shop_short.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />
-            <Text style={styles.headerSubtitle}>
-              Tout ce dont votre chien a besoin
-            </Text>
+            <Text style={styles.headerSubtitle}>{i18n.t("everything_dog_needs")}</Text>
           </View>
 
-          {/* SECTION BOOSTS */}
           <View style={styles.boostSection}>
             <LinearGradient
               colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
@@ -186,42 +182,36 @@ export default function BoutiqueHome({ navigation }) {
               <View style={styles.boostContent}>
                 <MaterialCommunityIcons name="rocket-launch" size={40} color="#FFF" />
                 <View style={styles.boostText}>
-                  <Text style={styles.boostTitle}>🚀 Boostez vos produits !</Text>
-                  <Text style={styles.boostDescription}>
-                    Apparaissez en tête des résultats et vendez plus vite
-                  </Text>
+                  <Text style={styles.boostTitle}>🚀 {i18n.t("boost_products")}</Text>
+                  <Text style={styles.boostDescription}>{i18n.t("boost_products_desc")}</Text>
                 </View>
               </View>
               <TouchableOpacity 
                 style={styles.boostButton}
                 onPress={() => navigation.navigate("Abonnements")}
               >
-                <Text style={styles.boostButtonText}>Découvrir les Boosts</Text>
+                <Text style={styles.boostButtonText}>{i18n.t("discover_boosts")}</Text>
                 <MaterialCommunityIcons name="arrow-right" size={18} color="#E91E63" />
               </TouchableOpacity>
             </LinearGradient>
           </View>
 
-          {/* INFO BOX VENDEUR */}
           <View style={styles.infoBox}>
             <MaterialCommunityIcons name="store" size={24} color="#E91E63" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Vous êtes vendeur ?</Text>
-              <Text style={styles.infoText}>
-                Vendez vos produits sur CupiDog et touchez des milliers de propriétaires de chiens.
-              </Text>
+              <Text style={styles.infoTitle}>{i18n.t("are_you_seller")}</Text>
+              <Text style={styles.infoText}>{i18n.t("seller_promo_text")}</Text>
               <TouchableOpacity 
                 style={styles.infoButton}
                 onPress={() => navigation.navigate("InscriptionPro")}
               >
-                <Text style={styles.infoButtonText}>Devenir vendeur →</Text>
+                <Text style={styles.infoButtonText}>{i18n.t("become_seller")} →</Text>
               </TouchableOpacity>
             </View>
           </View>
 
         </ScrollView>
 
-        {/* FLÈCHES VISIBLES SUR LE BORD GAUCHE */}
         <View style={styles.peekStripFixed}>
           {categories.map((category, index) => (
             <TouchableOpacity
@@ -243,7 +233,6 @@ export default function BoutiqueHome({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           ))}
-          {/* Flèche pour "Tous les produits" */}
           <TouchableOpacity
             style={[styles.peekItem, styles.peekItemBottom]}
             onPress={openDrawer}
@@ -260,7 +249,6 @@ export default function BoutiqueHome({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* DRAWER CATÉGORIES */}
         <Animated.View 
           style={[
             styles.drawer,
@@ -274,15 +262,13 @@ export default function BoutiqueHome({ navigation }) {
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
           >
-            {/* HEADER DU DRAWER */}
             <View style={[styles.drawerHeader, { height: DRAWER_HEADER_HEIGHT }]}>
-              <Text style={styles.drawerTitle}>Catégories</Text>
+              <Text style={styles.drawerTitle}>{i18n.t("categories")}</Text>
               <TouchableOpacity onPress={closeDrawer}>
                 <MaterialCommunityIcons name="close" size={24} color="#FFF" />
               </TouchableOpacity>
             </View>
             
-            {/* CATÉGORIES */}
             <View style={styles.categoriesContainer}>
               {categories.map((category) => (
                 <TouchableOpacity
@@ -308,7 +294,6 @@ export default function BoutiqueHome({ navigation }) {
               ))}
             </View>
 
-            {/* VOIR TOUS LES PRODUITS */}
             <View style={styles.allProductsContainer}>
               <TouchableOpacity
                 style={[styles.drawerItem, { height: CATEGORY_HEIGHT }]}
@@ -323,8 +308,8 @@ export default function BoutiqueHome({ navigation }) {
                 >
                   <MaterialCommunityIcons name="view-grid" size={24} color="#FFF" />
                   <View style={styles.drawerItemText}>
-                    <Text style={styles.drawerItemName}>Tous les produits</Text>
-                    <Text style={styles.drawerItemDesc}>Parcourir tout le catalogue</Text>
+                    <Text style={styles.drawerItemName}>{i18n.t("all_products")}</Text>
+                    <Text style={styles.drawerItemDesc}>{i18n.t("browse_catalog")}</Text>
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#FFF" />
                 </LinearGradient>
@@ -333,7 +318,6 @@ export default function BoutiqueHome({ navigation }) {
           </LinearGradient>
         </Animated.View>
 
-        {/* OVERLAY */}
         {drawerOpen && (
           <TouchableOpacity 
             style={styles.overlay}

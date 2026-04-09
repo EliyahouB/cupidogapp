@@ -11,24 +11,23 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { useCart } from "../../../contexts/CartContext";
+import i18n from "../../../utils/i18n";
 
 export default function Cart({ navigation }) {
   const { cartItems, removeFromCart, updateQuantity, getTotal, clearCart } = useCart();
 
   if (cartItems.length === 0) {
     return (
-      <ScreenLayout title="Panier" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("cart")} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="cart-off" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>Votre panier est vide</Text>
-          <Text style={styles.emptyText}>
-            Ajoutez des produits depuis la boutique
-          </Text>
+          <Text style={styles.emptyTitle}>{i18n.t("cart_empty")}</Text>
+          <Text style={styles.emptyText}>{i18n.t("add_products_from_shop")}</Text>
           <TouchableOpacity
             style={styles.emptyButton}
             onPress={() => navigation.navigate("BoutiqueHome")}
           >
-            <Text style={styles.emptyButtonText}>Découvrir la boutique</Text>
+            <Text style={styles.emptyButtonText}>{i18n.t("discover_shop")}</Text>
           </TouchableOpacity>
         </View>
       </ScreenLayout>
@@ -36,25 +35,22 @@ export default function Cart({ navigation }) {
   }
 
   return (
-    <ScreenLayout title="Panier" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("cart")} navigation={navigation} showBack>
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           
-          {/* HEADER */}
           <View style={styles.header}>
             <Text style={styles.headerText}>
-              {cartItems.length} article{cartItems.length > 1 ? "s" : ""}
+              {cartItems.length} {cartItems.length > 1 ? i18n.t("items") : i18n.t("item")}
             </Text>
             <TouchableOpacity onPress={clearCart}>
-              <Text style={styles.clearText}>Vider le panier</Text>
+              <Text style={styles.clearText}>{i18n.t("clear_cart")}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* LISTE PRODUITS */}
           <View style={styles.itemsList}>
             {cartItems.map((item) => (
               <View key={item.id} style={styles.itemCard}>
-                {/* PHOTO */}
                 <TouchableOpacity
                   onPress={() => navigation.navigate("ProductDetails", { productId: item.id })}
                 >
@@ -67,7 +63,6 @@ export default function Cart({ navigation }) {
                   )}
                 </TouchableOpacity>
 
-                {/* INFO */}
                 <View style={styles.itemInfo}>
                   <TouchableOpacity
                     onPress={() => navigation.navigate("ProductDetails", { productId: item.id })}
@@ -84,11 +79,10 @@ export default function Cart({ navigation }) {
                   <View style={styles.itemPriceRow}>
                     <Text style={styles.itemPrice}>₪{item.price.toFixed(0)}</Text>
                     <Text style={styles.itemStock}>
-                      {item.stock > 5 ? "En stock" : `Plus que ${item.stock}`}
+                      {item.stock > 5 ? i18n.t("in_stock") : i18n.t("only_left", { count: item.stock })}
                     </Text>
                   </View>
 
-                  {/* QUANTITÉ */}
                   <View style={styles.quantityRow}>
                     <TouchableOpacity
                       style={styles.quantityButton}
@@ -104,7 +98,6 @@ export default function Cart({ navigation }) {
                       <MaterialCommunityIcons name="plus" size={18} color="#003366" />
                     </TouchableOpacity>
 
-                    {/* SUPPRIMER */}
                     <TouchableOpacity
                       style={styles.deleteButton}
                       onPress={() => removeFromCart(item.id)}
@@ -113,40 +106,37 @@ export default function Cart({ navigation }) {
                     </TouchableOpacity>
                   </View>
 
-                  {/* SOUS-TOTAL LIGNE */}
                   <Text style={styles.itemSubtotal}>
-                    Sous-total : ₪{(item.price * item.quantity).toFixed(0)}
+                    {i18n.t("subtotal")}: ₪{(item.price * item.quantity).toFixed(0)}
                   </Text>
                 </View>
               </View>
             ))}
           </View>
 
-          {/* RÉSUMÉ */}
           <View style={styles.summary}>
-            <Text style={styles.summaryTitle}>Résumé de la commande</Text>
+            <Text style={styles.summaryTitle}>{i18n.t("order_summary")}</Text>
             
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Sous-total</Text>
+              <Text style={styles.summaryLabel}>{i18n.t("subtotal")}</Text>
               <Text style={styles.summaryValue}>₪{getTotal().toFixed(0)}</Text>
             </View>
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Livraison</Text>
-              <Text style={styles.summaryFree}>GRATUITE</Text>
+              <Text style={styles.summaryLabel}>{i18n.t("delivery")}</Text>
+              <Text style={styles.summaryFree}>{i18n.t("free")}</Text>
             </View>
 
             <View style={styles.summaryDivider} />
 
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryTotalLabel}>Total</Text>
+              <Text style={styles.summaryTotalLabel}>{i18n.t("total")}</Text>
               <Text style={styles.summaryTotalValue}>₪{getTotal().toFixed(0)}</Text>
             </View>
           </View>
 
         </ScrollView>
 
-        {/* BOUTON COMMANDER */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.checkoutButtonContainer}
@@ -161,7 +151,7 @@ export default function Cart({ navigation }) {
             >
               <MaterialCommunityIcons name="cart-check" size={22} color="#FFF" />
               <Text style={styles.checkoutButtonText}>
-                Commander · ₪{getTotal().toFixed(0)}
+                {i18n.t("order")} · ₪{getTotal().toFixed(0)}
               </Text>
             </LinearGradient>
           </TouchableOpacity>

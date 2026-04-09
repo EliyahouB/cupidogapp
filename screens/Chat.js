@@ -34,14 +34,13 @@ import {
   where,
   deleteDoc,
 } from "firebase/firestore";
+import i18n from "../utils/i18n";
 
 export default function Chat({ route, navigation }) {
   if (!route.params || !route.params.conversationId || !route.params.otherUserId) {
     return (
-      <ScreenLayout title="Erreur" navigation={navigation} active="chat">
-        <Text style={styles.error}>
-          Paramètres manquants pour ouvrir la discussion.
-        </Text>
+      <ScreenLayout title={i18n.t("error")} navigation={navigation} active="chat">
+        <Text style={styles.error}>{i18n.t("missing_params_chat")}</Text>
       </ScreenLayout>
     );
   }
@@ -55,7 +54,6 @@ export default function Chat({ route, navigation }) {
   const currentUser = auth.currentUser;
   const flatListRef = useRef(null);
 
-  // Charger le profil de l'autre utilisateur
   useEffect(() => {
     const loadOtherUserProfile = async () => {
       if (!otherUserId) return;
@@ -114,8 +112,6 @@ export default function Chat({ route, navigation }) {
       }));
 
       setMessages(msgs);
-
-      // Vérifier si bloqué (3 messages consécutifs sans réponse)
       checkIfBlocked(msgs);
 
       setTimeout(() => {
@@ -133,14 +129,12 @@ export default function Chat({ route, navigation }) {
     return () => unsubscribe();
   }, [conversationId]);
 
-  // Vérifier si l'utilisateur est bloqué (3 messages sans réponse)
   const checkIfBlocked = (msgs) => {
     if (msgs.length === 0) {
       setIsBlocked(false);
       return;
     }
 
-    // Compter les derniers messages consécutifs de l'utilisateur actuel
     let consecutiveCount = 0;
     for (let i = msgs.length - 1; i >= 0; i--) {
       if (msgs[i].senderId === currentUser.uid) {
@@ -170,12 +164,11 @@ export default function Chat({ route, navigation }) {
   const handleSend = async () => {
     if (message.trim() === "" || !currentUser) return;
 
-    // Vérifier si bloqué
     if (isBlocked) {
       Alert.alert(
-        "En attente de réponse",
-        "Vous avez envoyé 3 messages sans réponse. Attendez une réponse avant de continuer.",
-        [{ text: "OK" }]
+        i18n.t("waiting_for_reply"),
+        i18n.t("sent_3_messages_wait"),
+        [{ text: i18n.t("ok") }]
       );
       return;
     }
@@ -201,15 +194,15 @@ export default function Chat({ route, navigation }) {
 
     } catch (error) {
       console.log("Erreur envoi message:", error);
-      Alert.alert("Erreur", "Impossible d'envoyer le message");
+      Alert.alert(i18n.t("error"), i18n.t("error_sending_message"));
     }
   };
 
   const handleDelete = async (messageId) => {
-    Alert.alert("Supprimer le message", "Confirmer la suppression ?", [
-      { text: "Annuler", style: "cancel" },
+    Alert.alert(i18n.t("delete_message"), i18n.t("confirm_delete_message"), [
+      { text: i18n.t("cancel"), style: "cancel" },
       {
-        text: "Supprimer",
+        text: i18n.t("delete"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -241,7 +234,8 @@ export default function Chat({ route, navigation }) {
   const formatTime = (timestamp) => {
     if (!timestamp || !timestamp.seconds) return "";
     const date = new Date(timestamp.seconds * 1000);
-    return date.toLocaleTimeString("fr-FR", {
+    const locale = i18n.locale === "he" ? "he-IL" : i18n.locale === "ru" ? "ru-RU" : i18n.locale === "en" ? "en-US" : "fr-FR";
+    return date.toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -286,13 +280,12 @@ export default function Chat({ route, navigation }) {
 
   return (
     <ScreenLayout
-      title={dogName || "Discussion"}
+      title={dogName || i18n.t("discussion")}
       navigation={navigation}
       active="chat"
       showBack
     >
       <View style={styles.container}>
-        {/* HEADER UTILISATEUR - Photo + Nom cliquable */}
         <TouchableOpacity 
           style={styles.userHeader}
           onPress={handleViewProfile}
@@ -310,9 +303,9 @@ export default function Chat({ route, navigation }) {
           )}
           <View style={styles.userInfo}>
             <Text style={styles.userName}>
-              {otherUserProfile?.name || otherUserProfile?.displayName || "Utilisateur"}
+              {otherUserProfile?.name || otherUserProfile?.displayName || i18n.t("user")}
             </Text>
-            <Text style={styles.userSubtitle}>Touchez pour voir le profil</Text>
+            <Text style={styles.userSubtitle}>{i18n.t("tap_to_view_profile")}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#9CA3AF" />
         </TouchableOpacity>
@@ -320,19 +313,14 @@ export default function Chat({ route, navigation }) {
         {abonnement === "gratuit" && (
           <View style={styles.limitBanner}>
             <MaterialCommunityIcons name="calendar-clock" size={14} color="#92400E" />
-            <Text style={styles.historyText}>
-              Historique : 60 jours
-            </Text>
+            <Text style={styles.historyText}>{i18n.t("history_60_days")}</Text>
           </View>
         )}
 
-        {/* BANNIÈRE BLOQUÉ - 3 messages sans réponse */}
         {isBlocked && (
           <View style={styles.blockedBanner}>
             <MaterialCommunityIcons name="hand-back-left" size={16} color="#DC2626" />
-            <Text style={styles.blockedText}>
-              En attente de réponse (3 messages max)
-            </Text>
+            <Text style={styles.blockedText}>{i18n.t("waiting_reply_3_max")}</Text>
           </View>
         )}
 
@@ -362,7 +350,7 @@ export default function Chat({ route, navigation }) {
                 style={styles.input}
                 value={message}
                 onChangeText={setMessage}
-                placeholder={isBlocked ? "En attente de réponse..." : "Message"}
+                placeholder={isBlocked ? i18n.t("waiting_for_reply") + "..." : i18n.t("message")}
                 placeholderTextColor="#8E8E93"
                 multiline
                 maxLength={500}
@@ -397,7 +385,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#E5DDD5",
   },
-  // HEADER UTILISATEUR
   userHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -435,7 +422,6 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     marginTop: 2,
   },
-  // BANNIÈRES
   limitBanner: {
     flexDirection: "row",
     backgroundColor: "#FEF3C7",
@@ -464,7 +450,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
   },
-  // CHAT
   chatBackground: {
     flex: 1,
   },

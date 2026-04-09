@@ -1,4 +1,3 @@
-// screens/auth/AuthMethods.js
 import React, { useState } from "react";
 import {
   View,
@@ -11,15 +10,16 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import i18n from "../../utils/i18n";
 
 export default function AuthMethods({ navigation, route }) {
   const { userType, providerType } = route.params;
   const [loading, setLoading] = useState(null);
 
   const getTitle = () => {
-    if (userType === "particulier") return "Créer mon compte";
-    if (providerType === "prestataire") return "Inscription Prestataire";
-    return "Inscription Vendeur";
+    if (userType === "particulier") return i18n.t("create_my_account");
+    if (providerType === "prestataire") return i18n.t("provider_signup");
+    return i18n.t("seller_signup");
   };
 
   const handleMethod = (method) => {
@@ -33,10 +33,10 @@ export default function AuthMethods({ navigation, route }) {
         navigation.navigate("SignUpPhone", params);
         break;
       case "google":
-        Alert.alert("Google", "Sera disponible prochainement");
+        Alert.alert("Google", i18n.t("coming_soon"));
         break;
       case "apple":
-        Alert.alert("Apple", "Sera disponible prochainement");
+        Alert.alert("Apple", i18n.t("coming_soon"));
         break;
     }
   };
@@ -53,10 +53,9 @@ export default function AuthMethods({ navigation, route }) {
 
         <View style={styles.container}>
           <Text style={styles.title}>{getTitle()}</Text>
-          <Text style={styles.subtitle}>Choisissez votre méthode d'inscription</Text>
+          <Text style={styles.subtitle}>{i18n.t("choose_signup_method")}</Text>
 
           <View style={styles.methodsContainer}>
-            {/* Email */}
             <TouchableOpacity
               style={styles.methodButton}
               onPress={() => handleMethod("email")}
@@ -65,11 +64,10 @@ export default function AuthMethods({ navigation, route }) {
               <View style={[styles.methodIcon, { backgroundColor: "#E3F2FD" }]}>
                 <MaterialCommunityIcons name="email-outline" size={24} color="#1976D2" />
               </View>
-              <Text style={styles.methodText}>Continuer avec Email</Text>
+              <Text style={styles.methodText}>{i18n.t("continue_with_email")}</Text>
               <MaterialCommunityIcons name="chevron-right" size={24} color="#999" />
             </TouchableOpacity>
 
-            {/* Téléphone */}
             <TouchableOpacity
               style={styles.methodButton}
               onPress={() => handleMethod("phone")}
@@ -78,40 +76,37 @@ export default function AuthMethods({ navigation, route }) {
               <View style={[styles.methodIcon, { backgroundColor: "#E8F5E9" }]}>
                 <MaterialCommunityIcons name="phone-outline" size={24} color="#4CAF50" />
               </View>
-              <Text style={styles.methodText}>Continuer avec Téléphone</Text>
+              <Text style={styles.methodText}>{i18n.t("continue_with_phone")}</Text>
               <MaterialCommunityIcons name="chevron-right" size={24} color="#999" />
             </TouchableOpacity>
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou</Text>
+              <Text style={styles.dividerText}>{i18n.t("or")}</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Google */}
             <TouchableOpacity
               style={styles.socialButton}
               onPress={() => handleMethod("google")}
             >
               <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
-              <Text style={styles.socialText}>Continuer avec Google</Text>
+              <Text style={styles.socialText}>{i18n.t("continue_with_google")}</Text>
             </TouchableOpacity>
 
-            {/* Apple */}
             <TouchableOpacity
               style={[styles.socialButton, styles.appleButton]}
               onPress={() => handleMethod("apple")}
             >
               <MaterialCommunityIcons name="apple" size={24} color="#FFF" />
-              <Text style={[styles.socialText, { color: "#FFF" }]}>Continuer avec Apple</Text>
+              <Text style={[styles.socialText, { color: "#FFF" }]}>{i18n.t("continue_with_apple")}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Lien connexion */}
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Déjà un compte ? </Text>
+            <Text style={styles.loginText}>{i18n.t("have_account")} </Text>
             <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
-              <Text style={styles.loginLink}>Se connecter</Text>
+              <Text style={styles.loginLink}>{i18n.t("login")}</Text>
             </TouchableOpacity>
           </View>
         </View>

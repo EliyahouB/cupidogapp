@@ -18,6 +18,7 @@ import ScreenLayout from "../components/ScreenLayout";
 import { auth, db, storage } from "../config/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, getDoc, getDocs, doc, query, where } from "firebase/firestore";
+import i18n from "../utils/i18n";
 
 const DOG_BREEDS = [
   "Autre",
@@ -88,12 +89,10 @@ export default function AjouterChien({ navigation }) {
   const [imageUris, setImageUris] = useState([null, null, null, null]);
   const [loading, setLoading] = useState(false);
   
-  // ÉTATS POUR LES MURS PAYANTS
   const [abonnement, setAbonnement] = useState("gratuit");
   const [showPaywall, setShowPaywall] = useState(false);
   const [showDogLimitPaywall, setShowDogLimitPaywall] = useState(false);
 
-  // CHARGER L'ABONNEMENT AU DÉMARRAGE
   useEffect(() => {
     loadUserAbonnement();
   }, []);
@@ -116,33 +115,30 @@ export default function AjouterChien({ navigation }) {
     }
   };
 
-  // VÉRIFIER LE MUR PAYANT QUAND L'UTILISATEUR CHANGE LE BUT
   const handlePurposeChange = (newPurpose) => {
     setPurpose(newPurpose);
     
-    // SI VENTE OU SAILLIE + ABONNEMENT GRATUIT → BLOQUER
     if ((newPurpose === "Vente" || newPurpose === "Saillie") && abonnement === "gratuit") {
       setShowPaywall(true);
-      // Remettre sur "Rencontre"
       setTimeout(() => setPurpose("Rencontre"), 100);
     }
   };
 
   const chooseImageSource = (index) => {
     Alert.alert(
-      "Ajouter une photo",
-      "Choisissez une source",
+      i18n.t("add_photo"),
+      i18n.t("choose_source"),
       [
         {
-          text: "Appareil photo",
+          text: i18n.t("camera"),
           onPress: () => takePhoto(index),
         },
         {
-          text: "Galerie",
+          text: i18n.t("gallery"),
           onPress: () => pickImage(index),
         },
         {
-          text: "Annuler",
+          text: i18n.t("cancel"),
           style: "cancel",
         },
       ],
@@ -154,10 +150,7 @@ export default function AjouterChien({ navigation }) {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert(
-        "Permission refusee",
-        "L acces a l appareil photo est necessaire."
-      );
+      Alert.alert(i18n.t("permission_denied"), i18n.t("camera_permission_required"));
       return;
     }
 
@@ -198,28 +191,27 @@ export default function AjouterChien({ navigation }) {
   const handleSave = async () => {
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Erreur", "Utilisateur non connecte");
+      Alert.alert(i18n.t("error"), i18n.t("user_not_connected"));
       return;
     }
 
-    // VALIDATIONS OBLIGATOIRES
     if (!dogName.trim()) {
-      Alert.alert("Erreur", "Le nom du chien est obligatoire");
+      Alert.alert(i18n.t("error"), i18n.t("dog_name_required"));
       return;
     }
 
     if (breed === "Autre" && !customBreed.trim()) {
-      Alert.alert("Erreur", "Veuillez préciser la race du chien");
+      Alert.alert(i18n.t("error"), i18n.t("specify_breed"));
       return;
     }
 
     if (!age.trim()) {
-      Alert.alert("Erreur", "L'âge du chien est obligatoire");
+      Alert.alert(i18n.t("error"), i18n.t("dog_age_required"));
       return;
     }
 
     if (!gender) {
-      Alert.alert("Erreur", "Le sexe du chien est obligatoire");
+      Alert.alert(i18n.t("error"), i18n.t("dog_gender_required"));
       return;
     }
 
@@ -293,15 +285,15 @@ export default function AjouterChien({ navigation }) {
       });
 
       console.log("7. Chien enregistré avec succès !");
-      Alert.alert("Succes", "Chien enregistre !", [
+      Alert.alert(i18n.t("success"), i18n.t("dog_registered"), [
         {
-          text: "OK",
+          text: i18n.t("ok"),
           onPress: () => navigation.goBack(),
         },
       ]);
     } catch (error) {
       console.log("ERREUR:", error);
-      Alert.alert("Erreur", "Erreur lors de l enregistrement.");
+      Alert.alert(i18n.t("error"), i18n.t("error_saving"));
     } finally {
       setLoading(false);
     }
@@ -309,12 +301,12 @@ export default function AjouterChien({ navigation }) {
 
   return (
     <ScreenLayout
-      title="Ajouter un chien"
+      title={i18n.t("add_dog")}
       navigation={navigation}
       showBack={true}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.label}>Photos du chien (4 max)</Text>
+        <Text style={styles.label}>{i18n.t("dog_photos_max")}</Text>
         <View style={styles.photosGrid}>
           {imageUris.map((uri, index) => (
             <TouchableOpacity
@@ -335,23 +327,23 @@ export default function AjouterChien({ navigation }) {
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={32} color="#666" />
-                  <Text style={styles.photoText}>Photo {index + 1}</Text>
+                  <Text style={styles.photoText}>{i18n.t("photo")} {index + 1}</Text>
                 </View>
               )}
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.label}>Nom *</Text>
+        <Text style={styles.label}>{i18n.t("name")} *</Text>
         <TextInput
           style={styles.input}
           value={dogName}
           onChangeText={setDogName}
-          placeholder="Nom du chien"
+          placeholder={i18n.t("dog_name_placeholder")}
           placeholderTextColor="#999"
         />
 
-        <Text style={styles.label}>Race *</Text>
+        <Text style={styles.label}>{i18n.t("breed")} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={breed}
@@ -365,90 +357,90 @@ export default function AjouterChien({ navigation }) {
 
         {breed === "Autre" && (
           <>
-            <Text style={styles.label}>Precisez la race *</Text>
+            <Text style={styles.label}>{i18n.t("specify_breed")} *</Text>
             <TextInput
               style={styles.input}
               value={customBreed}
               onChangeText={setCustomBreed}
-              placeholder="Entrez la race"
+              placeholder={i18n.t("enter_breed")}
               placeholderTextColor="#999"
             />
           </>
         )}
 
-        <Text style={styles.label}>Age *</Text>
+        <Text style={styles.label}>{i18n.t("age")} *</Text>
         <TextInput
           style={styles.inputSmall}
           value={age}
           onChangeText={setAge}
           keyboardType="numeric"
-          placeholder="En annees"
+          placeholder={i18n.t("in_years")}
           placeholderTextColor="#999"
         />
 
-        <Text style={styles.label}>Sexe *</Text>
+        <Text style={styles.label}>{i18n.t("gender")} *</Text>
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={gender}
             onValueChange={(itemValue) => setGender(itemValue)}
           >
-            <Picker.Item label="Male" value="Male" />
-            <Picker.Item label="Femelle" value="Femelle" />
+            <Picker.Item label={i18n.t("male_dog")} value="Male" />
+            <Picker.Item label={i18n.t("female_dog")} value="Femelle" />
           </Picker>
         </View>
 
-        <Text style={styles.label}>But</Text>
+        <Text style={styles.label}>{i18n.t("purpose")}</Text>
         <View style={styles.pickerWrapperSmall}>
           <Picker
             selectedValue={purpose}
             onValueChange={handlePurposeChange}
           >
-            <Picker.Item label="Rencontre" value="Rencontre" />
-            <Picker.Item label="Vente" value="Vente" />
-            <Picker.Item label="Saillie" value="Saillie" />
+            <Picker.Item label={i18n.t("meetup")} value="Rencontre" />
+            <Picker.Item label={i18n.t("sale")} value="Vente" />
+            <Picker.Item label={i18n.t("stud")} value="Saillie" />
           </Picker>
         </View>
 
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.label}>{i18n.t("description")}</Text>
         <TextInput
           style={[styles.input, { height: 80 }]}
           value={description}
           onChangeText={setDescription}
           multiline
-          placeholder="Décrivez votre chien..."
+          placeholder={i18n.t("describe_dog")}
           placeholderTextColor="#999"
         />
 
-        <Text style={styles.label}>Pedigree</Text>
+        <Text style={styles.label}>{i18n.t("pedigree")}</Text>
         <View style={styles.pickerWrapperSmall}>
           <Picker
             selectedValue={pedigree}
             onValueChange={(itemValue) => setPedigree(itemValue)}
           >
-            <Picker.Item label="Oui" value="Oui" />
-            <Picker.Item label="Non" value="Non" />
+            <Picker.Item label={i18n.t("yes")} value="Oui" />
+            <Picker.Item label={i18n.t("no")} value="Non" />
           </Picker>
         </View>
 
-        <Text style={styles.label}>Concours</Text>
+        <Text style={styles.label}>{i18n.t("contest")}</Text>
         <View style={styles.pickerWrapperSmall}>
           <Picker
             selectedValue={contest}
             onValueChange={(itemValue) => setContest(itemValue)}
           >
-            <Picker.Item label="Oui" value="Oui" />
-            <Picker.Item label="Non" value="Non" />
+            <Picker.Item label={i18n.t("yes")} value="Oui" />
+            <Picker.Item label={i18n.t("no")} value="Non" />
           </Picker>
         </View>
 
         {contest === "Oui" && (
           <>
-            <Text style={styles.label}>Resultat</Text>
+            <Text style={styles.label}>{i18n.t("result")}</Text>
             <TextInput
               style={styles.input}
               value={result}
               onChangeText={setResult}
-              placeholder="Résultats obtenus"
+              placeholder={i18n.t("results_obtained")}
               placeholderTextColor="#999"
             />
           </>
@@ -467,13 +459,12 @@ export default function AjouterChien({ navigation }) {
           >
             <MaterialCommunityIcons name="paw" size={20} color="#FFF" />
             <Text style={styles.buttonTextPrimary}>
-              {loading ? "Enregistrement..." : "Enregistrer"}
+              {loading ? i18n.t("saving") : i18n.t("save")}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* MODAL MUR PAYANT VENTE/SAILLIE */}
       <Modal
         visible={showPaywall}
         transparent={true}
@@ -491,28 +482,26 @@ export default function AjouterChien({ navigation }) {
               </LinearGradient>
             </View>
 
-            <Text style={styles.modalTitle}>Fonctionnalité Premium</Text>
-            <Text style={styles.modalText}>
-              La vente et la saillie sont réservées aux abonnés Premium.
-            </Text>
+            <Text style={styles.modalTitle}>{i18n.t("premium_feature")}</Text>
+            <Text style={styles.modalText}>{i18n.t("sale_stud_premium")}</Text>
 
             <View style={styles.modalPricing}>
               <View style={styles.priceBox}>
                 <Text style={styles.priceLabel}>⭐ Premium</Text>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceStrike}>59₪</Text>
-                  <Text style={styles.pricePromo}>49₪/mois</Text>
+                  <Text style={styles.pricePromo}>49₪/{i18n.t("month")}</Text>
                 </View>
-                <Text style={styles.priceSubtext}>🎁 Offre de lancement 200 premiers abonnés</Text>
+                <Text style={styles.priceSubtext}>🎁 {i18n.t("launch_offer")}</Text>
               </View>
 
               <View style={styles.priceBox}>
                 <Text style={styles.priceLabel}>👑 Premium++</Text>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceStrike}>139₪</Text>
-                  <Text style={styles.pricePromo}>119₪/mois</Text>
+                  <Text style={styles.pricePromo}>119₪/{i18n.t("month")}</Text>
                 </View>
-                <Text style={styles.priceSubtext}>🎁 Offre de lancement 200 premiers abonnés</Text>
+                <Text style={styles.priceSubtext}>🎁 {i18n.t("launch_offer")}</Text>
               </View>
             </View>
 
@@ -527,7 +516,7 @@ export default function AjouterChien({ navigation }) {
                 colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
                 style={styles.modalButtonGradient}
               >
-                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+                <Text style={styles.modalButtonTextPrimary}>{i18n.t("view_subscriptions")}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -535,13 +524,12 @@ export default function AjouterChien({ navigation }) {
               style={styles.modalButtonSecondary}
               onPress={() => setShowPaywall(false)}
             >
-              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+              <Text style={styles.modalButtonTextSecondary}>{i18n.t("later")}</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL LIMITE CHIENS */}
       <Modal
         visible={showDogLimitPaywall}
         transparent={true}
@@ -559,23 +547,20 @@ export default function AjouterChien({ navigation }) {
               </LinearGradient>
             </View>
 
-            <Text style={styles.modalTitle}>Limite atteinte</Text>
-            <Text style={styles.modalText}>
-              Vous avez déjà enregistré un chien gratuitement.{"\n\n"}
-              Pour ajouter d'autres chiens, passez à un abonnement supérieur !
-            </Text>
+            <Text style={styles.modalTitle}>{i18n.t("limit_reached")}</Text>
+            <Text style={styles.modalText}>{i18n.t("dog_limit_text")}</Text>
 
             <View style={styles.modalPricing}>
               <View style={styles.priceBox}>
                 <Text style={styles.priceLabel}>⭐ Premium</Text>
-                <Text style={styles.priceDetail}>Jusqu'à 3 chiens</Text>
-                <Text style={styles.pricePromo}>49₪/mois</Text>
+                <Text style={styles.priceDetail}>{i18n.t("up_to_3_dogs")}</Text>
+                <Text style={styles.pricePromo}>49₪/{i18n.t("month")}</Text>
               </View>
 
               <View style={styles.priceBox}>
                 <Text style={styles.priceLabel}>👑 Premium+</Text>
-                <Text style={styles.priceDetail}>Chiens illimités</Text>
-                <Text style={styles.pricePromo}>119₪/mois</Text>
+                <Text style={styles.priceDetail}>{i18n.t("unlimited_dogs")}</Text>
+                <Text style={styles.pricePromo}>119₪/{i18n.t("month")}</Text>
               </View>
             </View>
 
@@ -590,7 +575,7 @@ export default function AjouterChien({ navigation }) {
                 colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
                 style={styles.modalButtonGradient}
               >
-                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+                <Text style={styles.modalButtonTextPrimary}>{i18n.t("view_subscriptions")}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -598,7 +583,7 @@ export default function AjouterChien({ navigation }) {
               style={styles.modalButtonSecondary}
               onPress={() => setShowDogLimitPaywall(false)}
             >
-              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+              <Text style={styles.modalButtonTextSecondary}>{i18n.t("later")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -688,7 +673,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
   },
-  // BOUTON DÉGRADÉ
   buttonPrimary: {
     borderRadius: 28,
     overflow: "hidden",
@@ -706,7 +690,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
-  // STYLES MODAL
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",

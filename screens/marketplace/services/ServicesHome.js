@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
+import i18n from "../../../utils/i18n";
 
 const { width } = Dimensions.get("window");
 const DRAWER_WIDTH = width * 0.75;
@@ -26,57 +27,57 @@ export default function ServicesHome({ navigation }) {
     {
       id: 1,
       category: "veterinaire",
-      name: "Vétérinaire",
+      name: i18n.t("veterinarian"),
       icon: "medical-bag",
-      description: "Soins et consultations",
+      description: i18n.t("care_consultations"),
       gradient: ["#1565C0", "#1976D2", "#42A5F5"],
     },
     {
       id: 2,
       category: "toiletteur",
-      name: "Toiletteur",
+      name: i18n.t("groomer"),
       icon: "content-cut",
-      description: "Toilettage professionnel",
+      description: i18n.t("professional_grooming"),
       gradient: ["#7B1FA2", "#8E24AA", "#AB47BC"],
     },
     {
       id: 3,
       category: "dogwalker",
-      name: "Dog-walker & Gardiennage",
+      name: i18n.t("dog_walker_boarding"),
       icon: "walk",
-      description: "Promenade et garde",
+      description: i18n.t("walking_boarding"),
       gradient: ["#00796B", "#00897B", "#26A69A"],
     },
     {
       id: 4,
       category: "educateur",
-      name: "Éducateur / Dresseur",
+      name: i18n.t("trainer_educator"),
       icon: "whistle",
-      description: "Dressage et comportement",
+      description: i18n.t("training_behavior"),
       gradient: ["#388E3C", "#43A047", "#66BB6A"],
     },
     {
       id: 5,
       category: "pension",
-      name: "Pension canine",
+      name: i18n.t("dog_boarding"),
       icon: "home-heart",
-      description: "Garde longue durée",
+      description: i18n.t("long_term_care"),
       gradient: ["#F57C00", "#FB8C00", "#FFA726"],
     },
     {
       id: 6,
       category: "transport",
-      name: "Transport canin",
+      name: i18n.t("dog_transport"),
       icon: "taxi",
-      description: "Taxi et transport spécialisé",
+      description: i18n.t("taxi_specialized_transport"),
       gradient: ["#C2185B", "#D81B60", "#EC407A"],
     },
     {
       id: 7,
       category: "photographe",
-      name: "Photographe animalier",
+      name: i18n.t("animal_photographer"),
       icon: "camera",
-      description: "Shooting professionnel",
+      description: i18n.t("professional_shooting"),
       gradient: ["#E64A19", "#F4511E", "#FF7043"],
     },
   ];
@@ -122,7 +123,7 @@ export default function ServicesHome({ navigation }) {
     setTimeout(() => {
       navigation.navigate("ServicesList", { 
         category: "all",
-        categoryName: "Tous les services" 
+        categoryName: i18n.t("all_services") 
       });
     }, 200);
   };
@@ -168,10 +169,9 @@ export default function ServicesHome({ navigation }) {
   const DRAWER_HEADER_HEIGHT = 50;
 
   return (
-    <ScreenLayout title="Services" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("services")} navigation={navigation} showBack>
       <View style={styles.mainContainer}>
         
-        {/* BOUTON CATÉGORIES EN HAUT À GAUCHE */}
         <TouchableOpacity
           style={styles.categoryButton}
           onPress={toggleDrawer}
@@ -182,12 +182,11 @@ export default function ServicesHome({ navigation }) {
             size={20} 
             color="#FFF" 
           />
-          <Text style={styles.categoryButtonText}>Services</Text>
+          <Text style={styles.categoryButtonText}>{i18n.t("services")}</Text>
         </TouchableOpacity>
 
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* HEADER */}
           <View style={styles.header}>
             <Image 
               source={require("../../../assets/logo_service.png")}
@@ -195,11 +194,10 @@ export default function ServicesHome({ navigation }) {
               resizeMode="contain"
             />
             <Text style={styles.headerSubtitle}>
-              Sélectionnez le service dont vous avez besoin
+              {i18n.t("select_service_needed")}
             </Text>
           </View>
 
-          {/* SECTION BOOSTS */}
           <View style={styles.boostSection}>
             <LinearGradient
               colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
@@ -210,9 +208,9 @@ export default function ServicesHome({ navigation }) {
               <View style={styles.boostContent}>
                 <MaterialCommunityIcons name="rocket-launch" size={40} color="#FFF" />
                 <View style={styles.boostText}>
-                  <Text style={styles.boostTitle}>🚀 Boostez votre visibilité !</Text>
+                  <Text style={styles.boostTitle}>🚀 {i18n.t("boost_visibility")}</Text>
                   <Text style={styles.boostDescription}>
-                    Apparaissez en tête des résultats et recevez plus de demandes
+                    {i18n.t("appear_top_results")}
                   </Text>
                 </View>
               </View>
@@ -220,32 +218,30 @@ export default function ServicesHome({ navigation }) {
                 style={styles.boostButton}
                 onPress={() => navigation.navigate("Abonnements")}
               >
-                <Text style={styles.boostButtonText}>Découvrir les Boosts</Text>
+                <Text style={styles.boostButtonText}>{i18n.t("discover_boosts")}</Text>
                 <MaterialCommunityIcons name="arrow-right" size={18} color="#E91E63" />
               </TouchableOpacity>
             </LinearGradient>
           </View>
 
-          {/* INFO BOX PRESTATAIRE */}
           <View style={styles.infoBox}>
             <MaterialCommunityIcons name="account-star" size={24} color="#1976D2" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Vous êtes prestataire ?</Text>
+              <Text style={styles.infoTitle}>{i18n.t("are_you_provider")}</Text>
               <Text style={styles.infoText}>
-                Inscrivez-vous pour recevoir des demandes de clients et développer votre activité.
+                {i18n.t("register_receive_requests")}
               </Text>
               <TouchableOpacity 
                 style={styles.infoButton}
                 onPress={() => navigation.navigate("InscriptionPro")}
               >
-                <Text style={styles.infoButtonText}>Devenir prestataire →</Text>
+                <Text style={styles.infoButtonText}>{i18n.t("become_provider")} →</Text>
               </TouchableOpacity>
             </View>
           </View>
 
         </ScrollView>
 
-        {/* FLÈCHES VISIBLES SUR LE BORD GAUCHE */}
         <View style={styles.peekStripFixed}>
           {services.map((service, index) => (
             <TouchableOpacity
@@ -267,7 +263,6 @@ export default function ServicesHome({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           ))}
-          {/* Flèche pour "Tous les services" */}
           <TouchableOpacity
             style={[styles.peekItem, styles.peekItemBottom]}
             onPress={openDrawer}
@@ -284,7 +279,6 @@ export default function ServicesHome({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* DRAWER SERVICES */}
         <Animated.View 
           style={[
             styles.drawer,
@@ -298,15 +292,13 @@ export default function ServicesHome({ navigation }) {
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
           >
-            {/* HEADER DU DRAWER */}
             <View style={[styles.drawerHeader, { height: DRAWER_HEADER_HEIGHT }]}>
-              <Text style={styles.drawerTitle}>Services</Text>
+              <Text style={styles.drawerTitle}>{i18n.t("services")}</Text>
               <TouchableOpacity onPress={closeDrawer}>
                 <MaterialCommunityIcons name="close" size={24} color="#FFF" />
               </TouchableOpacity>
             </View>
             
-            {/* SERVICES */}
             <ScrollView style={styles.categoriesContainer} showsVerticalScrollIndicator={false}>
               {services.map((service) => (
                 <TouchableOpacity
@@ -332,7 +324,6 @@ export default function ServicesHome({ navigation }) {
               ))}
             </ScrollView>
 
-            {/* VOIR TOUS LES SERVICES - TOUT EN BAS */}
             <View style={styles.allProductsContainer}>
               <TouchableOpacity
                 style={[styles.drawerItem, { height: CATEGORY_HEIGHT }]}
@@ -347,8 +338,8 @@ export default function ServicesHome({ navigation }) {
                 >
                   <MaterialCommunityIcons name="view-grid" size={22} color="#FFF" />
                   <View style={styles.drawerItemText}>
-                    <Text style={styles.drawerItemName}>Tous les services</Text>
-                    <Text style={styles.drawerItemDesc}>Parcourir tous les prestataires</Text>
+                    <Text style={styles.drawerItemName}>{i18n.t("all_services")}</Text>
+                    <Text style={styles.drawerItemDesc}>{i18n.t("browse_all_providers")}</Text>
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={22} color="#FFF" />
                 </LinearGradient>
@@ -357,7 +348,6 @@ export default function ServicesHome({ navigation }) {
           </LinearGradient>
         </Animated.View>
 
-        {/* OVERLAY */}
         {drawerOpen && (
           <TouchableOpacity 
             style={styles.overlay}

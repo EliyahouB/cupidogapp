@@ -14,6 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import ScreenLayout from "../components/ScreenLayout";
 import { db } from "../config/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import i18n from "../utils/i18n";
 
 function VignetteImage({ source, title, onPress }) {
   return (
@@ -33,29 +34,28 @@ export default function Home({ navigation }) {
 
   const checkWelcomePopup = async () => {
     try {
-      // Verifier si on a deja vu le popup aujourd'hui
       const lastSeen = await AsyncStorage.getItem("welcomePopupLastSeen");
       const today = new Date().toDateString();
       
       if (lastSeen === today) {
-        return; // Deja vu aujourd'hui
+        return;
       }
 
-      // Verifier le flag Firebase
       const configRef = doc(db, "app_config", "settings");
       const configSnap = await getDoc(configRef);
       
       if (configSnap.exists()) {
         const config = configSnap.data();
         if (config.showWelcomePopup === false) {
-          return; // Popup desactive par admin
+          return;
         }
       }
 
-      // Afficher le popup
       setShowWelcomePopup(true);
     } catch (error) {
       console.log("Erreur checkWelcomePopup:", error);
+      // Si erreur Firebase, on affiche quand même le popup
+      setShowWelcomePopup(true);
     }
   };
 
@@ -71,7 +71,7 @@ export default function Home({ navigation }) {
 
   return (
     <ScreenLayout
-      title="Accueil"
+      title={i18n.t("home")}
       navigation={navigation}
       active="home"
       onProfile={() => navigation.navigate("ProfileMenu")}
@@ -85,22 +85,22 @@ export default function Home({ navigation }) {
         <View style={styles.grid}>
           <VignetteImage
             source={require("../assets/cupidogshop.png")}
-            title="CupiDog Shop"
+            title={i18n.t("cupidog_shop")}
             onPress={() => navigation.navigate("Marketplace")}
           />
           <VignetteImage
             source={require("../assets/rencontre-parc.png")}
-            title="Rencontre / Parc"
+            title={i18n.t("meeting_park")}
             onPress={() => navigation.navigate("ChiensParBut", { purpose: "Rencontre" })}
           />
           <VignetteImage
             source={require("../assets/achat-vente.png")}
-            title="Achat / Vente"
+            title={i18n.t("buy_sell")}
             onPress={() => navigation.navigate("ChiensParBut", { purpose: "Vente" })}
           />
           <VignetteImage
             source={require("../assets/eleveur.png")}
-            title="Éleveur / Saillie"
+            title={i18n.t("breeder_stud")}
             onPress={() => navigation.navigate("ChiensParBut", { purpose: "Saillie" })}
           />
         </View>
@@ -124,25 +124,25 @@ export default function Home({ navigation }) {
               </LinearGradient>
             </View>
 
-            <Text style={styles.modalTitle}>Bienvenue sur CupiDog !</Text>
+            <Text style={styles.modalTitle}>{i18n.t("welcome_title")}</Text>
             
             <View style={styles.modalBadge}>
               <MaterialCommunityIcons name="account-star" size={16} color="#FFD700" />
-              <Text style={styles.modalBadgeText}>Vous etes parmi nos premiers membres !</Text>
+              <Text style={styles.modalBadgeText}>{i18n.t("welcome_badge")}</Text>
             </View>
 
             <Text style={styles.modalText}>
-              Nous avons cree cette app pour changer la facon dont les proprietaires de chiens se rencontrent.
+              {i18n.t("welcome_text1")}
             </Text>
 
             <Text style={styles.modalText}>
-              En tant que nouvelle communaute, les profils continuent de croitre. Gardez l'app installee - de nouveaux membres nous rejoignent chaque jour !
+              {i18n.t("welcome_text2")}
             </Text>
 
             <View style={styles.modalHighlight}>
               <MaterialCommunityIcons name="heart" size={20} color="#E91E63" />
               <Text style={styles.modalHighlightText}>
-                Votre patience nous aide a construire quelque chose de special
+                {i18n.t("welcome_patience")}
               </Text>
             </View>
 
@@ -154,7 +154,7 @@ export default function Home({ navigation }) {
                 colors={["#FF6B35", "#FF8C42"]}
                 style={styles.modalButtonGradient}
               >
-                <Text style={styles.modalButtonText}>C'est parti !</Text>
+                <Text style={styles.modalButtonText}>{i18n.t("welcome_button")}</Text>
                 <MaterialCommunityIcons name="paw" size={20} color="#FFF" />
               </LinearGradient>
             </TouchableOpacity>
@@ -201,7 +201,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
   },
-  // MODAL STYLES
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",

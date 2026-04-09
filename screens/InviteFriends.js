@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share } from "rea
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
 
 export default function InviteFriends({ navigation }) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message:
-          "Rejoins-moi sur CupiDog 🐶 ! L'app pour connecter les amoureux des chiens. Télécharge-la ici : https://cupidog.app",
+        message: i18n.t("share_message"),
       });
     } catch (error) {
       console.error("Erreur lors du partage :", error);
@@ -17,33 +17,30 @@ export default function InviteFriends({ navigation }) {
   };
 
   return (
-    <ScreenLayout title="Inviter des amis" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("invite_friends")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
         
         <View style={styles.header}>
           <MaterialCommunityIcons name="account-multiple-plus" size={60} color="#FF6B35" />
-          <Text style={styles.title}>Invitez vos amis sur CupiDog</Text>
-          <Text style={styles.description}>
-            Partagez CupiDog avec vos amis et aidez-les à trouver le compagnon idéal pour leur chien.
-          </Text>
+          <Text style={styles.title}>{i18n.t("invite_friends_title")}</Text>
+          <Text style={styles.description}>{i18n.t("invite_friends_description")}</Text>
         </View>
 
         <View style={styles.benefitsBox}>
           <View style={styles.benefitItem}>
             <MaterialCommunityIcons name="dog" size={24} color="#FF6B35" />
-            <Text style={styles.benefitText}>Plus de matchs pour votre chien</Text>
+            <Text style={styles.benefitText}>{i18n.t("more_matches")}</Text>
           </View>
           <View style={styles.benefitItem}>
             <MaterialCommunityIcons name="account-group" size={24} color="#FF6B35" />
-            <Text style={styles.benefitText}>Agrandissez votre communauté</Text>
+            <Text style={styles.benefitText}>{i18n.t("grow_community")}</Text>
           </View>
           <View style={styles.benefitItem}>
             <MaterialCommunityIcons name="heart" size={24} color="#FF6B35" />
-            <Text style={styles.benefitText}>Partagez votre passion</Text>
+            <Text style={styles.benefitText}>{i18n.t("share_passion")}</Text>
           </View>
         </View>
 
-        {/* BOUTON PARTAGER */}
         <TouchableOpacity
           style={styles.shareButtonContainer}
           onPress={handleShare}
@@ -56,7 +53,7 @@ export default function InviteFriends({ navigation }) {
             end={{ x: 1, y: 1 }}
           >
             <MaterialCommunityIcons name="share-variant" size={20} color="#FFF" />
-            <Text style={styles.shareButtonText}>Partager l'application</Text>
+            <Text style={styles.shareButtonText}>{i18n.t("share_app")}</Text>
           </LinearGradient>
         </TouchableOpacity>
 

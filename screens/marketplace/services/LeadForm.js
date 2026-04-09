@@ -15,6 +15,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth } from "../../../config/firebase";
 import { createLead } from "../../../utils/marketplace";
+import i18n from "../../../utils/i18n";
 
 export default function LeadForm({ route, navigation }) {
   const { service } = route.params;
@@ -34,24 +35,24 @@ export default function LeadForm({ route, navigation }) {
 
   const handleSubmit = () => {
     if (!formData.customerName.trim()) {
-      Alert.alert("Erreur", "Veuillez entrer votre nom");
+      Alert.alert(i18n.t("error"), i18n.t("enter_your_name"));
       return;
     }
     if (!formData.customerPhone.trim()) {
-      Alert.alert("Erreur", "Veuillez entrer votre téléphone");
+      Alert.alert(i18n.t("error"), i18n.t("enter_your_phone"));
       return;
     }
     if (!formData.message.trim()) {
-      Alert.alert("Erreur", "Veuillez décrire votre demande");
+      Alert.alert(i18n.t("error"), i18n.t("describe_your_request"));
       return;
     }
 
     Alert.alert(
-      "Confirmer la demande",
-      `En envoyant cette demande, ${service.businessName} recevra vos coordonnées et pourra vous contacter.`,
+      i18n.t("confirm_request"),
+      `${i18n.t("by_sending_request")} ${service.businessName} ${i18n.t("will_receive_your_contact")}`,
       [
-        { text: "Annuler", style: "cancel" },
-        { text: "Envoyer", onPress: sendLead }
+        { text: i18n.t("cancel"), style: "cancel" },
+        { text: i18n.t("send"), onPress: sendLead }
       ]
     );
   };
@@ -76,21 +77,21 @@ export default function LeadForm({ route, navigation }) {
 
       if (result.success) {
         Alert.alert(
-          "Demande envoyée !",
-          `${service.businessName} a reçu votre demande et vous contactera rapidement.`,
+          i18n.t("request_sent"),
+          `${service.businessName} ${i18n.t("received_your_request")}`,
           [
             { 
-              text: "OK", 
+              text: i18n.t("ok"), 
               onPress: () => navigation.goBack() 
             }
           ]
         );
       } else {
-        Alert.alert("Erreur", "Impossible d'envoyer la demande. Réessayez.");
+        Alert.alert(i18n.t("error"), i18n.t("error_sending_request"));
       }
     } catch (error) {
       console.error("Erreur sendLead:", error);
-      Alert.alert("Erreur", "Une erreur s'est produite.");
+      Alert.alert(i18n.t("error"), i18n.t("error_occurred"));
     } finally {
       setLoading(false);
     }
@@ -110,7 +111,7 @@ export default function LeadForm({ route, navigation }) {
   };
 
   return (
-    <ScreenLayout title="Demander un devis" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("request_quote")} navigation={navigation} showBack>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -130,23 +131,23 @@ export default function LeadForm({ route, navigation }) {
           </View>
 
           <View style={styles.form}>
-            <Text style={styles.formTitle}>Vos coordonnées</Text>
+            <Text style={styles.formTitle}>{i18n.t("your_contact_info")}</Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nom complet *</Text>
+              <Text style={styles.label}>{i18n.t("full_name")} *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: David Cohen"
+                placeholder={i18n.t("full_name_example")}
                 value={formData.customerName}
                 onChangeText={(text) => setFormData({ ...formData, customerName: text })}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Téléphone *</Text>
+              <Text style={styles.label}>{i18n.t("phone")} *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: 054-123-4567"
+                placeholder={i18n.t("phone_example")}
                 keyboardType="phone-pad"
                 value={formData.customerPhone}
                 onChangeText={(text) => setFormData({ ...formData, customerPhone: text })}
@@ -154,10 +155,10 @@ export default function LeadForm({ route, navigation }) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email (optionnel)</Text>
+              <Text style={styles.label}>{i18n.t("email")} ({i18n.t("optional")})</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: david@example.com"
+                placeholder={i18n.t("email_example")}
                 keyboardType="email-address"
                 value={formData.customerEmail}
                 onChangeText={(text) => setFormData({ ...formData, customerEmail: text })}
@@ -165,10 +166,10 @@ export default function LeadForm({ route, navigation }) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Votre demande *</Text>
+              <Text style={styles.label}>{i18n.t("your_request")} *</Text>
               <TextInput
                 style={[styles.input, styles.textarea]}
-                placeholder="Décrivez votre besoin, date souhaitée, etc."
+                placeholder={i18n.t("describe_your_need")}
                 multiline
                 numberOfLines={5}
                 textAlignVertical="top"
@@ -194,11 +195,11 @@ export default function LeadForm({ route, navigation }) {
               end={{ x: 1, y: 0 }}
             >
               {loading ? (
-                <Text style={styles.submitButtonText}>Envoi en cours...</Text>
+                <Text style={styles.submitButtonText}>{i18n.t("sending")}...</Text>
               ) : (
                 <>
                   <MaterialCommunityIcons name="send" size={20} color="#FFF" />
-                  <Text style={styles.submitButtonText}>Envoyer la demande</Text>
+                  <Text style={styles.submitButtonText}>{i18n.t("send_request")}</Text>
                 </>
               )}
             </LinearGradient>

@@ -17,6 +17,7 @@ import * as FileSystem from "expo-file-system";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { db } from "../../../config/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import i18n from "../../../utils/i18n";
 
 export default function InvoiceDetails({ route, navigation }) {
   const { invoiceId } = route.params;
@@ -43,6 +44,13 @@ export default function InvoiceDetails({ route, navigation }) {
     }
   };
 
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
+
   const generatePDF = async () => {
     if (!invoice) return;
 
@@ -53,7 +61,6 @@ export default function InvoiceDetails({ route, navigation }) {
       const isCommissionInvoice = invoice.type === "commission_invoice";
       const isCustomerInvoice = invoice.type === "customer_invoice";
 
-      // TEMPLATE HTML
       const html = `
         <!DOCTYPE html>
         <html>
@@ -83,43 +90,43 @@ export default function InvoiceDetails({ route, navigation }) {
           <div class="header">
             <div class="logo">🐾 CupiDog</div>
             <div class="invoice-number">${invoice.invoiceNumber}</div>
-            <span class="status">${invoice.status === "paid" ? "Payée" : "Impayée"}</span>
+            <span class="status">${invoice.status === "paid" ? i18n.t("paid") : i18n.t("unpaid")}</span>
           </div>
 
           <div class="section">
-            <div class="section-title">📋 Informations</div>
+            <div class="section-title">📋 ${i18n.t("information")}</div>
             <div class="info-row">
-              <span class="info-label">Date:</span>
-              <span class="info-value">${invoice.createdAt?.toDate?.()?.toLocaleDateString("fr-FR") || "N/A"}</span>
+              <span class="info-label">${i18n.t("date")}:</span>
+              <span class="info-value">${invoice.createdAt?.toDate?.()?.toLocaleDateString(getLocale()) || "N/A"}</span>
             </div>
-            ${invoice.period ? `<div class="info-row"><span class="info-label">Période:</span><span class="info-value">${invoice.period}</span></div>` : ""}
-            ${invoice.dueDate ? `<div class="info-row"><span class="info-label">Date d'échéance:</span><span class="info-value">${invoice.dueDate?.toDate?.()?.toLocaleDateString("fr-FR") || "N/A"}</span></div>` : ""}
+            ${invoice.period ? `<div class="info-row"><span class="info-label">${i18n.t("period")}:</span><span class="info-value">${invoice.period}</span></div>` : ""}
+            ${invoice.dueDate ? `<div class="info-row"><span class="info-label">${i18n.t("due_date")}:</span><span class="info-value">${invoice.dueDate?.toDate?.()?.toLocaleDateString(getLocale()) || "N/A"}</span></div>` : ""}
           </div>
 
           ${isCommissionInvoice ? `
             <div class="section">
-              <div class="section-title">💰 Résumé du mois</div>
+              <div class="section-title">💰 ${i18n.t("month_summary")}</div>
               <div class="info-row">
-                <span class="info-label">Nombre de ventes:</span>
+                <span class="info-label">${i18n.t("number_of_sales")}:</span>
                 <span class="info-value">${invoice.totalOrders}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Total des ventes:</span>
+                <span class="info-label">${i18n.t("total_sales")}:</span>
                 <span class="info-value">₪${invoice.totalSales?.toFixed(0)}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Commission CupiDog (20%):</span>
+                <span class="info-label">${i18n.t("cupidog_commission")} (20%):</span>
                 <span class="info-value" style="color: #DC2626;">-₪${invoice.totalCommission?.toFixed(0)}</span>
               </div>
               <div class="divider"></div>
               <div class="info-row">
-                <span class="info-label" style="font-weight: bold; font-size: 16px;">Vous recevez (80%):</span>
+                <span class="info-label" style="font-weight: bold; font-size: 16px;">${i18n.t("you_receive")} (80%):</span>
                 <span class="info-value" style="color: #43A047; font-size: 18px;">₪${invoice.totalPayout?.toFixed(0)}</span>
               </div>
             </div>
 
             <div class="section">
-              <div class="section-title">📦 Détail des ventes</div>
+              <div class="section-title">📦 ${i18n.t("sales_detail")}</div>
               ${invoice.sales?.map(sale => `
                 <div class="item-card">
                   <span>${sale.productName} x${sale.quantity}</span>
@@ -131,19 +138,19 @@ export default function InvoiceDetails({ route, navigation }) {
 
           ${isLeadInvoice ? `
             <div class="section">
-              <div class="section-title">📞 Détail des leads</div>
+              <div class="section-title">📞 ${i18n.t("leads_detail")}</div>
               <div class="info-row">
-                <span class="info-label">Nombre de leads:</span>
+                <span class="info-label">${i18n.t("number_of_leads")}:</span>
                 <span class="info-value">${invoice.totalLeads}</span>
               </div>
             </div>
 
             <div class="section">
-              <div class="section-title">👥 Liste des leads</div>
+              <div class="section-title">👥 ${i18n.t("leads_list")}</div>
               ${invoice.leads?.map(lead => `
                 <div class="item-card">
                   <span>${lead.customerName}</span>
-                  <span>${lead.date?.toDate?.()?.toLocaleDateString("fr-FR") || "N/A"}</span>
+                  <span>${lead.date?.toDate?.()?.toLocaleDateString(getLocale()) || "N/A"}</span>
                   <span style="font-weight: bold;">₪${lead.amount}</span>
                 </div>
               `).join("") || ""}
@@ -151,16 +158,16 @@ export default function InvoiceDetails({ route, navigation }) {
 
             <div class="total-card">
               <div class="total-row">
-                <span>Sous-total:</span>
+                <span>${i18n.t("subtotal")}:</span>
                 <span>₪${invoice.totalAmount?.toFixed(0)}</span>
               </div>
               <div class="total-row">
-                <span>TVA (17%):</span>
+                <span>${i18n.t("vat")} (17%):</span>
                 <span>₪${invoice.tva?.toFixed(0)}</span>
               </div>
               <div class="divider"></div>
               <div class="total-row">
-                <span class="total-label">Total TTC:</span>
+                <span class="total-label">${i18n.t("total_with_vat")}:</span>
                 <span class="total-value">₪${invoice.totalWithTva?.toFixed(0)}</span>
               </div>
             </div>
@@ -168,25 +175,25 @@ export default function InvoiceDetails({ route, navigation }) {
 
           ${isCustomerInvoice ? `
             <div class="section">
-              <div class="section-title">👤 Informations client</div>
+              <div class="section-title">👤 ${i18n.t("customer_info")}</div>
               <div class="info-row">
-                <span class="info-label">Nom:</span>
+                <span class="info-label">${i18n.t("name")}:</span>
                 <span class="info-value">${invoice.customerName}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Téléphone:</span>
+                <span class="info-label">${i18n.t("phone")}:</span>
                 <span class="info-value">${invoice.customerPhone}</span>
               </div>
-              ${invoice.customerEmail ? `<div class="info-row"><span class="info-label">Email:</span><span class="info-value">${invoice.customerEmail}</span></div>` : ""}
+              ${invoice.customerEmail ? `<div class="info-row"><span class="info-label">${i18n.t("email")}:</span><span class="info-value">${invoice.customerEmail}</span></div>` : ""}
             </div>
 
             <div class="section">
-              <div class="section-title">📍 Adresse de livraison</div>
+              <div class="section-title">📍 ${i18n.t("delivery_address")}</div>
               <p>${invoice.shippingAddress?.street}<br>${invoice.shippingAddress?.city} ${invoice.shippingAddress?.postalCode}</p>
             </div>
 
             <div class="section">
-              <div class="section-title">📦 Articles commandés</div>
+              <div class="section-title">📦 ${i18n.t("ordered_items")}</div>
               ${invoice.items?.map(item => `
                 <div class="item-card">
                   <span>${item.productName} x${item.quantity}</span>
@@ -197,16 +204,16 @@ export default function InvoiceDetails({ route, navigation }) {
 
             <div class="total-card">
               <div class="total-row">
-                <span>Sous-total:</span>
+                <span>${i18n.t("subtotal")}:</span>
                 <span>₪${invoice.subtotal?.toFixed(0)}</span>
               </div>
               <div class="total-row">
-                <span>Livraison:</span>
-                <span style="color: #43A047; font-weight: bold;">GRATUITE</span>
+                <span>${i18n.t("delivery")}:</span>
+                <span style="color: #43A047; font-weight: bold;">${i18n.t("free")}</span>
               </div>
               <div class="divider"></div>
               <div class="total-row">
-                <span class="total-label">Total:</span>
+                <span class="total-label">${i18n.t("total")}:</span>
                 <span class="total-value">₪${invoice.total?.toFixed(0)}</span>
               </div>
             </div>
@@ -214,16 +221,14 @@ export default function InvoiceDetails({ route, navigation }) {
 
           <div class="footer">
             <p>🐾 CupiDog - Marketplace pour chiens</p>
-            <p>Facture générée le ${new Date().toLocaleDateString("fr-FR")}</p>
+            <p>${i18n.t("invoice_generated_on")} ${new Date().toLocaleDateString(getLocale())}</p>
           </div>
         </body>
         </html>
       `;
 
-      // GÉNÉRER PDF
       const { uri } = await Print.printToFileAsync({ html });
 
-      // PARTAGER OU TÉLÉCHARGER
       if (Platform.OS === "ios" || Platform.OS === "android") {
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
@@ -232,14 +237,14 @@ export default function InvoiceDetails({ route, navigation }) {
             mimeType: "application/pdf",
           });
         } else {
-          Alert.alert("Succès", `PDF généré : ${uri}`);
+          Alert.alert(i18n.t("success"), `PDF: ${uri}`);
         }
       } else {
-        Alert.alert("Succès", `PDF généré : ${uri}`);
+        Alert.alert(i18n.t("success"), `PDF: ${uri}`);
       }
     } catch (error) {
       console.error("Erreur génération PDF:", error);
-      Alert.alert("Erreur", "Impossible de générer le PDF");
+      Alert.alert(i18n.t("error"), i18n.t("error_generating_pdf"));
     } finally {
       setDownloading(false);
     }
@@ -247,7 +252,7 @@ export default function InvoiceDetails({ route, navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Détail facture" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("invoice_details")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
         </View>
@@ -257,9 +262,9 @@ export default function InvoiceDetails({ route, navigation }) {
 
   if (!invoice) {
     return (
-      <ScreenLayout title="Détail facture" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("invoice_details")} navigation={navigation} showBack>
         <View style={styles.loading}>
-          <Text style={styles.errorText}>Facture introuvable</Text>
+          <Text style={styles.errorText}>{i18n.t("invoice_not_found")}</Text>
         </View>
       </ScreenLayout>
     );
@@ -270,9 +275,8 @@ export default function InvoiceDetails({ route, navigation }) {
   const isCustomerInvoice = invoice.type === "customer_invoice";
 
   return (
-    <ScreenLayout title="Détail facture" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("invoice_details")} navigation={navigation} showBack>
       <View style={{ flex: 1 }}>
-        {/* BOUTON TÉLÉCHARGER PDF */}
         <View style={styles.pdfSection}>
           <TouchableOpacity
             style={styles.pdfButtonContainer}
@@ -291,7 +295,7 @@ export default function InvoiceDetails({ route, navigation }) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="file-pdf-box" size={22} color="#FFF" />
-                  <Text style={styles.pdfButtonText}>Télécharger PDF</Text>
+                  <Text style={styles.pdfButtonText}>{i18n.t("download_pdf")}</Text>
                 </>
               )}
             </LinearGradient>
@@ -300,7 +304,6 @@ export default function InvoiceDetails({ route, navigation }) {
 
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* HEADER */}
           <View style={styles.header}>
             <MaterialCommunityIcons name="file-document" size={60} color="#1976D2" />
             <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
@@ -309,44 +312,42 @@ export default function InvoiceDetails({ route, navigation }) {
               { backgroundColor: invoice.status === "paid" ? "#43A047" : "#FF9900" }
             ]}>
               <Text style={styles.statusText}>
-                {invoice.status === "paid" ? "Payée" : "Impayée"}
+                {invoice.status === "paid" ? i18n.t("paid") : i18n.t("unpaid")}
               </Text>
             </View>
           </View>
 
-          {/* INFO GÉNÉRALE */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Informations</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("information")}</Text>
             <View style={styles.card}>
-              <InfoRow label="Date" value={invoice.createdAt?.toDate?.()?.toLocaleDateString("fr-FR") || "N/A"} />
-              {invoice.period && <InfoRow label="Période" value={invoice.period} />}
+              <InfoRow label={i18n.t("date")} value={invoice.createdAt?.toDate?.()?.toLocaleDateString(getLocale()) || "N/A"} />
+              {invoice.period && <InfoRow label={i18n.t("period")} value={invoice.period} />}
               {invoice.dueDate && (
                 <InfoRow 
-                  label="Date d'échéance" 
-                  value={invoice.dueDate?.toDate?.()?.toLocaleDateString("fr-FR") || "N/A"} 
+                  label={i18n.t("due_date")} 
+                  value={invoice.dueDate?.toDate?.()?.toLocaleDateString(getLocale()) || "N/A"} 
                 />
               )}
             </View>
           </View>
 
-          {/* FACTURE LEADS (Prestataire) */}
           {isLeadInvoice && (
             <>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Détail des leads</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("leads_detail")}</Text>
                 <View style={styles.card}>
-                  <InfoRow label="Nombre de leads" value={invoice.totalLeads} bold />
-                  <InfoRow label="Prix par lead" value={`Variable`} />
+                  <InfoRow label={i18n.t("number_of_leads")} value={invoice.totalLeads} bold />
+                  <InfoRow label={i18n.t("price_per_lead")} value={i18n.t("variable")} />
                 </View>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Liste des leads</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("leads_list")}</Text>
                 {invoice.leads && invoice.leads.map((lead, index) => (
                   <View key={index} style={styles.itemCard}>
                     <Text style={styles.itemName}>{lead.customerName}</Text>
                     <Text style={styles.itemDate}>
-                      {lead.date?.toDate?.()?.toLocaleDateString("fr-FR") || "N/A"}
+                      {lead.date?.toDate?.()?.toLocaleDateString(getLocale()) || "N/A"}
                     </Text>
                     <Text style={styles.itemPrice}>₪{lead.amount}</Text>
                   </View>
@@ -354,40 +355,39 @@ export default function InvoiceDetails({ route, navigation }) {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Total à payer</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("amount_to_pay")}</Text>
                 <View style={styles.totalCard}>
-                  <InfoRow label="Sous-total" value={`₪${invoice.totalAmount?.toFixed(0)}`} />
-                  <InfoRow label="TVA (17%)" value={`₪${invoice.tva?.toFixed(0)}`} />
+                  <InfoRow label={i18n.t("subtotal")} value={`₪${invoice.totalAmount?.toFixed(0)}`} />
+                  <InfoRow label={`${i18n.t("vat")} (17%)`} value={`₪${invoice.tva?.toFixed(0)}`} />
                   <View style={styles.divider} />
-                  <InfoRow label="Total TTC" value={`₪${invoice.totalWithTva?.toFixed(0)}`} bold large />
+                  <InfoRow label={i18n.t("total_with_vat")} value={`₪${invoice.totalWithTva?.toFixed(0)}`} bold large />
                 </View>
               </View>
             </>
           )}
 
-          {/* FACTURE COMMISSIONS (Vendeur) */}
           {isCommissionInvoice && (
             <>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Résumé du mois</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("month_summary")}</Text>
                 <View style={styles.card}>
-                  <InfoRow label="Nombre de ventes" value={invoice.totalOrders} bold />
-                  <InfoRow label="Total des ventes" value={`₪${invoice.totalSales?.toFixed(0)}`} />
-                  <InfoRow label="Commission CupiDog (20%)" value={`₪${invoice.totalCommission?.toFixed(0)}`} />
+                  <InfoRow label={i18n.t("number_of_sales")} value={invoice.totalOrders} bold />
+                  <InfoRow label={i18n.t("total_sales")} value={`₪${invoice.totalSales?.toFixed(0)}`} />
+                  <InfoRow label={`${i18n.t("cupidog_commission")} (20%)`} value={`₪${invoice.totalCommission?.toFixed(0)}`} />
                   <View style={styles.divider} />
-                  <InfoRow label="Vous recevez (80%)" value={`₪${invoice.totalPayout?.toFixed(0)}`} bold large green />
+                  <InfoRow label={`${i18n.t("you_receive")} (80%)`} value={`₪${invoice.totalPayout?.toFixed(0)}`} bold large green />
                 </View>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Détail des ventes</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("sales_detail")}</Text>
                 {invoice.sales && invoice.sales.map((sale, index) => (
                   <View key={index} style={styles.itemCard}>
                     <Text style={styles.itemName}>{sale.productName}</Text>
                     <Text style={styles.itemQuantity}>x{sale.quantity}</Text>
                     <View style={styles.itemPrices}>
                       <Text style={styles.itemTotal}>₪{sale.total?.toFixed(0)}</Text>
-                      <Text style={styles.itemPayout}>Vous: ₪{sale.payout?.toFixed(0)}</Text>
+                      <Text style={styles.itemPayout}>{i18n.t("you")}: ₪{sale.payout?.toFixed(0)}</Text>
                     </View>
                   </View>
                 ))}
@@ -395,20 +395,19 @@ export default function InvoiceDetails({ route, navigation }) {
             </>
           )}
 
-          {/* FACTURE CLIENT */}
           {isCustomerInvoice && (
             <>
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Informations client</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("customer_info")}</Text>
                 <View style={styles.card}>
-                  <InfoRow label="Nom" value={invoice.customerName} />
-                  <InfoRow label="Téléphone" value={invoice.customerPhone} />
-                  {invoice.customerEmail && <InfoRow label="Email" value={invoice.customerEmail} />}
+                  <InfoRow label={i18n.t("name")} value={invoice.customerName} />
+                  <InfoRow label={i18n.t("phone")} value={invoice.customerPhone} />
+                  {invoice.customerEmail && <InfoRow label={i18n.t("email")} value={invoice.customerEmail} />}
                 </View>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Adresse de livraison</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("delivery_address")}</Text>
                 <View style={styles.card}>
                   <Text style={styles.addressText}>
                     {invoice.shippingAddress?.street}{"\n"}
@@ -418,7 +417,7 @@ export default function InvoiceDetails({ route, navigation }) {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Articles commandés</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("ordered_items")}</Text>
                 {invoice.items && invoice.items.map((item, index) => (
                   <View key={index} style={styles.itemCard}>
                     <Text style={styles.itemName}>{item.productName}</Text>
@@ -429,27 +428,26 @@ export default function InvoiceDetails({ route, navigation }) {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Total</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("total")}</Text>
                 <View style={styles.totalCard}>
-                  <InfoRow label="Sous-total" value={`₪${invoice.subtotal?.toFixed(0)}`} />
-                  <InfoRow label="Livraison" value="GRATUITE" free />
+                  <InfoRow label={i18n.t("subtotal")} value={`₪${invoice.subtotal?.toFixed(0)}`} />
+                  <InfoRow label={i18n.t("delivery")} value={i18n.t("free")} free />
                   <View style={styles.divider} />
-                  <InfoRow label="Total" value={`₪${invoice.total?.toFixed(0)}`} bold large />
+                  <InfoRow label={i18n.t("total")} value={`₪${invoice.total?.toFixed(0)}`} bold large />
                 </View>
               </View>
             </>
           )}
 
-          {/* VENDEURS (pour facture client) */}
           {isCustomerInvoice && invoice.sellers && invoice.sellers.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Vendeurs</Text>
+              <Text style={styles.sectionTitle}>{i18n.t("sellers")}</Text>
               {invoice.sellers.map((seller, index) => (
                 <View key={index} style={styles.card}>
-                  <InfoRow label="Entreprise" value={seller.companyName} />
+                  <InfoRow label={i18n.t("company")} value={seller.companyName} />
                   {seller.osekNumber && <InfoRow label="Osek N°" value={seller.osekNumber} />}
                   {seller.hpNumber && <InfoRow label="H.P. N°" value={seller.hpNumber} />}
-                  <InfoRow label="Email" value={seller.email} />
+                  <InfoRow label={i18n.t("email")} value={seller.email} />
                 </View>
               ))}
             </View>

@@ -22,6 +22,7 @@ import { db, auth } from "../config/firebase";
 import { useNavigation } from "@react-navigation/native";
 import ScreenLayout from "../components/ScreenLayout";
 import PremiumBadge from "../components/PremiumBadge";
+import i18n from "../utils/i18n";
 
 export default function Profile() {
   const [profile, setProfile] = useState(null);
@@ -48,7 +49,7 @@ export default function Profile() {
     
     if (!user) {
       setLoading(false);
-      Alert.alert("Erreur", "Vous devez etre connecte.");
+      Alert.alert(i18n.t("error"), i18n.t("must_be_logged_in"));
       return;
     }
 
@@ -67,7 +68,7 @@ export default function Profile() {
       }
     } catch (error) {
       console.error("Erreur chargement profil :", error);
-      Alert.alert("Erreur", "Impossible de charger votre profil.");
+      Alert.alert(i18n.t("error"), i18n.t("error_loading_profile"));
     } finally {
       setLoading(false);
     }
@@ -82,12 +83,12 @@ export default function Profile() {
       await updateDoc(profileRef, { [field]: value });
     } catch (error) {
       console.error("Erreur de mise a jour :", error);
-      Alert.alert("Erreur", "Erreur lors de la mise a jour.");
+      Alert.alert(i18n.t("error"), i18n.t("error_updating"));
     }
   };
 
   const formatDate = (dateValue) => {
-    if (!dateValue) return "Non renseigne";
+    if (!dateValue) return i18n.t("not_specified");
     
     try {
       var date;
@@ -98,16 +99,17 @@ export default function Profile() {
       } else if (typeof dateValue === 'string') {
         date = new Date(dateValue);
       } else {
-        return "Non renseigne";
+        return i18n.t("not_specified");
       }
 
-      return date.toLocaleDateString('fr-FR', {
+      const locale = i18n.locale === "he" ? "he-IL" : i18n.locale === "ru" ? "ru-RU" : i18n.locale === "en" ? "en-US" : "fr-FR";
+      return date.toLocaleDateString(locale, {
         day: 'numeric',
         month: 'long',
         year: 'numeric'
       });
     } catch {
-      return "Non renseigne";
+      return i18n.t("not_specified");
     }
   };
 
@@ -141,20 +143,20 @@ export default function Profile() {
   };
 
   const getAbonnementLabel = () => {
-    if (abonnement === "gratuit") return "Gratuit";
-    if (abonnement === "vente") return "Vente";
-    if (abonnement === "saillie") return "Saillie";
-    if (abonnement === "essentiel") return "Essentiel";
+    if (abonnement === "gratuit") return i18n.t("free");
+    if (abonnement === "vente") return i18n.t("sale");
+    if (abonnement === "saillie") return i18n.t("stud");
+    if (abonnement === "essentiel") return i18n.t("essential");
     if (abonnement === "premium") return "Premium";
-    return "Gratuit";
+    return i18n.t("free");
   };
 
   if (loading) {
     return (
-      <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
+      <ScreenLayout title={i18n.t("my_profile")} navigation={navigation} active="profile">
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#ff914d" />
-          <Text style={styles.loadingText}>Chargement du profil...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading_profile")}</Text>
         </View>
       </ScreenLayout>
     );
@@ -162,10 +164,10 @@ export default function Profile() {
 
   if (!profile) {
     return (
-      <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
+      <ScreenLayout title={i18n.t("my_profile")} navigation={navigation} active="profile">
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="account-off" size={80} color="#999" />
-          <Text style={styles.emptyText}>Profil introuvable</Text>
+          <Text style={styles.emptyText}>{i18n.t("profile_not_found")}</Text>
         </View>
       </ScreenLayout>
     );
@@ -174,7 +176,7 @@ export default function Profile() {
   var age = calculateAge(profile.dateOfBirth);
 
   return (
-    <ScreenLayout title="Mon Profil" navigation={navigation} active="profile">
+    <ScreenLayout title={i18n.t("my_profile")} navigation={navigation} active="profile">
       <ScrollView contentContainerStyle={styles.container}>
         
         <View style={styles.header}>
@@ -182,7 +184,7 @@ export default function Profile() {
             style={styles.photoContainer}
             onPress={() => navigation.navigate("EditField", {
               field: "photo",
-              title: "Photo de profil",
+              title: i18n.t("profile_photo"),
               currentValue: profile.photoUrl,
               profileId: profileId
             })}
@@ -199,7 +201,7 @@ export default function Profile() {
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.name}>{profile.name || "Nom non renseigne"}</Text>
+          <Text style={styles.name}>{profile.name || i18n.t("not_specified")}</Text>
           <View style={styles.badgeContainer}>
             <PremiumBadge abonnement={abonnement} size="medium" />
           </View>
@@ -217,7 +219,7 @@ export default function Profile() {
             end={{ x: 1, y: 1 }}
           >
             <MaterialCommunityIcons name="crown" size={20} color="#FFF" />
-            <Text style={styles.abonnementText}>Gerer mon abonnement</Text>
+            <Text style={styles.abonnementText}>{i18n.t("manage_subscription")}</Text>
           </LinearGradient>
         </TouchableOpacity>
 
@@ -228,7 +230,7 @@ export default function Profile() {
         >
           <View style={styles.mesDemandesContent}>
             <MaterialCommunityIcons name="clipboard-list" size={20} color="#1976D2" />
-            <Text style={styles.mesDemandesText}>Mes demandes de services</Text>
+            <Text style={styles.mesDemandesText}>{i18n.t("my_service_requests")}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={24} color="#1976D2" />
         </TouchableOpacity>
@@ -236,18 +238,18 @@ export default function Profile() {
         <View style={styles.menuList}>
           <MenuItem
             icon="star-circle"
-            label="Abonnement"
+            label={i18n.t("subscription")}
             value={getAbonnementLabel()}
             onPress={() => navigation.navigate("Abonnements")}
           />
 
           <MenuItem
             icon="account"
-            label="Identite"
+            label={i18n.t("identity")}
             value={profile.name}
             onPress={() => navigation.navigate("EditField", {
               field: "name",
-              title: "Identite",
+              title: i18n.t("identity"),
               currentValue: profile.name,
               profileId: profileId
             })}
@@ -255,11 +257,11 @@ export default function Profile() {
 
           <MenuItem
             icon="map-marker"
-            label="Ville"
+            label={i18n.t("city")}
             value={profile.city}
             onPress={() => navigation.navigate("EditField", {
               field: "city",
-              title: "Ville",
+              title: i18n.t("city"),
               currentValue: profile.city,
               profileId: profileId
             })}
@@ -267,11 +269,11 @@ export default function Profile() {
 
           <MenuItem
             icon="cake-variant"
-            label="Date de naissance"
-            value={formatDate(profile.dateOfBirth) + (age ? " (" + age + " ans)" : "")}
+            label={i18n.t("date_of_birth")}
+            value={formatDate(profile.dateOfBirth) + (age ? " (" + age + " " + i18n.t("years_old") + ")" : "")}
             onPress={() => navigation.navigate("EditField", {
               field: "dateOfBirth",
-              title: "Date de naissance",
+              title: i18n.t("date_of_birth"),
               currentValue: profile.dateOfBirth,
               profileId: profileId
             })}
@@ -279,11 +281,11 @@ export default function Profile() {
 
           <MenuItem
             icon="gender-male-female"
-            label="Sexe"
+            label={i18n.t("gender")}
             value={profile.gender}
             onPress={() => navigation.navigate("EditField", {
               field: "gender",
-              title: "Sexe",
+              title: i18n.t("gender"),
               currentValue: profile.gender,
               profileId: profileId
             })}
@@ -295,7 +297,7 @@ export default function Profile() {
             value={profile.bio}
             onPress={() => navigation.navigate("EditField", {
               field: "bio",
-              title: "Bio / Description",
+              title: i18n.t("bio_description"),
               currentValue: profile.bio,
               profileId: profileId
             })}
@@ -303,11 +305,11 @@ export default function Profile() {
 
           <MenuItem
             icon="target"
-            label="But de l'inscription"
+            label={i18n.t("registration_purpose")}
             value={profile.purpose}
             onPress={() => navigation.navigate("EditField", {
               field: "purpose",
-              title: "But de l'inscription",
+              title: i18n.t("registration_purpose"),
               currentValue: profile.purpose,
               profileId: profileId
             })}
@@ -320,10 +322,8 @@ export default function Profile() {
             <View style={styles.switchContent}>
               <MaterialCommunityIcons name="map-marker-multiple" size={24} color="#FF6B35" />
               <View style={styles.switchText}>
-                <Text style={styles.switchLabel}>Mode nomade</Text>
-                <Text style={styles.switchDescription}>
-                  Afficher votre profil dans plusieurs villes
-                </Text>
+                <Text style={styles.switchLabel}>{i18n.t("nomad_mode")}</Text>
+                <Text style={styles.switchDescription}>{i18n.t("nomad_mode_description")}</Text>
               </View>
             </View>
             <Switch
@@ -342,10 +342,8 @@ export default function Profile() {
             <View style={styles.switchContent}>
               <MaterialCommunityIcons name="eye-off" size={24} color="#FF6B35" />
               <View style={styles.switchText}>
-                <Text style={styles.switchLabel}>Masquer mon profil</Text>
-                <Text style={styles.switchDescription}>
-                  Votre profil ne sera plus visible par les autres
-                </Text>
+                <Text style={styles.switchLabel}>{i18n.t("hide_profile")}</Text>
+                <Text style={styles.switchDescription}>{i18n.t("hide_profile_description")}</Text>
               </View>
             </View>
             <Switch
@@ -374,7 +372,7 @@ function MenuItem({ icon, label, value, onPress, hideBorder }) {
           <View style={styles.menuText}>
             <Text style={styles.menuLabel}>{label}</Text>
             <Text style={styles.menuValue} numberOfLines={1}>
-              {value || "Non renseigne"}
+              {value || i18n.t("not_specified")}
             </Text>
           </View>
         </View>

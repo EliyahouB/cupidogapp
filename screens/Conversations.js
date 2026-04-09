@@ -26,6 +26,7 @@ import {
 } from "firebase/firestore";
 import ScreenLayout from "../components/ScreenLayout";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import i18n from "../utils/i18n";
 
 export default function Conversations({ navigation }) {
   const [conversations, setConversations] = useState([]);
@@ -93,7 +94,7 @@ export default function Conversations({ navigation }) {
             if (!profileSnap.empty) {
               profiles[uid] = profileSnap.docs[0].data();
             } else {
-              profiles[uid] = { name: "Utilisateur", photoUrl: null };
+              profiles[uid] = { name: i18n.t("user"), photoUrl: null };
             }
           } else {
             profiles[uid] = userProfiles[uid];
@@ -128,9 +129,9 @@ export default function Conversations({ navigation }) {
     } else if (diffInHours < 24) {
       return Math.floor(diffInHours) + " h";
     } else if (diffInDays < 7) {
-      return Math.floor(diffInDays) + " j";
+      return Math.floor(diffInDays) + " " + i18n.t("days_short");
     } else {
-      return date.toLocaleDateString("fr-FR", {
+      return date.toLocaleDateString(i18n.locale === "he" ? "he-IL" : i18n.locale === "ru" ? "ru-RU" : i18n.locale === "en" ? "en-US" : "fr-FR", {
         day: "2-digit",
         month: "2-digit",
       });
@@ -145,19 +146,19 @@ export default function Conversations({ navigation }) {
 
   const handleDeleteConversation = (conversationId, dogName) => {
     Alert.alert(
-      "Supprimer la conversation",
-      `Supprimer la conversation avec ${dogName} ?\n\nAttention : cette conversation comptera toujours dans votre limite.`,
+      i18n.t("delete_conversation"),
+      i18n.t("delete_conversation_confirm", { name: dogName }),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Supprimer",
+          text: i18n.t("delete"),
           style: "destructive",
           onPress: async () => {
             try {
               await deleteDoc(doc(db, "conversations", conversationId));
             } catch (error) {
               console.log("Erreur suppression:", error);
-              Alert.alert("Erreur", "Impossible de supprimer la conversation");
+              Alert.alert(i18n.t("error"), i18n.t("error_deleting_conversation"));
             }
           },
         },
@@ -219,10 +220,10 @@ export default function Conversations({ navigation }) {
               <Text style={styles.time}>{formatTime(item.lastMessageTime)}</Text>
             </View>
             <Text style={styles.userName} numberOfLines={1}>
-              {otherUserProfile.name || "Utilisateur"}
+              {otherUserProfile.name || i18n.t("user")}
             </Text>
             <Text style={styles.lastMessage} numberOfLines={1}>
-              {item.lastMessage || "Nouvelle conversation"}
+              {item.lastMessage || i18n.t("new_conversation")}
             </Text>
           </View>
 
@@ -237,13 +238,12 @@ export default function Conversations({ navigation }) {
   };
 
   const limit = getConversationLimit();
-  // On utilise le MAX entre conversations actuelles et totalConversationsCreated
   const conversationsUsed = Math.max(conversations.length, totalConversationsCreated);
   const remainingConversations = limit ? limit - conversationsUsed : null;
   const isLimitReached = limit !== null && remainingConversations <= 0;
 
   return (
-    <ScreenLayout title="Conversations" navigation={navigation} active="chat">
+    <ScreenLayout title={i18n.t("conversations")} navigation={navigation} active="chat">
       <LinearGradient
         colors={['#F5D547', '#FF9966']}
         style={styles.gradientContainer}
@@ -251,7 +251,7 @@ export default function Conversations({ navigation }) {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FFF" />
-            <Text style={styles.loadingText}>Chargement...</Text>
+            <Text style={styles.loadingText}>{i18n.t("loading")}</Text>
           </View>
         ) : (
           <>
@@ -268,8 +268,8 @@ export default function Conversations({ navigation }) {
                 />
                 <Text style={[styles.limitText, isLimitReached && styles.limitTextReached]}>
                   {remainingConversations > 0
-                    ? `${remainingConversations} conversation(s) restante(s)`
-                    : "Limite atteinte · Touchez pour passer Premium"}
+                    ? i18n.t("conversations_remaining", { count: remainingConversations })
+                    : i18n.t("limit_reached_tap_premium")}
                 </Text>
                 {isLimitReached && (
                   <MaterialCommunityIcons name="chevron-right" size={18} color="#DC2626" />
@@ -286,10 +286,8 @@ export default function Conversations({ navigation }) {
                     color="#FFF"
                   />
                 </View>
-                <Text style={styles.emptyText}>Aucune conversation</Text>
-                <Text style={styles.emptySubtext}>
-                  Commencez à discuter avec d'autres propriétaires
-                </Text>
+                <Text style={styles.emptyText}>{i18n.t("no_conversations")}</Text>
+                <Text style={styles.emptySubtext}>{i18n.t("start_chatting_owners")}</Text>
               </View>
             ) : (
               <>
@@ -300,16 +298,13 @@ export default function Conversations({ navigation }) {
                   contentContainerStyle={styles.list}
                   showsVerticalScrollIndicator={false}
                 />
-                <Text style={styles.hintText}>
-                  Appui long pour supprimer une conversation
-                </Text>
+                <Text style={styles.hintText}>{i18n.t("long_press_delete")}</Text>
               </>
             )}
           </>
         )}
       </LinearGradient>
 
-      {/* MODAL PAYWALL */}
       <Modal
         visible={showPaywall}
         transparent={true}
@@ -327,13 +322,11 @@ export default function Conversations({ navigation }) {
               </LinearGradient>
             </View>
 
-            <Text style={styles.modalTitle}>Limite atteinte</Text>
+            <Text style={styles.modalTitle}>{i18n.t("limit_reached")}</Text>
             <Text style={styles.modalText}>
-              Vous avez atteint le nombre maximum de conversations gratuites ({limit}).
+              {i18n.t("conversation_limit_reached", { limit: limit })}
             </Text>
-            <Text style={styles.modalSubtext}>
-              Passez à Premium pour des conversations illimitées !
-            </Text>
+            <Text style={styles.modalSubtext}>{i18n.t("upgrade_for_unlimited")}</Text>
 
             <TouchableOpacity
               style={styles.modalButtonPrimary}
@@ -346,7 +339,7 @@ export default function Conversations({ navigation }) {
                 colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
                 style={styles.modalButtonGradient}
               >
-                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+                <Text style={styles.modalButtonTextPrimary}>{i18n.t("view_subscriptions")}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -354,7 +347,7 @@ export default function Conversations({ navigation }) {
               style={styles.modalButtonSecondary}
               onPress={() => setShowPaywall(false)}
             >
-              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+              <Text style={styles.modalButtonTextSecondary}>{i18n.t("later")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -524,7 +517,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#9CA3AF",
   },
-  // MODAL STYLES
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",

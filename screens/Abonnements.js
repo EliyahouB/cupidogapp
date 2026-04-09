@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import i18n from "../utils/i18n";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.60;
@@ -99,7 +100,7 @@ export default function Abonnements({ navigation }) {
     const planInfo = planPrices[selectedProPlan];
     
     if (selectedProPlan === "freemium") {
-      Alert.alert("Bienvenue !", "Votre compte Freemium est actif.");
+      Alert.alert(i18n.t("success"), i18n.t("start_free"));
       return;
     }
     
@@ -135,64 +136,37 @@ export default function Abonnements({ navigation }) {
       return {
         name: "FREEMIUM",
         price: "0₪",
-        duration: "pas d'abonnement",
+        duration: i18n.t("free"),
         features: [
-          "Créer votre profil professionnel",
-          "Recevoir des demandes de clients",
-          "Payer uniquement vos leads : 65₪/lead",
-          "Pas d'engagement",
-          "Support standard",
+          i18n.t("create_service"),
+          i18n.t("my_leads"),
+          "65₪/lead",
+          i18n.t("cancel_anytime"),
         ],
       };
     } else if (plan === "pro") {
       return {
         name: "PRO",
         price: "159₪",
-        duration: "par mois",
+        duration: i18n.t("per_month"),
         features: [
-          "Créer votre profil professionnel",
-          "Recevoir des demandes de clients",
-          "Leads Vétérinaire/Toiletteur/Éducateur/Pension/Photographe : 20₪",
-          "Leads Dog Walker/Transport : 18₪",
-          "Support standard",
-          "Statistiques de base",
-          "3 photos portfolio",
+          i18n.t("create_service"),
+          i18n.t("my_leads"),
+          "18-20₪/lead",
+          "3 photos",
         ],
       };
     } else {
       return {
         name: "PRO+",
         price: "299₪",
-        duration: "par mois",
+        duration: i18n.t("per_month"),
         features: [
-          "Tout de PRO +",
-          "Badge PRO+ sur votre profil 🏆",
-          "Leads Vétérinaire/Toiletteur/Éducateur/Pension/Photographe : 15₪ (-25%)",
-          "Leads Dog Walker/Transport : 13₪ (-28%)",
-          "Priorité dans les résultats de recherche",
-          "Support prioritaire",
-          "Statistiques avancées",
-          "3 photos portfolio",
+          "PRO +",
+          "Badge PRO+ 🏆",
+          "13-15₪/lead (-25%)",
+          i18n.t("recommended"),
         ],
-      };
-    }
-  };
-
-  const getHeaderText = () => {
-    if (isPrestataire()) {
-      return {
-        title: "Offres Prestataires",
-        subtitle: "Développez votre activité et recevez des clients",
-      };
-    } else if (isVendeur()) {
-      return {
-        title: "Espace Vendeur",
-        subtitle: "Vendez vos produits sur CupiDog",
-      };
-    } else {
-      return {
-        title: "Choisissez votre offre",
-        subtitle: "Vendez, trouvez des saillies et développez votre élevage",
       };
     }
   };
@@ -202,31 +176,31 @@ export default function Abonnements({ navigation }) {
       id: "freemium",
       name: "FREEMIUM",
       price: "0₪",
-      duration: "pas d'abo",
+      duration: i18n.t("free"),
       leadPrice: "65₪/lead",
       icon: "account-outline",
       gradient: ["#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4"],
-      features: ["Profil pro", "Recevoir leads", "65₪/lead", "Sans engagement"],
+      features: [i18n.t("profile"), i18n.t("my_leads"), "65₪/lead", i18n.t("cancel_anytime")],
     },
     {
       id: "pro",
       name: "PRO",
       price: "159₪",
-      duration: "par mois",
+      duration: i18n.t("per_month"),
       leadPrice: "18-20₪/lead",
       icon: "briefcase",
       gradient: ["#03A9F4", "#039BE5", "#0288D1", "#0277BD"],
-      features: ["Profil pro", "Recevoir leads", "18-20₪/lead", "3 photos"],
+      features: [i18n.t("profile"), i18n.t("my_leads"), "18-20₪/lead", "3 photos"],
     },
     {
       id: "pro_plus",
       name: "PRO+",
       price: "299₪",
-      duration: "par mois",
+      duration: i18n.t("per_month"),
       leadPrice: "13-15₪/lead",
       icon: "crown",
       gradient: ["#0277BD", "#01579B", "#014A7F", "#013A63"],
-      features: ["Tout PRO +", "Badge 🏆", "13-15₪/lead", "Priorité"],
+      features: ["PRO +", "Badge 🏆", "13-15₪/lead", i18n.t("recommended")],
       badge: "⭐ PREMIUM",
     },
   ];
@@ -239,7 +213,7 @@ export default function Abonnements({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Abonnements" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("subscriptions")} navigation={navigation} showBack>
         <LinearGradient colors={["#F5D547", "#FF9966"]} style={styles.gradient}>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FFF" />
@@ -250,7 +224,7 @@ export default function Abonnements({ navigation }) {
   }
 
   return (
-    <ScreenLayout title="Abonnements" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("subscriptions")} navigation={navigation} showBack>
       <LinearGradient colors={["#F5D547", "#FF9966"]} style={styles.gradient}>
         <ScrollView
           contentContainerStyle={styles.container}
@@ -265,13 +239,13 @@ export default function Abonnements({ navigation }) {
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
-                <Text style={styles.headerTitle}>Offres Prestataires</Text>
-                <Text style={styles.headerSubtitle}>{getHeaderText().subtitle}</Text>
+                <Text style={styles.headerTitle}>{i18n.t("pro_offers")}</Text>
+                <Text style={styles.headerSubtitle}>{i18n.t("pro_subtitle")}</Text>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Abonnements Professionnels</Text>
-                <Text style={styles.sectionSubtitle}>Swipez pour voir toutes les offres</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("subscriptions")}</Text>
+                <Text style={styles.sectionSubtitle}>{i18n.t("swipe_offers")}</Text>
 
                 <ScrollView
                   ref={scrollViewRef}
@@ -307,11 +281,11 @@ export default function Abonnements({ navigation }) {
                         )}
                         {isSubscribed(plan.id) && (
                           <View style={styles.currentBadge}>
-                            <Text style={styles.currentBadgeText}>✓ Actuel</Text>
+                            <Text style={styles.currentBadgeText}>✓ {i18n.t("current_plan")}</Text>
                           </View>
                         )}
                         <View style={{ marginTop: 10 }}>
-                        <MaterialCommunityIcons name={plan.icon} size={36} color="#FFF" />
+                          <MaterialCommunityIcons name={plan.icon} size={36} color="#FFF" />
                         </View>
                         <Text style={styles.carouselCardTitle}>{plan.name}</Text>
                         <Text style={styles.carouselCardPrice}>{plan.price}</Text>
@@ -324,14 +298,14 @@ export default function Abonnements({ navigation }) {
                           ))}
                         </View>
                         {!isSubscribed(plan.id) && (
-                     <TouchableOpacity 
-                         style={styles.carouselButton}
-                         onPress={() => handleProPlanClick(plan.id)}
-                        >
-                         <Text style={styles.carouselButtonText}>
-                         {plan.id === "freemium" ? "Commencer" : "Souscrire"}
-                         </Text>
-                     </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={styles.carouselButton}
+                            onPress={() => handleProPlanClick(plan.id)}
+                          >
+                            <Text style={styles.carouselButtonText}>
+                              {plan.id === "freemium" ? i18n.t("start_free") : i18n.t("subscribe")}
+                            </Text>
+                          </TouchableOpacity>
                         )}
                       </LinearGradient>
                     </TouchableOpacity>
@@ -352,13 +326,13 @@ export default function Abonnements({ navigation }) {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🚀 Boosts</Text>
-                <Text style={styles.sectionSubtitle}>Augmentez votre visibilité</Text>
+                <Text style={styles.sectionTitle}>🚀 {i18n.t("boosts")}</Text>
+                <Text style={styles.sectionSubtitle}>{i18n.t("boost_visibility")}</Text>
                 
                 <TouchableOpacity
                   style={styles.boostCard}
                   activeOpacity={0.8}
-                  onPress={() => handleBoost("Boost 3 jours", "59₪")}
+                  onPress={() => handleBoost(i18n.t("boost_3days"), "59₪")}
                 >
                   <LinearGradient
                     colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
@@ -368,8 +342,8 @@ export default function Abonnements({ navigation }) {
                   >
                     <MaterialCommunityIcons name="rocket-launch" size={28} color="#FFF" />
                     <View style={styles.boostCardContent}>
-                      <Text style={styles.boostCardTitle}>Boost 3 jours</Text>
-                      <Text style={styles.boostCardDesc}>Page d'accueil + Top de votre catégorie</Text>
+                      <Text style={styles.boostCardTitle}>{i18n.t("boost_3days")}</Text>
+                      <Text style={styles.boostCardDesc}>{i18n.t("boost_desc")}</Text>
                     </View>
                     <View style={styles.boostCardPriceContainer}>
                       <Text style={styles.boostCardPrice}>59₪</Text>
@@ -380,7 +354,7 @@ export default function Abonnements({ navigation }) {
                 <TouchableOpacity
                   style={[styles.boostCard, { marginTop: 12 }]}
                   activeOpacity={0.8}
-                  onPress={() => handleBoost("Boost 7 jours", "99₪")}
+                  onPress={() => handleBoost(i18n.t("boost_7days"), "99₪")}
                 >
                   <LinearGradient
                     colors={['#7B1FA2', '#9C27B0', '#BA68C8']}
@@ -390,13 +364,13 @@ export default function Abonnements({ navigation }) {
                   >
                     <MaterialCommunityIcons name="star-shooting" size={28} color="#FFF" />
                     <View style={styles.boostCardContent}>
-                      <Text style={styles.boostCardTitle}>Boost 7 jours</Text>
-                      <Text style={styles.boostCardDesc}>Page d'accueil + Top de votre catégorie</Text>
+                      <Text style={styles.boostCardTitle}>{i18n.t("boost_7days")}</Text>
+                      <Text style={styles.boostCardDesc}>{i18n.t("boost_desc")}</Text>
                     </View>
                     <View style={styles.boostCardPriceContainer}>
                       <Text style={styles.boostCardPrice}>99₪</Text>
                       <View style={styles.boostBadge}>
-                        <Text style={styles.boostBadgeText}>POPULAIRE</Text>
+                        <Text style={styles.boostBadgeText}>{i18n.t("popular")}</Text>
                       </View>
                     </View>
                   </LinearGradient>
@@ -414,8 +388,8 @@ export default function Abonnements({ navigation }) {
                   style={styles.logoImage}
                   resizeMode="contain"
                 />
-                <Text style={styles.headerTitle}>Espace Vendeur</Text>
-                <Text style={styles.headerSubtitle}>{getHeaderText().subtitle}</Text>
+                <Text style={styles.headerTitle}>{i18n.t("vendor_space")}</Text>
+                <Text style={styles.headerSubtitle}>{i18n.t("vendor_subtitle")}</Text>
               </View>
 
               <View style={styles.vendorInfoCard}>
@@ -426,32 +400,32 @@ export default function Abonnements({ navigation }) {
                   end={{ x: 1, y: 1 }}
                 >
                   <MaterialCommunityIcons name="store-check" size={32} color="#4CAF50" />
-                  <Text style={styles.vendorInfoTitle}>🏪 Vendeur CupiDog</Text>
+                  <Text style={styles.vendorInfoTitle}>🏪 {i18n.t("seller")} CupiDog</Text>
                   <View style={styles.vendorInfoList}>
                     <View style={styles.vendorInfoRow}>
                       <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.vendorInfoText}>Produits illimités</Text>
+                      <Text style={styles.vendorInfoText}>{i18n.t("unlimited_products")}</Text>
                     </View>
                     <View style={styles.vendorInfoRow}>
                       <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.vendorInfoText}>Pas d'abonnement mensuel</Text>
+                      <Text style={styles.vendorInfoText}>{i18n.t("no_monthly_fee")}</Text>
                     </View>
                     <View style={styles.vendorInfoRow}>
                       <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.vendorInfoText}>Commission unique : 15% par vente</Text>
+                      <Text style={styles.vendorInfoText}>{i18n.t("commission")}</Text>
                     </View>
                   </View>
                 </LinearGradient>
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🚀 Boostez vos ventes</Text>
-                <Text style={styles.sectionSubtitle}>Mettez vos produits en avant</Text>
+                <Text style={styles.sectionTitle}>🚀 {i18n.t("boost_sales")}</Text>
+                <Text style={styles.sectionSubtitle}>{i18n.t("boost_products")}</Text>
                 
                 <TouchableOpacity
                   style={styles.boostCard}
                   activeOpacity={0.8}
-                  onPress={() => handleBoost("Boost Produit 3 jours", "59₪")}
+                  onPress={() => handleBoost(i18n.t("boost_3days"), "59₪")}
                 >
                   <LinearGradient
                     colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
@@ -461,12 +435,12 @@ export default function Abonnements({ navigation }) {
                   >
                     <MaterialCommunityIcons name="rocket-launch" size={28} color="#FFF" />
                     <View style={styles.boostCardContent}>
-                      <Text style={styles.boostCardTitle}>Boost 3 jours</Text>
-                      <Text style={styles.boostCardDesc}>Page d'accueil + Top de votre catégorie</Text>
+                      <Text style={styles.boostCardTitle}>{i18n.t("boost_3days")}</Text>
+                      <Text style={styles.boostCardDesc}>{i18n.t("boost_desc")}</Text>
                     </View>
                     <View style={styles.boostCardPriceContainer}>
                       <Text style={styles.boostCardPrice}>59₪</Text>
-                      <Text style={styles.boostCardPer}>/ produit</Text>
+                      <Text style={styles.boostCardPer}>{i18n.t("per_product")}</Text>
                     </View>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -474,7 +448,7 @@ export default function Abonnements({ navigation }) {
                 <TouchableOpacity
                   style={[styles.boostCard, { marginTop: 12 }]}
                   activeOpacity={0.8}
-                  onPress={() => handleBoost("Boost Produit 7 jours", "99₪")}
+                  onPress={() => handleBoost(i18n.t("boost_7days"), "99₪")}
                 >
                   <LinearGradient
                     colors={['#7B1FA2', '#9C27B0', '#BA68C8']}
@@ -484,13 +458,13 @@ export default function Abonnements({ navigation }) {
                   >
                     <MaterialCommunityIcons name="star-shooting" size={28} color="#FFF" />
                     <View style={styles.boostCardContent}>
-                      <Text style={styles.boostCardTitle}>Boost 7 jours</Text>
-                      <Text style={styles.boostCardDesc}>Page d'accueil + Top de votre catégorie</Text>
+                      <Text style={styles.boostCardTitle}>{i18n.t("boost_7days")}</Text>
+                      <Text style={styles.boostCardDesc}>{i18n.t("boost_desc")}</Text>
                     </View>
                     <View style={styles.boostCardPriceContainer}>
                       <Text style={styles.boostCardPrice}>99₪</Text>
                       <View style={styles.boostBadge}>
-                        <Text style={styles.boostBadgeText}>POPULAIRE</Text>
+                        <Text style={styles.boostBadgeText}>{i18n.t("popular")}</Text>
                       </View>
                     </View>
                   </LinearGradient>
@@ -504,15 +478,15 @@ export default function Abonnements({ navigation }) {
             <>
               <View style={styles.header}>
                 <MaterialCommunityIcons name="crown" size={48} color="#FFF" />
-                <Text style={styles.headerTitle}>{getHeaderText().title}</Text>
-                <Text style={styles.headerSubtitle}>{getHeaderText().subtitle}</Text>
+                <Text style={styles.headerTitle}>{i18n.t("choose_offer")}</Text>
+                <Text style={styles.headerSubtitle}>{i18n.t("particulier_subtitle")}</Text>
               </View>
 
               <View style={styles.quickActionsRow}>
                 <TouchableOpacity
                   style={styles.quickActionCard}
                   activeOpacity={0.8}
-                  onPress={() => handleBoost("Boost Saillie", hasSubscription() ? "49₪" : "99₪")}
+                  onPress={() => handleBoost("Boost " + i18n.t("stud"), hasSubscription() ? "49₪" : "99₪")}
                 >
                   <LinearGradient
                     colors={["#9C27B0", "#FF6B35", "#FF8C42"]}
@@ -522,7 +496,7 @@ export default function Abonnements({ navigation }) {
                   >
                     <MaterialCommunityIcons name="rocket-launch" size={18} color="#FFF" />
                     <Text style={styles.quickActionBoost}>BOOST</Text>
-                    <Text style={styles.quickActionTitle}>Saillie</Text>
+                    <Text style={styles.quickActionTitle}>{i18n.t("stud")}</Text>
                     <Text style={styles.quickActionPrice}>
                       {hasSubscription() ? "49₪" : "99₪"}
                     </Text>
@@ -532,7 +506,7 @@ export default function Abonnements({ navigation }) {
                 <TouchableOpacity
                   style={styles.quickActionCard}
                   activeOpacity={0.8}
-                  onPress={() => handleBoost("Boost Vente", hasSubscription() ? "39₪" : "69₪")}
+                  onPress={() => handleBoost("Boost " + i18n.t("sale"), hasSubscription() ? "39₪" : "69₪")}
                 >
                   <LinearGradient
                     colors={["#FF6B35", "#FF8C42", "#9C27B0"]}
@@ -542,7 +516,7 @@ export default function Abonnements({ navigation }) {
                   >
                     <MaterialCommunityIcons name="flash" size={18} color="#FFF" />
                     <Text style={styles.quickActionBoost}>BOOST</Text>
-                    <Text style={styles.quickActionTitle}>Vente</Text>
+                    <Text style={styles.quickActionTitle}>{i18n.t("sale")}</Text>
                     <Text style={styles.quickActionPrice}>
                       {hasSubscription() ? "39₪" : "69₪"}
                     </Text>
@@ -551,7 +525,7 @@ export default function Abonnements({ navigation }) {
               </View>
 
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Abonnements</Text>
+                <Text style={styles.sectionTitle}>{i18n.t("subscriptions")}</Text>
 
                 <TouchableOpacity
                   style={styles.card}
@@ -567,22 +541,22 @@ export default function Abonnements({ navigation }) {
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="sale" size={22} color="#1976D2" />
-                        <Text style={styles.cardTitleDark}>Vente</Text>
+                        <Text style={styles.cardTitleDark}>{i18n.t("sale")}</Text>
                       </View>
                     </View>
                     <Text style={styles.cardPriceDark}>99₪</Text>
-                    <Text style={styles.cardDurationDark}>30 jours</Text>
+                    <Text style={styles.cardDurationDark}>30 {i18n.t("days")}</Text>
                     <View style={styles.cardFeatures}>
-                      <Text style={styles.featureTextDark}>• 1 chien en vente</Text>
-                      <Text style={styles.featureTextDark}>• Active 30 jours</Text>
-                      <Text style={styles.featureTextDark}>• Filtres acheteurs</Text>
+                      <Text style={styles.featureTextDark}>• 1 {i18n.t("dogs")}</Text>
+                      <Text style={styles.featureTextDark}>• 30 {i18n.t("days")}</Text>
+                      <Text style={styles.featureTextDark}>• {i18n.t("filter")}</Text>
                     </View>
                     <TouchableOpacity
                       style={styles.buttonDark}
                       onPress={() => handleSelectPlan("Vente", "99₪")}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.buttonDarkText}>Publier</Text>
+                      <Text style={styles.buttonDarkText}>{i18n.t("publish")}</Text>
                     </TouchableOpacity>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -601,22 +575,21 @@ export default function Abonnements({ navigation }) {
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="heart-multiple" size={22} color="#FFF" />
-                        <Text style={styles.cardTitle}>Saillie</Text>
+                        <Text style={styles.cardTitle}>{i18n.t("stud")}</Text>
                       </View>
                     </View>
                     <Text style={styles.cardPrice}>149₪</Text>
-                    <Text style={styles.cardDuration}>30 jours</Text>
+                    <Text style={styles.cardDuration}>30 {i18n.t("days")}</Text>
                     <View style={styles.cardFeatures}>
-                      <Text style={styles.featureText}>• 1 chien saillie</Text>
-                      <Text style={styles.featureText}>• Géolocalisation</Text>
-                      <Text style={styles.featureText}>• Notifications urgentes</Text>
+                      <Text style={styles.featureText}>• 1 {i18n.t("dogs")}</Text>
+                      <Text style={styles.featureText}>• {i18n.t("notifications")}</Text>
                     </View>
                     <TouchableOpacity
                       style={styles.buttonWhite}
                       onPress={() => handleSelectPlan("Saillie", "149₪")}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.buttonWhiteText}>Publier</Text>
+                      <Text style={styles.buttonWhiteText}>{i18n.t("publish")}</Text>
                     </TouchableOpacity>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -634,25 +607,24 @@ export default function Abonnements({ navigation }) {
                     end={{ x: 1, y: 1 }}
                   >
                     <View style={styles.badgePopular}>
-                      <Text style={styles.badgePopularText}>⭐ POPULAIRE</Text>
+                      <Text style={styles.badgePopularText}>⭐ {i18n.t("popular")}</Text>
                     </View>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="star" size={22} color="#757575" />
-                        <Text style={styles.cardTitleDark}>Essentiel</Text>
+                        <Text style={styles.cardTitleDark}>{i18n.t("essential")}</Text>
                       </View>
                       {isSubscribed("essentiel") && (
                         <View style={styles.badgeActive}>
-                          <Text style={styles.badgeActiveText}>✓ Actuel</Text>
+                          <Text style={styles.badgeActiveText}>✓ {i18n.t("current_plan")}</Text>
                         </View>
                       )}
                     </View>
                     <Text style={styles.cardPriceDark}>249₪</Text>
-                    <Text style={styles.cardDurationDark}>par mois</Text>
+                    <Text style={styles.cardDurationDark}>{i18n.t("per_month")}</Text>
                     <View style={styles.cardFeatures}>
-                      <Text style={styles.featureTextDark}>• 3 annonces / mois</Text>
-                      <Text style={styles.featureTextDark}>• 1 boost gratuit / mois</Text>
-                      <Text style={styles.featureTextDark}>• = 83₪ / annonce</Text>
+                      <Text style={styles.featureTextDark}>• 3 {i18n.t("dogs")} / {i18n.t("per_month")}</Text>
+                      <Text style={styles.featureTextDark}>• 1 boost {i18n.t("free")}</Text>
                     </View>
                     {!isSubscribed("essentiel") && (
                       <TouchableOpacity
@@ -660,7 +632,7 @@ export default function Abonnements({ navigation }) {
                         onPress={() => handleSelectPlan("Essentiel", "249₪/mois")}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.buttonDarkText}>S'abonner</Text>
+                        <Text style={styles.buttonDarkText}>{i18n.t("subscribe")}</Text>
                       </TouchableOpacity>
                     )}
                   </LinearGradient>
@@ -681,20 +653,20 @@ export default function Abonnements({ navigation }) {
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="crown" size={22} color="#F57C00" />
-                        <Text style={styles.cardTitleDark}>Premium</Text>
+                        <Text style={styles.cardTitleDark}>{i18n.t("premium")}</Text>
                       </View>
                       {isSubscribed("premium") && (
                         <View style={styles.badgeActive}>
-                          <Text style={styles.badgeActiveText}>✓ Actuel</Text>
+                          <Text style={styles.badgeActiveText}>✓ {i18n.t("current_plan")}</Text>
                         </View>
                       )}
                     </View>
                     <Text style={styles.cardPriceDark}>399₪</Text>
-                    <Text style={styles.cardDurationDark}>par mois</Text>
+                    <Text style={styles.cardDurationDark}>{i18n.t("per_month")}</Text>
                     <View style={styles.cardFeatures}>
-                      <Text style={styles.featureTextDark}>• Annonces illimitées</Text>
-                      <Text style={styles.featureTextDark}>• 3 boosts gratuits / mois</Text>
-                      <Text style={styles.featureTextDark}>• Badge vérifié 👑</Text>
+                      <Text style={styles.featureTextDark}>• {i18n.t("unlimited_products")}</Text>
+                      <Text style={styles.featureTextDark}>• 3 boosts {i18n.t("free")}</Text>
+                      <Text style={styles.featureTextDark}>• Badge 👑</Text>
                     </View>
                     {!isSubscribed("premium") && (
                       <TouchableOpacity
@@ -702,7 +674,7 @@ export default function Abonnements({ navigation }) {
                         onPress={() => handleSelectPlan("Premium", "399₪/mois")}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.buttonDarkText}>S'abonner</Text>
+                        <Text style={styles.buttonDarkText}>{i18n.t("subscribe")}</Text>
                       </TouchableOpacity>
                     )}
                   </LinearGradient>
@@ -713,9 +685,7 @@ export default function Abonnements({ navigation }) {
 
           <View style={styles.footer}>
             <MaterialCommunityIcons name="shield-check" size={20} color="#FFF" />
-            <Text style={styles.footerText}>
-              Paiement sécurisé • Annulation à tout moment
-            </Text>
+            <Text style={styles.footerText}>{i18n.t("secure_payment_footer")}</Text>
           </View>
         </ScrollView>
 
@@ -764,7 +734,7 @@ export default function Abonnements({ navigation }) {
                   </LinearGradient>
 
                   <ScrollView style={styles.modalBody}>
-                    <Text style={styles.modalFeaturesTitle}>Inclus dans l'offre :</Text>
+                    <Text style={styles.modalFeaturesTitle}>{i18n.t("included")}:</Text>
                     {getProPlanDetails(selectedProPlan).features.map((feature, index) => (
                       <View key={index} style={styles.modalFeatureRow}>
                         <MaterialCommunityIcons name="check-circle" size={20} color="#43A047" />
@@ -789,7 +759,7 @@ export default function Abonnements({ navigation }) {
                       style={styles.modalSubscribeButton}
                     >
                       <Text style={styles.modalSubscribeButtonText}>
-                        {selectedProPlan === "freemium" ? "Commencer gratuitement" : "Souscrire à cette offre"}
+                        {selectedProPlan === "freemium" ? i18n.t("start_free") : i18n.t("subscribe_offer")}
                       </Text>
                     </LinearGradient>
                   </TouchableOpacity>

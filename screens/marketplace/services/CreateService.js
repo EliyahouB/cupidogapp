@@ -20,6 +20,7 @@ import { doc, getDoc } from "firebase/firestore";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth } from "../../../config/firebase";
 import { createService } from "../../../utils/marketplace";
+import i18n from "../../../utils/i18n";
 
 export default function CreateService({ navigation }) {
   const user = auth.currentUser;
@@ -38,13 +39,13 @@ export default function CreateService({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const categories = [
-    { id: "veterinaire", name: "Vétérinaire", leadPrices: { pro: 20, pro_plus: 15 } },
-    { id: "toiletteur", name: "Toiletteur", leadPrices: { pro: 18, pro_plus: 13 } },
-    { id: "dogwalker", name: "Dog-walker & Gardiennage", leadPrices: { pro: 12, pro_plus: 8 } },
-    { id: "educateur", name: "Éducateur / Dresseur", leadPrices: { pro: 25, pro_plus: 18 } },
-    { id: "pension", name: "Pension canine", leadPrices: { pro: 20, pro_plus: 15 } },
-    { id: "transport", name: "Transport canin", leadPrices: { pro: 15, pro_plus: 10 } },
-    { id: "photographe", name: "Photographe", leadPrices: { pro: 25, pro_plus: 18 } },
+    { id: "veterinaire", name: i18n.t("veterinarian"), leadPrices: { pro: 20, pro_plus: 15 } },
+    { id: "toiletteur", name: i18n.t("groomer"), leadPrices: { pro: 18, pro_plus: 13 } },
+    { id: "dogwalker", name: i18n.t("dog_walker_boarding"), leadPrices: { pro: 12, pro_plus: 8 } },
+    { id: "educateur", name: i18n.t("trainer_educator"), leadPrices: { pro: 25, pro_plus: 18 } },
+    { id: "pension", name: i18n.t("dog_boarding"), leadPrices: { pro: 20, pro_plus: 15 } },
+    { id: "transport", name: i18n.t("dog_transport"), leadPrices: { pro: 15, pro_plus: 10 } },
+    { id: "photographe", name: i18n.t("photographer"), leadPrices: { pro: 25, pro_plus: 18 } },
   ];
 
   useEffect(() => {
@@ -60,11 +61,11 @@ export default function CreateService({ navigation }) {
       
       if (!proDoc.exists()) {
         Alert.alert(
-          "Compte professionnel requis",
-          "Vous devez d'abord créer un compte professionnel pour proposer des services.",
+          i18n.t("pro_account_required"),
+          i18n.t("pro_account_required_desc"),
           [
-            { text: "Annuler", onPress: () => navigation.goBack(), style: "cancel" },
-            { text: "Créer mon compte", onPress: () => {
+            { text: i18n.t("cancel"), onPress: () => navigation.goBack(), style: "cancel" },
+            { text: i18n.t("create_account"), onPress: () => {
               navigation.goBack();
               navigation.navigate("InscriptionPro");
             }}
@@ -77,23 +78,21 @@ export default function CreateService({ navigation }) {
       
       if (proData.status === "pending") {
         Alert.alert(
-          "Compte en validation",
-          "Votre compte professionnel est en cours de validation (sous 48h).",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
+          i18n.t("account_pending"),
+          i18n.t("account_pending_desc"),
+          [{ text: i18n.t("ok"), onPress: () => navigation.goBack() }]
         );
         return;
       }
 
       if (proData.status === "rejected") {
         Alert.alert(
-          "Compte refusé",
-          `Votre compte a été refusé : ${proData.rejectionReason || "Raison non spécifiée"}`,
-          [{ text: "OK", onPress: () => navigation.goBack() }]
+          i18n.t("account_rejected"),
+          `${i18n.t("account_rejected_reason")} ${proData.rejectionReason || i18n.t("reason_not_specified")}`,
+          [{ text: i18n.t("ok"), onPress: () => navigation.goBack() }]
         );
         return;
       }
-
-      // Si approved, on continue normalement
     } catch (error) {
       console.error("Erreur checkProfessionalAccount:", error);
     }
@@ -103,7 +102,7 @@ export default function CreateService({ navigation }) {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (!permissionResult.granted) {
-      Alert.alert("Permission requise", "Accès à la galerie requis pour ajouter une photo");
+      Alert.alert(i18n.t("permission_required"), i18n.t("gallery_access_required"));
       return;
     }
 
@@ -140,28 +139,26 @@ export default function CreateService({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    // VALIDATION
     if (!formData.businessName.trim()) {
-      Alert.alert("Erreur", "Nom de l'entreprise requis");
+      Alert.alert(i18n.t("error"), i18n.t("company_name_required"));
       return;
     }
     if (!formData.description.trim()) {
-      Alert.alert("Erreur", "Description requise");
+      Alert.alert(i18n.t("error"), i18n.t("description_required"));
       return;
     }
     if (!formData.city.trim()) {
-      Alert.alert("Erreur", "Ville requise");
+      Alert.alert(i18n.t("error"), i18n.t("city_required"));
       return;
     }
     if (!formData.phone.trim()) {
-      Alert.alert("Erreur", "Téléphone requis");
+      Alert.alert(i18n.t("error"), i18n.t("phone_required"));
       return;
     }
 
     setLoading(true);
 
     try {
-      // UPLOAD PHOTO
       const photoURL = await uploadPhoto();
 
       const selectedCategory = categories.find(c => c.id === formData.category);
@@ -192,45 +189,43 @@ export default function CreateService({ navigation }) {
 
       if (result.success) {
         Alert.alert(
-          "Service créé !",
-          "Votre profil professionnel est maintenant actif.",
+          i18n.t("service_created"),
+          i18n.t("professional_profile_active"),
           [
             { 
-              text: "OK", 
+              text: i18n.t("ok"), 
               onPress: () => navigation.navigate("ServicesHome")
             }
           ]
         );
       } else {
-        Alert.alert("Erreur", "Impossible de créer le service.");
+        Alert.alert(i18n.t("error"), i18n.t("error_creating_service"));
       }
     } catch (error) {
       console.error("Erreur handleSubmit:", error);
-      Alert.alert("Erreur", "Une erreur s'est produite.");
+      Alert.alert(i18n.t("error"), i18n.t("error_occurred"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScreenLayout title="Devenir prestataire" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("become_provider")} navigation={navigation} showBack>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* HEADER */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Créez votre profil professionnel</Text>
+            <Text style={styles.headerTitle}>{i18n.t("create_professional_profile")}</Text>
             <Text style={styles.headerSubtitle}>
-              Recevez des demandes de clients et développez votre activité
+              {i18n.t("receive_requests_grow_business")}
             </Text>
           </View>
 
-          {/* PHOTO */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Photo de présentation *</Text>
+            <Text style={styles.label}>{i18n.t("presentation_photo")} *</Text>
             <TouchableOpacity
               style={styles.photoUpload}
               onPress={pickImage}
@@ -240,8 +235,8 @@ export default function CreateService({ navigation }) {
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={40} color="#9CA3AF" />
-                  <Text style={styles.photoPlaceholderText}>Ajouter une photo</Text>
-                  <Text style={styles.photoPlaceholderHint}>Photo professionnelle recommandée</Text>
+                  <Text style={styles.photoPlaceholderText}>{i18n.t("add_photo")}</Text>
+                  <Text style={styles.photoPlaceholderHint}>{i18n.t("professional_photo_recommended")}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -250,14 +245,13 @@ export default function CreateService({ navigation }) {
                 style={styles.changePhotoButton}
                 onPress={pickImage}
               >
-                <Text style={styles.changePhotoText}>Changer la photo</Text>
+                <Text style={styles.changePhotoText}>{i18n.t("change_photo")}</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* CATÉGORIE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Catégorie *</Text>
+            <Text style={styles.label}>{i18n.t("category")} *</Text>
             <View style={styles.categoryGrid}>
               {categories.map((cat) => (
                 <TouchableOpacity
@@ -279,23 +273,21 @@ export default function CreateService({ navigation }) {
             </View>
           </View>
 
-          {/* NOM ENTREPRISE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom de l'entreprise *</Text>
+            <Text style={styles.label}>{i18n.t("company_name")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Clinique Vétérinaire Tel Aviv"
+              placeholder={i18n.t("company_name_example")}
               value={formData.businessName}
               onChangeText={(text) => setFormData({ ...formData, businessName: text })}
             />
           </View>
 
-          {/* DESCRIPTION */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description *</Text>
+            <Text style={styles.label}>{i18n.t("description")} *</Text>
             <TextInput
               style={[styles.input, styles.textarea]}
-              placeholder="Décrivez vos services, votre expérience..."
+              placeholder={i18n.t("describe_services_experience")}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -304,55 +296,50 @@ export default function CreateService({ navigation }) {
             />
           </View>
 
-          {/* VILLE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Ville *</Text>
+            <Text style={styles.label}>{i18n.t("city")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Tel Aviv"
+              placeholder={i18n.t("city_example")}
               value={formData.city}
               onChangeText={(text) => setFormData({ ...formData, city: text })}
             />
           </View>
 
-          {/* TÉLÉPHONE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Téléphone *</Text>
+            <Text style={styles.label}>{i18n.t("phone")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: 054-123-4567"
+              placeholder={i18n.t("phone_example")}
               keyboardType="phone-pad"
               value={formData.phone}
               onChangeText={(text) => setFormData({ ...formData, phone: text })}
             />
           </View>
 
-          {/* EMAIL */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email</Text>
+            <Text style={styles.label}>{i18n.t("email")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="contact@exemple.com"
+              placeholder={i18n.t("email_example")}
               keyboardType="email-address"
               value={formData.email}
               onChangeText={(text) => setFormData({ ...formData, email: text })}
             />
           </View>
 
-          {/* TARIFS */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Fourchette de prix</Text>
+            <Text style={styles.label}>{i18n.t("price_range")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: 200-800₪"
+              placeholder={i18n.t("price_range_example")}
               value={formData.priceRange}
               onChangeText={(text) => setFormData({ ...formData, priceRange: text })}
             />
           </View>
 
-          {/* ABONNEMENT */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Abonnement *</Text>
+            <Text style={styles.label}>{i18n.t("subscription")} *</Text>
             <TouchableOpacity
               style={[
                 styles.aboCard,
@@ -362,10 +349,10 @@ export default function CreateService({ navigation }) {
             >
               <View style={styles.aboHeader}>
                 <Text style={styles.aboName}>PRO</Text>
-                <Text style={styles.aboPrice}>159₪/mois</Text>
+                <Text style={styles.aboPrice}>159₪/{i18n.t("month")}</Text>
               </View>
-              <Text style={styles.aboFeature}>• 5 photos portfolio</Text>
-              <Text style={styles.aboFeature}>• Prix lead normal</Text>
+              <Text style={styles.aboFeature}>• {i18n.t("photos_portfolio", { count: 5 })}</Text>
+              <Text style={styles.aboFeature}>• {i18n.t("normal_lead_price")}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -377,17 +364,16 @@ export default function CreateService({ navigation }) {
             >
               <View style={styles.aboHeader}>
                 <Text style={styles.aboName}>PRO+</Text>
-                <Text style={styles.aboPrice}>299₪/mois</Text>
+                <Text style={styles.aboPrice}>299₪/{i18n.t("month")}</Text>
               </View>
-              <Text style={styles.aboFeature}>• 15 photos portfolio</Text>
-              <Text style={styles.aboFeature}>• Top des résultats</Text>
-              <Text style={styles.aboFeature}>• Prix lead réduit (-30%)</Text>
+              <Text style={styles.aboFeature}>• {i18n.t("photos_portfolio", { count: 15 })}</Text>
+              <Text style={styles.aboFeature}>• {i18n.t("top_results")}</Text>
+              <Text style={styles.aboFeature}>• {i18n.t("reduced_lead_price")}</Text>
             </TouchableOpacity>
           </View>
 
         </ScrollView>
 
-        {/* BOUTON SUBMIT */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.submitButtonContainer}
@@ -402,11 +388,11 @@ export default function CreateService({ navigation }) {
               end={{ x: 1, y: 0 }}
             >
               {loading ? (
-                <Text style={styles.submitButtonText}>Création en cours...</Text>
+                <Text style={styles.submitButtonText}>{i18n.t("creating")}...</Text>
               ) : (
                 <>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#FFF" />
-                  <Text style={styles.submitButtonText}>Créer mon profil</Text>
+                  <Text style={styles.submitButtonText}>{i18n.t("create_my_profile")}</Text>
                 </>
               )}
             </LinearGradient>

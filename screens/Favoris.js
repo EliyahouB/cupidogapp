@@ -23,6 +23,7 @@ import {
 } from "firebase/firestore";
 import ScreenLayout from "../components/ScreenLayout";
 import PremiumBadge from "../components/PremiumBadge";
+import i18n from "../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -89,7 +90,6 @@ export default function Favoris({ navigation, embedded = false }) {
       const dogs = await Promise.all(dogsPromises);
       const validDogs = dogs.filter((dog) => dog !== null);
       
-      // Charger les abonnements des propriétaires
       const ownerIds = [...new Set(validDogs.map(dog => dog.ownerId))];
       const ownersAbonnementsMap = {};
       
@@ -116,12 +116,12 @@ export default function Favoris({ navigation, embedded = false }) {
   const handleContact = async (item) => {
     const user = auth.currentUser;
     if (!user) {
-      alert("Vous devez être connecté");
+      alert(i18n.t("must_be_logged_in"));
       return;
     }
 
     if (user.uid === item.ownerId) {
-      alert("C'est votre propre chien !");
+      alert(i18n.t("your_own_dog"));
       return;
     }
 
@@ -167,7 +167,7 @@ export default function Favoris({ navigation, embedded = false }) {
       });
     } catch (error) {
       console.log("Erreur création conversation:", error);
-      alert("Erreur lors de la création de la conversation");
+      alert(i18n.t("error_creating_conversation"));
     }
   };
 
@@ -201,7 +201,7 @@ export default function Favoris({ navigation, embedded = false }) {
             
             <View style={styles.infoRow}>
               <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
-              <Text style={styles.detail}>{item.age} ans</Text>
+              <Text style={styles.detail}>{item.age} {i18n.t("years_old")}</Text>
             </View>
 
             <View style={styles.infoRow}>
@@ -228,19 +228,16 @@ export default function Favoris({ navigation, embedded = false }) {
     );
   };
 
-  // MODE EMBEDDED (dans LikesHub)
   if (embedded) {
     return (
       <View style={styles.container}>
         {loading ? (
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading")}</Text>
         ) : favoriteDogs.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="heart-outline" size={80} color="#D1D5DB" />
-            <Text style={styles.emptyText}>Aucun favori pour le moment</Text>
-            <Text style={styles.emptySubtext}>
-              Likez des chiens pour les retrouver ici
-            </Text>
+            <Text style={styles.emptyText}>{i18n.t("no_favorites_yet")}</Text>
+            <Text style={styles.emptySubtext}>{i18n.t("like_dogs_to_find_here")}</Text>
           </View>
         ) : (
           <FlatList
@@ -254,19 +251,16 @@ export default function Favoris({ navigation, embedded = false }) {
     );
   }
 
-  // MODE STANDALONE (écran indépendant)
   return (
-    <ScreenLayout title="Favoris" navigation={navigation} active="likes">
+    <ScreenLayout title={i18n.t("favorites")} navigation={navigation} active="likes">
       <View style={styles.container}>
         {loading ? (
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading")}</Text>
         ) : favoriteDogs.length === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialCommunityIcons name="heart-outline" size={80} color="#D1D5DB" />
-            <Text style={styles.emptyText}>Aucun favori pour le moment</Text>
-            <Text style={styles.emptySubtext}>
-              Likez des chiens pour les retrouver ici
-            </Text>
+            <Text style={styles.emptyText}>{i18n.t("no_favorites_yet")}</Text>
+            <Text style={styles.emptySubtext}>{i18n.t("like_dogs_to_find_here")}</Text>
           </View>
         ) : (
           <FlatList

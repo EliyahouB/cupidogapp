@@ -1,4 +1,3 @@
-// screens/auth/ProviderTypeSelect.js
 import React from "react";
 import {
   View,
@@ -9,12 +8,13 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import i18n from "../../utils/i18n";
 
 export default function ProviderTypeSelect({ navigation }) {
   const handleSelect = (providerType) => {
     navigation.navigate("AuthMethods", { 
       userType: "professionnel",
-      providerType: providerType // "prestataire" ou "vendeur"
+      providerType: providerType
     });
   };
 
@@ -29,10 +29,9 @@ export default function ProviderTypeSelect({ navigation }) {
         </TouchableOpacity>
 
         <View style={styles.container}>
-          <Text style={styles.title}>Quel type de{"\n"}professionnel ?</Text>
+          <Text style={styles.title}>{i18n.t("what_type_professional")}</Text>
 
           <View style={styles.cardsContainer}>
-            {/* Prestataire */}
             <TouchableOpacity
               style={styles.card}
               onPress={() => handleSelect("prestataire")}
@@ -40,16 +39,13 @@ export default function ProviderTypeSelect({ navigation }) {
               <View style={styles.iconContainer}>
                 <MaterialCommunityIcons name="medical-bag" size={44} color="#4CAF50" />
               </View>
-              <Text style={styles.cardTitle}>Prestataire de services</Text>
-              <Text style={styles.cardSubtitle}>
-                Vétérinaire, toiletteur, éducateur,{"\n"}pension, dog-sitter...
-              </Text>
+              <Text style={styles.cardTitle}>{i18n.t("service_provider")}</Text>
+              <Text style={styles.cardSubtitle}>{i18n.t("service_provider_examples")}</Text>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>Recevez des clients</Text>
+                <Text style={styles.badgeText}>{i18n.t("receive_clients")}</Text>
               </View>
             </TouchableOpacity>
 
-            {/* Vendeur */}
             <TouchableOpacity
               style={styles.card}
               onPress={() => handleSelect("vendeur")}
@@ -57,12 +53,10 @@ export default function ProviderTypeSelect({ navigation }) {
               <View style={[styles.iconContainer, { backgroundColor: "#FFF3E0" }]}>
                 <MaterialCommunityIcons name="store" size={44} color="#FF9800" />
               </View>
-              <Text style={styles.cardTitle}>Vendeur Marketplace</Text>
-              <Text style={styles.cardSubtitle}>
-                Croquettes, accessoires,{"\n"}jouets, équipements...
-              </Text>
+              <Text style={styles.cardTitle}>{i18n.t("marketplace_seller")}</Text>
+              <Text style={styles.cardSubtitle}>{i18n.t("seller_examples")}</Text>
               <View style={[styles.badge, { backgroundColor: "#FFF3E0" }]}>
-                <Text style={[styles.badgeText, { color: "#FF9800" }]}>Vendez vos produits</Text>
+                <Text style={[styles.badgeText, { color: "#FF9800" }]}>{i18n.t("sell_products")}</Text>
               </View>
             </TouchableOpacity>
           </View>

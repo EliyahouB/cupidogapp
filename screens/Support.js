@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db } from "../config/firebase";
 import { collection, addDoc } from "firebase/firestore";
+import i18n from "../utils/i18n";
 
 export default function Support({ navigation }) {
   const [name, setName] = useState("");
@@ -22,7 +23,7 @@ export default function Support({ navigation }) {
 
   const handleSendMessage = async () => {
     if (!name.trim() || !email.trim() || !message.trim()) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+      Alert.alert(i18n.t("error"), i18n.t("fill_all_fields"));
       return;
     }
 
@@ -40,11 +41,11 @@ export default function Support({ navigation }) {
       });
 
       Alert.alert(
-        "Message envoyé",
-        "Votre message a été envoyé avec succès. Notre équipe vous répondra dans les plus brefs délais.",
+        i18n.t("message_sent"),
+        i18n.t("message_sent_desc"),
         [
           {
-            text: "OK",
+            text: i18n.t("ok"),
             onPress: () => {
               setName("");
               setEmail("");
@@ -54,7 +55,7 @@ export default function Support({ navigation }) {
         ]
       );
     } catch (error) {
-      Alert.alert("Erreur", "Impossible d'envoyer le message. Réessayez plus tard.");
+      Alert.alert(i18n.t("error"), i18n.t("error_sending_message"));
       console.log("Erreur envoi message support:", error);
     } finally {
       setSending(false);
@@ -62,20 +63,20 @@ export default function Support({ navigation }) {
   };
 
   return (
-    <ScreenLayout title="Support" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("support")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
         
         <View style={styles.form}>
-          <Text style={styles.label}>Votre nom</Text>
+          <Text style={styles.label}>{i18n.t("your_name")}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Nom complet"
+            placeholder={i18n.t("full_name")}
             placeholderTextColor="#999"
             value={name}
             onChangeText={setName}
           />
 
-          <Text style={styles.label}>Votre email</Text>
+          <Text style={styles.label}>{i18n.t("your_email")}</Text>
           <TextInput
             style={styles.input}
             placeholder="email@exemple.com"
@@ -86,10 +87,10 @@ export default function Support({ navigation }) {
             onChangeText={setEmail}
           />
 
-          <Text style={styles.label}>Votre message</Text>
+          <Text style={styles.label}>{i18n.t("your_message")}</Text>
           <TextInput
             style={[styles.input, styles.messageInput]}
-            placeholder="Décrivez votre problème ou votre question..."
+            placeholder={i18n.t("describe_problem")}
             placeholderTextColor="#999"
             multiline
             numberOfLines={6}
@@ -102,14 +103,13 @@ export default function Support({ navigation }) {
         <View style={styles.infoBox}>
           <View style={styles.infoHeader}>
             <MaterialCommunityIcons name="information" size={20} color="#FF6B35" />
-            <Text style={styles.infoTitle}>Avant de nous contacter</Text>
+            <Text style={styles.infoTitle}>{i18n.t("before_contact")}</Text>
           </View>
-          <Text style={styles.infoText}>• Consultez notre Centre d'aide</Text>
-          <Text style={styles.infoText}>• Vérifiez votre connexion internet</Text>
-          <Text style={styles.infoText}>• Réponse sous 24-48h</Text>
+          <Text style={styles.infoText}>• {i18n.t("check_help_center")}</Text>
+          <Text style={styles.infoText}>• {i18n.t("check_connection")}</Text>
+          <Text style={styles.infoText}>• {i18n.t("response_time")}</Text>
         </View>
 
-        {/* BOUTON ENVOYER */}
         <TouchableOpacity
           style={styles.sendButtonContainer}
           onPress={handleSendMessage}
@@ -124,7 +124,7 @@ export default function Support({ navigation }) {
           >
             <MaterialCommunityIcons name="send" size={20} color="#FFF" />
             <Text style={styles.sendButtonText}>
-              {sending ? "Envoi en cours..." : "Envoyer le message"}
+              {sending ? i18n.t("sending") : i18n.t("send_message")}
             </Text>
           </LinearGradient>
         </TouchableOpacity>

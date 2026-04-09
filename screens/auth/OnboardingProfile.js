@@ -1,4 +1,3 @@
-// screens/auth/OnboardingProfile.js
 import React, { useState } from "react";
 import {
   View,
@@ -23,6 +22,7 @@ import { auth, db, storage } from "../../config/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getReferralByCode, useReferralCode } from "../../utils/referral";
+import i18n from "../../utils/i18n";
 
 export default function OnboardingProfile({ navigation, route }) {
   const { userType, providerType } = route.params || {};
@@ -33,22 +33,18 @@ export default function OnboardingProfile({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [showDogModal, setShowDogModal] = useState(false);
   
-  // Code parrain
   const [referralCode, setReferralCode] = useState("");
   const [referralValid, setReferralValid] = useState(null);
   const [referralChecking, setReferralChecking] = useState(false);
   const [referrerName, setReferrerName] = useState("");
   
-  // Champs communs
   const [dateOfBirth, setDateOfBirth] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   
-  // Champs profil particulier
   const [gender, setGender] = useState("");
   const [bio, setBio] = useState("");
   const [purpose, setPurpose] = useState("");
   
-  // Champs spécifiques prestataire
   const [activityType, setActivityType] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [ossekNumber, setOssekNumber] = useState("");
@@ -56,42 +52,41 @@ export default function OnboardingProfile({ navigation, route }) {
   const [yearsExperience, setYearsExperience] = useState("");
   const [proBio, setProBio] = useState("");
   
-  // Champs spécifiques vendeur
   const [shopName, setShopName] = useState("");
   const [shopDescription, setShopDescription] = useState("");
   const [vendorOssekNumber, setVendorOssekNumber] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
 
   const activityTypes = [
-    { id: "veterinaire", label: "Vétérinaire", icon: "medical-bag", requiresDoc: true },
-    { id: "toiletteur", label: "Toiletteur", icon: "content-cut", requiresDoc: false },
-    { id: "educateur", label: "Éducateur canin", icon: "school", requiresDoc: false },
-    { id: "pension", label: "Pension / Garde", icon: "home-heart", requiresDoc: false },
-    { id: "dogwalker", label: "Dog Walker", icon: "walk", requiresDoc: false },
-    { id: "taxi", label: "Taxi animalier", icon: "car", requiresDoc: false },
-    { id: "photographe", label: "Photographe", icon: "camera", requiresDoc: false },
+    { id: "veterinaire", label: i18n.t("vet"), icon: "medical-bag", requiresDoc: true },
+    { id: "toiletteur", label: i18n.t("groomer"), icon: "content-cut", requiresDoc: false },
+    { id: "educateur", label: i18n.t("trainer"), icon: "school", requiresDoc: false },
+    { id: "pension", label: i18n.t("boarding"), icon: "home-heart", requiresDoc: false },
+    { id: "dogwalker", label: i18n.t("dog_walker"), icon: "walk", requiresDoc: false },
+    { id: "taxi", label: i18n.t("pet_taxi"), icon: "car", requiresDoc: false },
+    { id: "photographe", label: i18n.t("photographer"), icon: "camera", requiresDoc: false },
   ];
 
   const genderOptions = [
-    { id: "homme", label: "Homme", icon: "gender-male" },
-    { id: "femme", label: "Femme", icon: "gender-female" },
-    { id: "autre", label: "Autre", icon: "gender-non-binary" },
+    { id: "homme", label: i18n.t("male"), icon: "gender-male" },
+    { id: "femme", label: i18n.t("female"), icon: "gender-female" },
+    { id: "autre", label: i18n.t("other"), icon: "gender-non-binary" },
   ];
 
   const purposeOptions = [
-    { id: "rencontre", label: "Rencontres au parc", icon: "dog-side" },
-    { id: "saillie", label: "Saillie / Élevage", icon: "heart-multiple" },
-    { id: "achat", label: "Acheter un chien", icon: "cart" },
-    { id: "vente", label: "Vendre mon chien", icon: "tag" },
-    { id: "tout", label: "Un peu de tout", icon: "all-inclusive" },
+    { id: "rencontre", label: i18n.t("park_meetups"), icon: "dog-side" },
+    { id: "saillie", label: i18n.t("breeding"), icon: "heart-multiple" },
+    { id: "achat", label: i18n.t("buy_dog"), icon: "cart" },
+    { id: "vente", label: i18n.t("sell_dog"), icon: "tag" },
+    { id: "tout", label: i18n.t("all_of_above"), icon: "all-inclusive" },
   ];
 
   const experienceOptions = [
-    { id: "0-1", label: "< 1 an" },
-    { id: "1-3", label: "1-3 ans" },
-    { id: "3-5", label: "3-5 ans" },
-    { id: "5-10", label: "5-10 ans" },
-    { id: "10+", label: "10+ ans" },
+    { id: "0-1", label: "< 1 " + i18n.t("year") },
+    { id: "1-3", label: "1-3 " + i18n.t("years") },
+    { id: "3-5", label: "3-5 " + i18n.t("years") },
+    { id: "5-10", label: "5-10 " + i18n.t("years") },
+    { id: "10+", label: "10+ " + i18n.t("years") },
   ];
 
   const checkReferralCode = async (code) => {
@@ -179,7 +174,7 @@ export default function OnboardingProfile({ navigation, route }) {
 
   const formatDate = (date) => {
     if (!date) return "";
-    return date.toLocaleDateString("fr-FR", {
+    return date.toLocaleDateString(i18n.locale === "he" ? "he-IL" : i18n.locale === "ru" ? "ru-RU" : i18n.locale === "en" ? "en-US" : "fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -244,70 +239,67 @@ export default function OnboardingProfile({ navigation, route }) {
 
   const handleComplete = async () => {
     if (!auth.currentUser) {
-      Alert.alert("Erreur", "Session expirée, veuillez vous reconnecter");
+      Alert.alert(i18n.t("error"), i18n.t("session_expired"));
       return;
     }
 
     if (!name.trim()) {
-      Alert.alert("Erreur", "Veuillez entrer votre nom");
+      Alert.alert(i18n.t("error"), i18n.t("enter_name"));
       return;
     }
 
     if (!city.trim()) {
-      Alert.alert("Erreur", "Veuillez entrer votre ville");
+      Alert.alert(i18n.t("error"), i18n.t("enter_city"));
       return;
     }
 
-    // Validations spécifiques par type
     if (userType === "particulier") {
       if (!gender) {
-        Alert.alert("Erreur", "Veuillez sélectionner votre sexe");
+        Alert.alert(i18n.t("error"), i18n.t("select_gender"));
         return;
       }
       if (!purpose) {
-        Alert.alert("Erreur", "Veuillez sélectionner votre but d'inscription");
+        Alert.alert(i18n.t("error"), i18n.t("select_purpose"));
         return;
       }
     }
 
-    // Validations PRESTATAIRE
     if (userType === "professionnel" && providerType === "prestataire") {
       if (!activityType) {
-        Alert.alert("Erreur", "Veuillez sélectionner votre activité");
+        Alert.alert(i18n.t("error"), i18n.t("select_activity"));
         return;
       }
       if (!dateOfBirth) {
-        Alert.alert("Erreur", "Veuillez entrer votre date de naissance");
+        Alert.alert(i18n.t("error"), i18n.t("enter_dob"));
         return;
       }
       const age = calculateAge(dateOfBirth);
       if (age < 18) {
-        Alert.alert("Erreur", "Vous devez avoir au moins 18 ans");
+        Alert.alert(i18n.t("error"), i18n.t("must_be_18"));
         return;
       }
       if (isActivityRequiresDoc() && !legalDocument) {
-        Alert.alert("Erreur", "Un document légal (diplôme/certification) est obligatoire pour les vétérinaires");
+        Alert.alert(i18n.t("error"), i18n.t("doc_required_vet"));
         return;
       }
     }
 
-    // Validations VENDEUR
     if (userType === "professionnel" && providerType === "vendeur") {
       if (!shopName.trim()) {
-        Alert.alert("Erreur", "Veuillez entrer le nom de votre boutique");
+        Alert.alert(i18n.t("error"), i18n.t("enter_shop_name"));
         return;
       }
       if (!dateOfBirth) {
-        Alert.alert("Erreur", "Veuillez entrer votre date de naissance");
+        Alert.alert(i18n.t("error"), i18n.t("enter_dob"));
         return;
       }
       const age = calculateAge(dateOfBirth);
       if (age < 18) {
-        Alert.alert("Erreur", "Vous devez avoir au moins 18 ans");
+        Alert.alert(i18n.t("error"), i18n.t("must_be_18"));
         return;
       }
       if (!vendorOssekNumber.trim()) {
-        Alert.alert("Erreur", "Le numéro Ossek est obligatoire pour les vendeurs");
+        Alert.alert(i18n.t("error"), i18n.t("ossek_required"));
         return;
       }
     }
@@ -332,7 +324,6 @@ export default function OnboardingProfile({ navigation, route }) {
         updatedAt: new Date(),
       };
 
-      // Champs spécifiques particulier
       if (userType === "particulier" || !userType) {
         updateData.gender = gender;
         updateData.purpose = purpose;
@@ -342,7 +333,6 @@ export default function OnboardingProfile({ navigation, route }) {
         }
       }
 
-      // Champs spécifiques prestataire
       if (userType === "professionnel" && providerType === "prestataire") {
         updateData.activityType = activityType;
         updateData.businessName = businessName.trim() || name.trim();
@@ -354,7 +344,6 @@ export default function OnboardingProfile({ navigation, route }) {
         updateData.bio = proBio.trim() || null;
       }
 
-      // Champs spécifiques vendeur
       if (userType === "professionnel" && providerType === "vendeur") {
         updateData.shopName = shopName.trim();
         updateData.shopDescription = shopDescription.trim() || null;
@@ -363,21 +352,17 @@ export default function OnboardingProfile({ navigation, route }) {
         updateData.whatsappNumber = whatsappNumber.trim() || null;
       }
 
-      // Enregistrer le code parrain utilisé
       if (referralCode && referralValid) {
         updateData.usedReferralCode = referralCode;
       }
 
       await updateDoc(doc(db, "profiles", auth.currentUser.uid), updateData);
 
-      // Utiliser le code parrain si valide
       if (referralCode && referralValid) {
         await useReferralCode(referralCode, auth.currentUser.uid, name.trim());
       }
 
-      // Redirection selon le type
       if (userType === "professionnel" && providerType === "prestataire") {
-        // Prestataire : marquer onboarding complété et aller vers SubscriptionChoice
         await updateDoc(doc(db, "profiles", auth.currentUser.uid), {
           onboardingCompleted: true,
         });
@@ -386,21 +371,20 @@ export default function OnboardingProfile({ navigation, route }) {
           routes: [{ name: "SubscriptionChoice" }],
         });
       } else {
-        // Particulier ou Vendeur : afficher le popup chien
         setShowDogModal(true);
       }
     } catch (e) {
       console.log("ERREUR:", e);
-      Alert.alert("Erreur", "Une erreur est survenue");
+      Alert.alert(i18n.t("error"), i18n.t("error_occurred"));
     } finally {
       setLoading(false);
     }
   };
 
   const getTitle = () => {
-    if (userType === "particulier" || !userType) return "Votre profil";
-    if (providerType === "prestataire") return "Profil Prestataire";
-    return "Profil Vendeur";
+    if (userType === "particulier" || !userType) return i18n.t("your_profile");
+    if (providerType === "prestataire") return i18n.t("provider_profile");
+    return i18n.t("seller_profile");
   };
 
   return (
@@ -408,24 +392,22 @@ export default function OnboardingProfile({ navigation, route }) {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <Text style={styles.title}>{getTitle()}</Text>
-          <Text style={styles.subtitle}>Complétez votre profil pour commencer</Text>
+          <Text style={styles.subtitle}>{i18n.t("complete_profile_to_start")}</Text>
 
           <View style={styles.card}>
-            {/* Photo */}
             <TouchableOpacity style={styles.photoContainer} onPress={pickImage}>
               {photo ? (
                 <Image source={{ uri: photo }} style={styles.photo} />
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={32} color="#999" />
-                  <Text style={styles.photoText}>Ajouter une photo</Text>
+                  <Text style={styles.photoText}>{i18n.t("add_photo")}</Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            {/* Nom */}
             <Text style={styles.label}>
-              {userType === "professionnel" ? "Votre nom complet *" : "Votre nom *"}
+              {userType === "professionnel" ? i18n.t("full_name") + " *" : i18n.t("your_name") + " *"}
             </Text>
             <TextInput
               style={styles.input}
@@ -435,8 +417,7 @@ export default function OnboardingProfile({ navigation, route }) {
               onChangeText={setName}
             />
 
-            {/* Ville */}
-            <Text style={styles.label}>Ville *</Text>
+            <Text style={styles.label}>{i18n.t("city")} *</Text>
             <TextInput
               style={styles.input}
               placeholder="Tel Aviv, Haifa, Jerusalem..."
@@ -445,8 +426,7 @@ export default function OnboardingProfile({ navigation, route }) {
               onChangeText={setCity}
             />
 
-            {/* Code parrain */}
-            <Text style={styles.label}>Code parrain (optionnel)</Text>
+            <Text style={styles.label}>{i18n.t("referral_code_optional")}</Text>
             <View style={styles.referralContainer}>
               <TextInput
                 style={[
@@ -472,24 +452,22 @@ export default function OnboardingProfile({ navigation, route }) {
               )}
             </View>
             {referralValid === true && referrerName && (
-              <Text style={styles.referralSuccess}>Parraine par : {referrerName}</Text>
+              <Text style={styles.referralSuccess}>{i18n.t("referred_by")}: {referrerName}</Text>
             )}
             {referralValid === false && (
-              <Text style={styles.referralError}>Code invalide</Text>
+              <Text style={styles.referralError}>{i18n.t("invalid_code")}</Text>
             )}
 
-            {/* ============ CHAMPS PARTICULIER ============ */}
             {(userType === "particulier" || !userType) && (
               <>
-                {/* Date de naissance */}
-                <Text style={styles.label}>Date de naissance</Text>
+                <Text style={styles.label}>{i18n.t("date_of_birth")}</Text>
                 <TouchableOpacity
                   style={styles.dateButton}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <MaterialCommunityIcons name="calendar" size={20} color="#666" />
                   <Text style={[styles.dateText, !dateOfBirth && styles.datePlaceholder]}>
-                    {dateOfBirth ? formatDate(dateOfBirth) : "Sélectionner une date"}
+                    {dateOfBirth ? formatDate(dateOfBirth) : i18n.t("select_date")}
                   </Text>
                 </TouchableOpacity>
 
@@ -504,8 +482,7 @@ export default function OnboardingProfile({ navigation, route }) {
                   />
                 )}
 
-                {/* Sexe */}
-                <Text style={styles.label}>Sexe *</Text>
+                <Text style={styles.label}>{i18n.t("gender")} *</Text>
                 <View style={styles.optionsRow}>
                   {genderOptions.map((option) => (
                     <TouchableOpacity
@@ -533,8 +510,7 @@ export default function OnboardingProfile({ navigation, route }) {
                   ))}
                 </View>
 
-                {/* But de l'inscription */}
-                <Text style={styles.label}>Pourquoi êtes-vous sur CupiDog ? *</Text>
+                <Text style={styles.label}>{i18n.t("why_cupidog")} *</Text>
                 <View style={styles.purposeGrid}>
                   {purposeOptions.map((option) => (
                     <TouchableOpacity
@@ -562,11 +538,10 @@ export default function OnboardingProfile({ navigation, route }) {
                   ))}
                 </View>
 
-                {/* Bio */}
-                <Text style={styles.label}>Bio / Description (optionnel)</Text>
+                <Text style={styles.label}>{i18n.t("bio_optional")}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Parlez-nous de vous et de votre compagnon..."
+                  placeholder={i18n.t("bio_placeholder")}
                   placeholderTextColor="#999"
                   value={bio}
                   onChangeText={setBio}
@@ -577,18 +552,16 @@ export default function OnboardingProfile({ navigation, route }) {
               </>
             )}
 
-            {/* ============ CHAMPS PRESTATAIRE ============ */}
             {userType === "professionnel" && providerType === "prestataire" && (
               <>
-                {/* Date de naissance */}
-                <Text style={styles.label}>Date de naissance *</Text>
+                <Text style={styles.label}>{i18n.t("date_of_birth")} *</Text>
                 <TouchableOpacity
                   style={styles.dateButton}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <MaterialCommunityIcons name="calendar" size={20} color="#666" />
                   <Text style={[styles.dateText, !dateOfBirth && styles.datePlaceholder]}>
-                    {dateOfBirth ? formatDate(dateOfBirth) : "Sélectionner une date"}
+                    {dateOfBirth ? formatDate(dateOfBirth) : i18n.t("select_date")}
                   </Text>
                 </TouchableOpacity>
 
@@ -603,8 +576,7 @@ export default function OnboardingProfile({ navigation, route }) {
                   />
                 )}
 
-                {/* Type d'activité */}
-                <Text style={styles.label}>Type d'activité *</Text>
+                <Text style={styles.label}>{i18n.t("activity_type")} *</Text>
                 <View style={styles.activityGrid}>
                   {activityTypes.map((activity) => (
                     <TouchableOpacity
@@ -632,19 +604,17 @@ export default function OnboardingProfile({ navigation, route }) {
                   ))}
                 </View>
 
-                {/* Nom entreprise (facultatif) */}
-                <Text style={styles.label}>Nom de l'entreprise (si différent)</Text>
+                <Text style={styles.label}>{i18n.t("business_name_optional")}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ma Clinique Vétérinaire"
+                  placeholder={i18n.t("business_name_placeholder")}
                   placeholderTextColor="#999"
                   value={businessName}
                   onChangeText={setBusinessName}
                 />
 
-                {/* Numéro Ossek */}
                 <Text style={styles.label}>
-                  Numéro Ossek (עוסק מורשה) {isActivityRequiresDoc() ? "" : "(facultatif)"}
+                  {i18n.t("ossek_number")} {isActivityRequiresDoc() ? "" : i18n.t("optional_label")}
                 </Text>
                 <TextInput
                   style={styles.input}
@@ -655,9 +625,8 @@ export default function OnboardingProfile({ navigation, route }) {
                   keyboardType="numeric"
                 />
 
-                {/* Document légal */}
                 <Text style={styles.label}>
-                  Document légal (diplôme/certification) {isActivityRequiresDoc() ? "*" : "(facultatif)"}
+                  {i18n.t("legal_document")} {isActivityRequiresDoc() ? "*" : i18n.t("optional_label")}
                 </Text>
                 <TouchableOpacity style={styles.documentButton} onPress={pickDocument}>
                   <MaterialCommunityIcons 
@@ -666,17 +635,14 @@ export default function OnboardingProfile({ navigation, route }) {
                     color={legalDocument ? "#4CAF50" : "#666"} 
                   />
                   <Text style={[styles.documentText, legalDocument && styles.documentTextSuccess]}>
-                    {legalDocument ? legalDocument.name : "Télécharger un document (PDF ou image)"}
+                    {legalDocument ? legalDocument.name : i18n.t("upload_document")}
                   </Text>
                 </TouchableOpacity>
                 {isActivityRequiresDoc() && (
-                  <Text style={styles.hint}>
-                    ⚠️ Obligatoire pour les vétérinaires - sera vérifié manuellement
-                  </Text>
+                  <Text style={styles.hint}>{i18n.t("doc_required_hint")}</Text>
                 )}
 
-                {/* Années d'expérience */}
-                <Text style={styles.label}>Années d'expérience (facultatif)</Text>
+                <Text style={styles.label}>{i18n.t("years_experience")} {i18n.t("optional_label")}</Text>
                 <View style={styles.experienceRow}>
                   {experienceOptions.map((option) => (
                     <TouchableOpacity
@@ -699,11 +665,10 @@ export default function OnboardingProfile({ navigation, route }) {
                   ))}
                 </View>
 
-                {/* Bio prestataire */}
-                <Text style={styles.label}>Description de vos services (facultatif)</Text>
+                <Text style={styles.label}>{i18n.t("services_description")} {i18n.t("optional_label")}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Décrivez vos services, spécialités, horaires..."
+                  placeholder={i18n.t("services_placeholder")}
                   placeholderTextColor="#999"
                   value={proBio}
                   onChangeText={setProBio}
@@ -714,18 +679,16 @@ export default function OnboardingProfile({ navigation, route }) {
               </>
             )}
 
-            {/* ============ CHAMPS VENDEUR ============ */}
             {userType === "professionnel" && providerType === "vendeur" && (
               <>
-                {/* Date de naissance */}
-                <Text style={styles.label}>Date de naissance *</Text>
+                <Text style={styles.label}>{i18n.t("date_of_birth")} *</Text>
                 <TouchableOpacity
                   style={styles.dateButton}
                   onPress={() => setShowDatePicker(true)}
                 >
                   <MaterialCommunityIcons name="calendar" size={20} color="#666" />
                   <Text style={[styles.dateText, !dateOfBirth && styles.datePlaceholder]}>
-                    {dateOfBirth ? formatDate(dateOfBirth) : "Sélectionner une date"}
+                    {dateOfBirth ? formatDate(dateOfBirth) : i18n.t("select_date")}
                   </Text>
                 </TouchableOpacity>
 
@@ -740,18 +703,16 @@ export default function OnboardingProfile({ navigation, route }) {
                   />
                 )}
 
-                {/* Nom de la boutique */}
-                <Text style={styles.label}>Nom de votre boutique *</Text>
+                <Text style={styles.label}>{i18n.t("shop_name")} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ma Boutique Canine"
+                  placeholder={i18n.t("shop_name_placeholder")}
                   placeholderTextColor="#999"
                   value={shopName}
                   onChangeText={setShopName}
                 />
 
-                {/* Numéro Ossek obligatoire */}
-                <Text style={styles.label}>Numéro Ossek (עוסק מורשה) *</Text>
+                <Text style={styles.label}>{i18n.t("ossek_number")} *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="123456789"
@@ -761,11 +722,10 @@ export default function OnboardingProfile({ navigation, route }) {
                   keyboardType="numeric"
                 />
 
-                {/* Description boutique */}
-                <Text style={styles.label}>Description de votre boutique (facultatif)</Text>
+                <Text style={styles.label}>{i18n.t("shop_description")} {i18n.t("optional_label")}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Décrivez votre boutique, vos produits, spécialités..."
+                  placeholder={i18n.t("shop_description_placeholder")}
                   placeholderTextColor="#999"
                   value={shopDescription}
                   onChangeText={setShopDescription}
@@ -774,8 +734,7 @@ export default function OnboardingProfile({ navigation, route }) {
                   textAlignVertical="top"
                 />
 
-                {/* WhatsApp */}
-                <Text style={styles.label}>Numéro WhatsApp (facultatif)</Text>
+                <Text style={styles.label}>{i18n.t("whatsapp_number")} {i18n.t("optional_label")}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="+972 50 123 4567"
@@ -784,13 +743,10 @@ export default function OnboardingProfile({ navigation, route }) {
                   onChangeText={setWhatsappNumber}
                   keyboardType="phone-pad"
                 />
-                <Text style={styles.hint}>
-                  Les acheteurs pourront vous contacter directement
-                </Text>
+                <Text style={styles.hint}>{i18n.t("whatsapp_hint")}</Text>
               </>
             )}
 
-            {/* Bouton Continuer */}
             <TouchableOpacity
               style={styles.buttonPrimary}
               onPress={handleComplete}
@@ -805,7 +761,7 @@ export default function OnboardingProfile({ navigation, route }) {
                 {loading ? (
                   <ActivityIndicator color="#FFF" />
                 ) : (
-                  <Text style={styles.buttonText}>Commencer l'aventure 🐕</Text>
+                  <Text style={styles.buttonText}>{i18n.t("start_adventure")} 🐕</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
@@ -813,7 +769,6 @@ export default function OnboardingProfile({ navigation, route }) {
         </ScrollView>
       </SafeAreaView>
 
-      {/* MODAL - AVEZ-VOUS UN CHIEN ? */}
       <Modal
         visible={showDogModal}
         transparent={true}
@@ -831,10 +786,8 @@ export default function OnboardingProfile({ navigation, route }) {
               </LinearGradient>
             </View>
 
-            <Text style={styles.modalTitle}>Avez-vous un chien ?</Text>
-            <Text style={styles.modalText}>
-              Créez le profil de votre compagnon pour qu'il puisse rencontrer d'autres chiens !
-            </Text>
+            <Text style={styles.modalTitle}>{i18n.t("have_dog_question")}</Text>
+            <Text style={styles.modalText}>{i18n.t("create_dog_profile_text")}</Text>
 
             <TouchableOpacity
               style={styles.modalButtonPrimary}
@@ -845,7 +798,7 @@ export default function OnboardingProfile({ navigation, route }) {
                 style={styles.modalButtonGradient}
               >
                 <MaterialCommunityIcons name="plus" size={20} color="#FFF" />
-                <Text style={styles.modalButtonTextPrimary}>Oui, créer son profil</Text>
+                <Text style={styles.modalButtonTextPrimary}>{i18n.t("yes_create_profile")}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -853,7 +806,7 @@ export default function OnboardingProfile({ navigation, route }) {
               style={styles.modalButtonSecondary}
               onPress={goToHome}
             >
-              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+              <Text style={styles.modalButtonTextSecondary}>{i18n.t("later")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1149,7 +1102,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
   },
-  // MODAL STYLES
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.7)",

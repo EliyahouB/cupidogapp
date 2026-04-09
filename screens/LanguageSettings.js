@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
-import i18n, { setLocale, availableLocales } from "../config/i18n";
+import i18n, { setLocale, availableLocales } from "../utils/i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LanguageSettings({ navigation }) {
@@ -33,12 +33,11 @@ export default function LanguageSettings({ navigation }) {
     
     Alert.alert(
       i18n.t("success"),
-      i18n.t("language") + " : " + availableLocales.find(l => l.code === locale)?.name,
+      i18n.t("language_changed"),
       [
         {
           text: "OK",
           onPress: () => {
-            // Recharger l'app pour appliquer la langue
             navigation.reset({
               index: 0,
               routes: [{ name: "Home" }],
@@ -49,17 +48,10 @@ export default function LanguageSettings({ navigation }) {
     );
   };
 
-  const isRTL = currentLocale === "he";
-
   return (
     <ScreenLayout title={i18n.t("language")} navigation={navigation} showBack>
       <View style={styles.container}>
-        <Text style={styles.subtitle}>
-          {currentLocale === "fr" && "Choisissez votre langue"}
-          {currentLocale === "en" && "Choose your language"}
-          {currentLocale === "he" && "בחר את השפה שלך"}
-          {currentLocale === "ru" && "Выберите язык"}
-        </Text>
+        <Text style={styles.subtitle}>{i18n.t("select_language")}</Text>
 
         {availableLocales.map((lang) => (
           <TouchableOpacity
@@ -86,12 +78,7 @@ export default function LanguageSettings({ navigation }) {
 
         <View style={styles.infoBox}>
           <MaterialCommunityIcons name="information-outline" size={20} color="#6B7280" />
-          <Text style={styles.infoText}>
-            {currentLocale === "fr" && "L'application redémarrera pour appliquer la nouvelle langue."}
-            {currentLocale === "en" && "The app will restart to apply the new language."}
-            {currentLocale === "he" && "האפליקציה תופעל מחדש כדי להחיל את השפה החדשה."}
-            {currentLocale === "ru" && "Приложение перезапустится для применения нового языка."}
-          </Text>
+          <Text style={styles.infoText}>{i18n.t("restart_app")}</Text>
         </View>
       </View>
     </ScreenLayout>

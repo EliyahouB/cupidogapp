@@ -14,6 +14,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../config/firebase";
+import i18n from "../../../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -57,7 +58,7 @@ export default function ServiceDetails({ route, navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Chargement..." navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("loading")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
         </View>
@@ -67,10 +68,10 @@ export default function ServiceDetails({ route, navigation }) {
 
   if (!service) {
     return (
-      <ScreenLayout title="Erreur" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("error")} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="alert-circle" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyText}>Service introuvable</Text>
+          <Text style={styles.emptyText}>{i18n.t("service_not_found")}</Text>
         </View>
       </ScreenLayout>
     );
@@ -80,7 +81,6 @@ export default function ServiceDetails({ route, navigation }) {
     <ScreenLayout title={service.businessName} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* PHOTOS SLIDER */}
         <View style={styles.photosSection}>
           {service.photos && service.photos.length > 0 ? (
             <>
@@ -99,7 +99,6 @@ export default function ServiceDetails({ route, navigation }) {
                 ))}
               </ScrollView>
               
-              {/* INDICATEURS PHOTOS */}
               {service.photos.length > 1 && (
                 <View style={styles.photoIndicators}>
                   {service.photos.map((_, idx) => (
@@ -121,7 +120,6 @@ export default function ServiceDetails({ route, navigation }) {
           )}
         </View>
 
-        {/* HEADER INFO */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View style={styles.headerLeft}>
@@ -135,28 +133,25 @@ export default function ServiceDetails({ route, navigation }) {
             </View>
           </View>
 
-          {/* RATING */}
           <View style={styles.ratingRow}>
             <MaterialCommunityIcons name="star" size={18} color="#FFD700" />
             <Text style={styles.ratingText}>
-              {service.rating?.toFixed(1) || "Nouveau"}
+              {service.rating?.toFixed(1) || i18n.t("new")}
             </Text>
             {service.reviewsCount > 0 && (
-              <Text style={styles.reviewsCount}>({service.reviewsCount} avis)</Text>
+              <Text style={styles.reviewsCount}>({service.reviewsCount} {i18n.t("reviews")})</Text>
             )}
           </View>
         </View>
 
-        {/* DESCRIPTION */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>À propos</Text>
+          <Text style={styles.sectionTitle}>{i18n.t("about")}</Text>
           <Text style={styles.description}>{service.description}</Text>
         </View>
 
-        {/* SERVICES PROPOSÉS */}
         {service.services && service.services.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Services proposés</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("services_offered")}</Text>
             <View style={styles.servicesTags}>
               {service.services.map((s, idx) => (
                 <View key={idx} style={styles.serviceTag}>
@@ -168,18 +163,17 @@ export default function ServiceDetails({ route, navigation }) {
           </View>
         )}
 
-        {/* INFOS PRATIQUES */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations pratiques</Text>
+          <Text style={styles.sectionTitle}>{i18n.t("practical_info")}</Text>
           
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="map-marker" size={20} color="#1976D2" />
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Localisation</Text>
+              <Text style={styles.infoLabel}>{i18n.t("location")}</Text>
               <Text style={styles.infoValue}>{service.city}</Text>
               {service.zones && service.zones.length > 1 && (
                 <Text style={styles.infoExtra}>
-                  + {service.zones.length - 1} autres villes
+                  + {service.zones.length - 1} {i18n.t("other_cities")}
                 </Text>
               )}
             </View>
@@ -189,7 +183,7 @@ export default function ServiceDetails({ route, navigation }) {
             <View style={styles.infoRow}>
               <MaterialCommunityIcons name="cash" size={20} color="#1976D2" />
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Tarifs</Text>
+                <Text style={styles.infoLabel}>{i18n.t("rates")}</Text>
                 <Text style={styles.infoValue}>{service.priceRange}</Text>
               </View>
             </View>
@@ -199,19 +193,18 @@ export default function ServiceDetails({ route, navigation }) {
             <View style={styles.infoRow}>
               <MaterialCommunityIcons name="phone" size={20} color="#1976D2" />
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Téléphone</Text>
+                <Text style={styles.infoLabel}>{i18n.t("phone")}</Text>
                 <Text style={styles.infoValue}>{service.phone}</Text>
               </View>
             </View>
           )}
         </View>
 
-        {/* STATS PRESTATAIRE (si Pro+) */}
         {service.abonnement === "pro_plus" && (
           <View style={styles.statsSection}>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{service.totalLeadsReceived || 0}</Text>
-              <Text style={styles.statLabel}>Demandes reçues</Text>
+              <Text style={styles.statLabel}>{i18n.t("requests_received")}</Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>
@@ -219,14 +212,13 @@ export default function ServiceDetails({ route, navigation }) {
                   ? Math.round((service.totalLeadsAccepted / service.totalLeadsReceived) * 100) 
                   : 0}%
               </Text>
-              <Text style={styles.statLabel}>Taux de réponse</Text>
+              <Text style={styles.statLabel}>{i18n.t("response_rate")}</Text>
             </View>
           </View>
         )}
 
       </ScrollView>
 
-      {/* BOUTON CONTACT FIXE */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.contactButtonContainer}
@@ -240,7 +232,7 @@ export default function ServiceDetails({ route, navigation }) {
             end={{ x: 1, y: 0 }}
           >
             <MaterialCommunityIcons name="email-fast" size={22} color="#FFF" />
-            <Text style={styles.contactButtonText}>Demander un devis</Text>
+            <Text style={styles.contactButtonText}>{i18n.t("request_quote")}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>

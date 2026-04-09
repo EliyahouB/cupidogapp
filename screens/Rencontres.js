@@ -2,11 +2,12 @@
 import React from "react";
 import { SafeAreaView, ScrollView } from "react-native";
 import Card from "../components/Card";
+import i18n from "../utils/i18n";
 
 export default function Rencontres() {
   const items = [
-    { id: 1, title: "Parc Central", imageUri: null },
-    { id: 2, title: "Sortie Matinale", imageUri: null }
+    { id: 1, title: i18n.t("central_park"), imageUri: null },
+    { id: 2, title: i18n.t("morning_walk"), imageUri: null }
   ];
 
   return (

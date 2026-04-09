@@ -1,4 +1,3 @@
-// screens/auth/Welcome.js
 import React from "react";
 import {
   View,
@@ -9,6 +8,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
+import i18n from "../../utils/i18n";
 
 export default function Welcome({ navigation }) {
   return (
@@ -23,10 +23,8 @@ export default function Welcome({ navigation }) {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.title}>Bienvenue sur CupiDog</Text>
-          <Text style={styles.subtitle}>
-            Rencontres, saillie et services{"\n"}pour votre compagnon
-          </Text>
+          <Text style={styles.title}>{i18n.t("welcome_to_cupidog")}</Text>
+          <Text style={styles.subtitle}>{i18n.t("welcome_subtitle")}</Text>
         </View>
 
         <View style={styles.buttonsContainer}>
@@ -34,31 +32,30 @@ export default function Welcome({ navigation }) {
             style={styles.buttonWhite}
             onPress={() => navigation.navigate("UserTypeSelect")}
           >
-            <Text style={styles.buttonWhiteText}>Créer un compte</Text>
+            <Text style={styles.buttonWhiteText}>{i18n.t("create_account")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.buttonTransparent}
             onPress={() => navigation.navigate("SignIn")}
           >
-            <Text style={styles.buttonTransparentText}>Se connecter</Text>
+            <Text style={styles.buttonTransparentText}>{i18n.t("login")}</Text>
           </TouchableOpacity>
 
-          {/* TEXTE CONDITIONS */}
           <Text style={styles.legalText}>
-            En vous connectant, vous acceptez nos{" "}
+            {i18n.t("by_connecting")}{" "}
             <Text 
               style={styles.legalLink} 
               onPress={() => navigation.navigate("Terms")}
             >
-              Conditions d'utilisation
+              {i18n.t("terms")}
             </Text>
-            {" "}et notre{" "}
+            {" "}{i18n.t("and_our")}{" "}
             <Text 
               style={styles.legalLink} 
               onPress={() => navigation.navigate("PrivacyPolicy")}
             >
-              Politique de confidentialité
+              {i18n.t("privacy_policy")}
             </Text>
           </Text>
         </View>

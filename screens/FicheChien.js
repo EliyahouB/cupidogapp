@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
 
 export default function FicheChien({ route, navigation }) {
   const {
@@ -30,31 +31,31 @@ export default function FicheChien({ route, navigation }) {
           <Image source={{ uri: photoUrl }} style={styles.image} />
         ) : (
           <View style={styles.imagePlaceholder}>
-            <Text style={styles.imageText}>Pas d'image</Text>
+            <Text style={styles.imageText}>{i18n.t("no_image")}</Text>
           </View>
         )}
 
-        <Text style={styles.label}>Race</Text>
+        <Text style={styles.label}>{i18n.t("breed")}</Text>
         <Text style={styles.value}>{breed}</Text>
 
-        <Text style={styles.label}>Âge</Text>
+        <Text style={styles.label}>{i18n.t("age")}</Text>
         <Text style={styles.value}>{age}</Text>
 
-        <Text style={styles.label}>Sexe</Text>
+        <Text style={styles.label}>{i18n.t("gender")}</Text>
         <Text style={styles.value}>{gender}</Text>
 
-        <Text style={styles.label}>Description</Text>
+        <Text style={styles.label}>{i18n.t("description")}</Text>
         <Text style={styles.value}>{description}</Text>
 
-        <Text style={styles.label}>Pedigree</Text>
+        <Text style={styles.label}>{i18n.t("pedigree")}</Text>
         <Text style={styles.value}>{pedigree}</Text>
 
-        <Text style={styles.label}>Concours</Text>
+        <Text style={styles.label}>{i18n.t("contest")}</Text>
         <Text style={styles.value}>{contest}</Text>
 
         {contest === "Oui" && (
           <>
-            <Text style={styles.label}>Résultat</Text>
+            <Text style={styles.label}>{i18n.t("result")}</Text>
             <Text style={styles.value}>{result}</Text>
           </>
         )}
@@ -63,7 +64,7 @@ export default function FicheChien({ route, navigation }) {
           style={styles.button}
           onPress={() => navigation.navigate("Chat", { ownerId, dogName })}
         >
-          <Text style={styles.buttonText}>Contacter le propriétaire</Text>
+          <Text style={styles.buttonText}>{i18n.t("contact_owner")}</Text>
         </TouchableOpacity>
       </ScrollView>
     </ScreenLayout>

@@ -2,53 +2,52 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
 
 export default function HelpCenter({ navigation }) {
   return (
-    <ScreenLayout title="Centre d'aide" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("help_center")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* MENU ACTIONS */}
         <MenuItem
           icon="message-text"
-          label="Contacter le support"
+          label={i18n.t("contact_support")}
           onPress={() => navigation.navigate("Support")}
         />
 
         <MenuItem
           icon="file-document"
-          label="Conditions générales d'utilisation"
+          label={i18n.t("terms")}
           onPress={() => navigation.navigate("Terms")}
         />
 
         <MenuItem
           icon="shield-lock"
-          label="Politique de confidentialité"
+          label={i18n.t("privacy_policy")}
           onPress={() => navigation.navigate("PrivacyPolicy")}
           hideBorder
         />
 
-        {/* FAQ */}
-        <Text style={styles.sectionTitle}>Questions fréquentes</Text>
+        <Text style={styles.sectionTitle}>{i18n.t("faq")}</Text>
 
         <FAQItem
-          question="Comment ajouter mon chien ?"
-          answer="Cliquez sur l'icône patte 🐾 dans la barre de navigation, puis remplissez les informations de votre chien."
+          question={i18n.t("faq_add_dog_q")}
+          answer={i18n.t("faq_add_dog_a")}
         />
 
         <FAQItem
-          question="Comment fonctionne le système de match ?"
-          answer="Lorsque vous likez un chien et que son propriétaire vous like en retour, c'est un match ! Vous pouvez alors discuter."
+          question={i18n.t("faq_match_q")}
+          answer={i18n.t("faq_match_a")}
         />
 
         <FAQItem
-          question="Comment contacter un autre utilisateur ?"
-          answer="Vous pouvez contacter n'importe quel utilisateur depuis la fiche de son chien. Sans réponse, vous êtes limité à 3 messages. Avec un compte gratuit, vous disposez de 10 conversations maximum."
+          question={i18n.t("faq_contact_q")}
+          answer={i18n.t("faq_contact_a")}
         />
 
         <FAQItem
-          question="Comment changer mes paramètres ?"
-          answer="Allez dans Profil › Réglages pour personnaliser vos préférences."
+          question={i18n.t("faq_settings_q")}
+          answer={i18n.t("faq_settings_a")}
         />
 
       </ScrollView>

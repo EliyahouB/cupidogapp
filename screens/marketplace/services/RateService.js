@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { createOrUpdateReview, getReviewByLead } from "../../../utils/marketplace";
+import i18n from "../../../utils/i18n";
 
 export default function RateService({ route, navigation }) {
   const { lead } = route.params;
@@ -23,6 +24,13 @@ export default function RateService({ route, navigation }) {
   useEffect(() => {
     loadExistingRating();
   }, []);
+
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
 
   const loadExistingRating = async () => {
     setLoading(true);
@@ -47,12 +55,12 @@ export default function RateService({ route, navigation }) {
     } else {
       date = new Date(timestamp);
     }
-    return date.toLocaleDateString("fr-FR");
+    return date.toLocaleDateString(getLocale());
   };
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert("Erreur", "Veuillez selectionner une note");
+      Alert.alert(i18n.t("error"), i18n.t("please_select_rating"));
       return;
     }
 
@@ -68,16 +76,16 @@ export default function RateService({ route, navigation }) {
 
       if (result.success) {
         Alert.alert(
-          "Succes",
-          result.updated ? "Votre note a ete mise a jour !" : "Merci pour votre note !",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
+          i18n.t("success"),
+          result.updated ? i18n.t("rating_updated") : i18n.t("thank_you_for_rating"),
+          [{ text: i18n.t("ok"), onPress: () => navigation.goBack() }]
         );
       } else {
-        Alert.alert("Erreur", "Impossible d'enregistrer la note. Reessayez.");
+        Alert.alert(i18n.t("error"), i18n.t("error_saving_rating"));
       }
     } catch (error) {
       console.error("Erreur handleSubmit:", error);
-      Alert.alert("Erreur", "Une erreur s'est produite.");
+      Alert.alert(i18n.t("error"), i18n.t("error_occurred"));
     } finally {
       setSubmitting(false);
     }
@@ -85,18 +93,18 @@ export default function RateService({ route, navigation }) {
 
   const getRatingText = () => {
     switch (rating) {
-      case 1: return "Tres insatisfait";
-      case 2: return "Insatisfait";
-      case 3: return "Correct";
-      case 4: return "Satisfait";
-      case 5: return "Tres satisfait";
-      default: return "Selectionnez une note";
+      case 1: return i18n.t("very_unsatisfied");
+      case 2: return i18n.t("unsatisfied");
+      case 3: return i18n.t("average");
+      case 4: return i18n.t("satisfied");
+      case 5: return i18n.t("very_satisfied");
+      default: return i18n.t("select_rating");
     }
   };
 
   if (loading) {
     return (
-      <ScreenLayout title="Noter le prestataire" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("rate_provider")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
         </View>
@@ -105,7 +113,7 @@ export default function RateService({ route, navigation }) {
   }
 
   return (
-    <ScreenLayout title="Noter le prestataire" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("rate_provider")} navigation={navigation} showBack>
       <View style={styles.container}>
         
         <View style={styles.serviceCard}>
@@ -118,17 +126,17 @@ export default function RateService({ route, navigation }) {
             <MaterialCommunityIcons name="store" size={32} color="#FFF" />
             <View style={styles.serviceInfo}>
               <Text style={styles.serviceName}>{lead.providerName}</Text>
-              <Text style={styles.serviceDate}>Demande du {formatDate(lead.createdAt)}</Text>
+              <Text style={styles.serviceDate}>{i18n.t("request_from")} {formatDate(lead.createdAt)}</Text>
             </View>
           </LinearGradient>
         </View>
 
         <View style={styles.messageBox}>
           <Text style={styles.messageTitle}>
-            {existingRating ? "Modifier votre note" : "Comment s'est passee votre experience ?"}
+            {existingRating ? i18n.t("edit_your_rating") : i18n.t("how_was_your_experience")}
           </Text>
           <Text style={styles.messageText}>
-            {existingRating ? "Vous pouvez modifier votre note a tout moment." : "Votre avis aide les autres utilisateurs."}
+            {existingRating ? i18n.t("can_edit_anytime") : i18n.t("your_review_helps_others")}
           </Text>
         </View>
 
@@ -156,7 +164,7 @@ export default function RateService({ route, navigation }) {
         {existingRating && (
           <View style={styles.existingInfo}>
             <MaterialCommunityIcons name="information" size={20} color="#1976D2" />
-            <Text style={styles.existingText}>Note actuelle : {existingRating.rating}/5</Text>
+            <Text style={styles.existingText}>{i18n.t("current_rating")} : {existingRating.rating}/5</Text>
           </View>
         )}
 
@@ -177,7 +185,7 @@ export default function RateService({ route, navigation }) {
             ) : (
               <View style={styles.submitContent}>
                 <MaterialCommunityIcons name={existingRating ? "pencil" : "check"} size={20} color="#FFF" />
-                <Text style={styles.submitText}>{existingRating ? "Modifier ma note" : "Envoyer ma note"}</Text>
+                <Text style={styles.submitText}>{existingRating ? i18n.t("edit_my_rating") : i18n.t("send_my_rating")}</Text>
               </View>
             )}
           </LinearGradient>

@@ -20,6 +20,7 @@ import {
   getReferralHistory,
   calculateRewards,
 } from "../../../utils/referral";
+import i18n from "../../../utils/i18n";
 
 export default function MyReferral({ navigation }) {
   const user = auth.currentUser;
@@ -31,6 +32,13 @@ export default function MyReferral({ navigation }) {
   useEffect(() => {
     loadReferral();
   }, []);
+
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
 
   const loadReferral = async () => {
     setLoading(true);
@@ -54,13 +62,13 @@ export default function MyReferral({ navigation }) {
     try {
       const result = await createReferralCode(user.uid, "CUPIDOG");
       if (result.success) {
-        Alert.alert("Code cree !", "Votre code parrain : " + result.code);
+        Alert.alert(i18n.t("code_created"), i18n.t("your_referral_code") + " : " + result.code);
         loadReferral();
       } else {
-        Alert.alert("Erreur", result.error);
+        Alert.alert(i18n.t("error"), result.error);
       }
     } catch (error) {
-      Alert.alert("Erreur", "Impossible de creer le code");
+      Alert.alert(i18n.t("error"), i18n.t("error_creating_code"));
     } finally {
       setCreating(false);
     }
@@ -68,13 +76,13 @@ export default function MyReferral({ navigation }) {
 
   const handleCopyCode = async () => {
     await Clipboard.setStringAsync(referral.code);
-    Alert.alert("Copie !", "Code copie dans le presse-papier");
+    Alert.alert(i18n.t("copied"), i18n.t("code_copied_clipboard"));
   };
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: "Rejoins CupiDog avec mon code parrain : " + referral.code + "\n\nTelecharge l'app : https://cupidog.app",
+        message: i18n.t("join_cupidog_with_code") + " : " + referral.code + "\n\n" + i18n.t("download_app") + " : https://cupidog.app",
       });
     } catch (error) {
       console.error("Erreur share:", error);
@@ -89,7 +97,7 @@ export default function MyReferral({ navigation }) {
     } else {
       date = new Date(timestamp);
     }
-    return date.toLocaleDateString("fr-FR", {
+    return date.toLocaleDateString(getLocale(), {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -98,10 +106,10 @@ export default function MyReferral({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Mon Parrainage" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_referral")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading")}...</Text>
         </View>
       </ScreenLayout>
     );
@@ -109,12 +117,12 @@ export default function MyReferral({ navigation }) {
 
   if (!referral) {
     return (
-      <ScreenLayout title="Mon Parrainage" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_referral")} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="account-group" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>Pas encore de code parrain</Text>
+          <Text style={styles.emptyTitle}>{i18n.t("no_referral_code_yet")}</Text>
           <Text style={styles.emptyText}>
-            Creez votre code et gagnez des recompenses pour chaque nouveau membre inscrit avec votre code !
+            {i18n.t("create_code_earn_rewards")}
           </Text>
           <TouchableOpacity
             style={styles.createButton}
@@ -132,7 +140,7 @@ export default function MyReferral({ navigation }) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="plus" size={20} color="#FFF" />
-                  <Text style={styles.createButtonText}>Creer mon code parrain</Text>
+                  <Text style={styles.createButtonText}>{i18n.t("create_my_referral_code")}</Text>
                 </>
               )}
             </LinearGradient>
@@ -145,27 +153,27 @@ export default function MyReferral({ navigation }) {
   const rewards = calculateRewards(referral.points);
 
   return (
-    <ScreenLayout title="Mon Parrainage" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("my_referral")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
 
         {referral.isFounder && (
           <View style={styles.founderBadge}>
             <MaterialCommunityIcons name="star-circle" size={24} color="#FFD700" />
-            <Text style={styles.founderText}>Partenaire Fondateur</Text>
+            <Text style={styles.founderText}>{i18n.t("founding_partner")}</Text>
           </View>
         )}
 
         <View style={styles.codeCard}>
-          <Text style={styles.codeLabel}>Votre code parrain</Text>
+          <Text style={styles.codeLabel}>{i18n.t("your_referral_code")}</Text>
           <Text style={styles.codeValue}>{referral.code}</Text>
           <View style={styles.codeActions}>
             <TouchableOpacity style={styles.codeButton} onPress={handleCopyCode}>
               <MaterialCommunityIcons name="content-copy" size={20} color="#1976D2" />
-              <Text style={styles.codeButtonText}>Copier</Text>
+              <Text style={styles.codeButtonText}>{i18n.t("copy")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.codeButton} onPress={handleShare}>
               <MaterialCommunityIcons name="share-variant" size={20} color="#1976D2" />
-              <Text style={styles.codeButtonText}>Partager</Text>
+              <Text style={styles.codeButtonText}>{i18n.t("share")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -173,89 +181,89 @@ export default function MyReferral({ navigation }) {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{referral.points}</Text>
-            <Text style={styles.statLabel}>Points</Text>
+            <Text style={styles.statLabel}>{i18n.t("points")}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{referral.totalReferrals}</Text>
-            <Text style={styles.statLabel}>Filleuls</Text>
+            <Text style={styles.statLabel}>{i18n.t("referees")}</Text>
           </View>
         </View>
 
         <View style={styles.rewardsCard}>
-          <Text style={styles.rewardsTitle}>Vos recompenses</Text>
+          <Text style={styles.rewardsTitle}>{i18n.t("your_rewards")}</Text>
           
           <View style={styles.rewardRow}>
             <MaterialCommunityIcons name="ticket-confirmation" size={24} color="#1976D2" />
             <View style={styles.rewardInfo}>
-              <Text style={styles.rewardLabel}>Leads offerts gagnes</Text>
-              <Text style={styles.rewardValue}>{referral.freeLeadsEarned || 0} leads</Text>
+              <Text style={styles.rewardLabel}>{i18n.t("free_leads_earned")}</Text>
+              <Text style={styles.rewardValue}>{referral.freeLeadsEarned || 0} {i18n.t("leads")}</Text>
             </View>
           </View>
 
           <View style={styles.rewardRow}>
             <MaterialCommunityIcons name="rocket-launch" size={24} color="#FB8C00" />
             <View style={styles.rewardInfo}>
-              <Text style={styles.rewardLabel}>Boosts gagnes</Text>
-              <Text style={styles.rewardValue}>{referral.boostsEarned || 0} boosts</Text>
+              <Text style={styles.rewardLabel}>{i18n.t("boosts_earned")}</Text>
+              <Text style={styles.rewardValue}>{referral.boostsEarned || 0} {i18n.t("boosts")}</Text>
             </View>
           </View>
 
           <View style={styles.rewardRow}>
             <MaterialCommunityIcons name="calendar-check" size={24} color="#43A047" />
             <View style={styles.rewardInfo}>
-              <Text style={styles.rewardLabel}>Mois gratuits gagnes</Text>
-              <Text style={styles.rewardValue}>{referral.freeMonthsEarned || 0} mois</Text>
+              <Text style={styles.rewardLabel}>{i18n.t("free_months_earned")}</Text>
+              <Text style={styles.rewardValue}>{referral.freeMonthsEarned || 0} {i18n.t("months")}</Text>
             </View>
           </View>
 
           <View style={styles.progressSection}>
-            <Text style={styles.progressTitle}>Prochaines recompenses</Text>
+            <Text style={styles.progressTitle}>{i18n.t("next_rewards")}</Text>
             <View style={styles.progressRow}>
-              <Text style={styles.progressText}>Prochains 2 leads offerts dans</Text>
-              <Text style={styles.progressValue}>{rewards.nextFreeLeads} points</Text>
+              <Text style={styles.progressText}>{i18n.t("next_2_free_leads_in")}</Text>
+              <Text style={styles.progressValue}>{rewards.nextFreeLeads} {i18n.t("points")}</Text>
             </View>
             <View style={styles.progressRow}>
-              <Text style={styles.progressText}>Prochain boost dans</Text>
-              <Text style={styles.progressValue}>{rewards.nextBoost} points</Text>
+              <Text style={styles.progressText}>{i18n.t("next_boost_in")}</Text>
+              <Text style={styles.progressValue}>{rewards.nextBoost} {i18n.t("points")}</Text>
             </View>
             <View style={styles.progressRow}>
-              <Text style={styles.progressText}>Prochain mois gratuit dans</Text>
-              <Text style={styles.progressValue}>{rewards.nextFreeMonth} points</Text>
+              <Text style={styles.progressText}>{i18n.t("next_free_month_in")}</Text>
+              <Text style={styles.progressValue}>{rewards.nextFreeMonth} {i18n.t("points")}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.howItWorks}>
-          <Text style={styles.howTitle}>Comment ca marche ?</Text>
+          <Text style={styles.howTitle}>{i18n.t("how_it_works")}</Text>
           <View style={styles.howStep}>
             <View style={styles.howNumber}>
               <Text style={styles.howNumberText}>1</Text>
             </View>
-            <Text style={styles.howText}>Partagez votre code avec vos clients</Text>
+            <Text style={styles.howText}>{i18n.t("share_code_with_clients")}</Text>
           </View>
           <View style={styles.howStep}>
             <View style={styles.howNumber}>
               <Text style={styles.howNumberText}>2</Text>
             </View>
-            <Text style={styles.howText}>Ils s'inscrivent avec votre code</Text>
+            <Text style={styles.howText}>{i18n.t("they_signup_with_code")}</Text>
           </View>
           <View style={styles.howStep}>
             <View style={styles.howNumber}>
               <Text style={styles.howNumberText}>3</Text>
             </View>
-            <Text style={styles.howText}>Vous gagnez 1 point par inscription</Text>
+            <Text style={styles.howText}>{i18n.t("earn_1_point_per_signup")}</Text>
           </View>
           <View style={styles.howStep}>
             <View style={styles.howNumber}>
               <Text style={styles.howNumberText}>4</Text>
             </View>
-            <Text style={styles.howText}>10 pts = 2 leads, 25 pts = 1 boost, 50 pts = 1 mois gratuit</Text>
+            <Text style={styles.howText}>{i18n.t("points_rewards_info")}</Text>
           </View>
         </View>
 
         {history.length > 0 && (
           <View style={styles.historyCard}>
-            <Text style={styles.historyTitle}>Derniers filleuls</Text>
+            <Text style={styles.historyTitle}>{i18n.t("recent_referees")}</Text>
             {history.slice(0, 5).map((item, index) => (
               <View key={index} style={styles.historyRow}>
                 <MaterialCommunityIcons name="account-check" size={20} color="#43A047" />

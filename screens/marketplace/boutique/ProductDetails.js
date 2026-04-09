@@ -16,6 +16,7 @@ import ScreenLayout from "../../../components/ScreenLayout";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../../config/firebase";
 import { useCart } from "../../../contexts/CartContext";
+import i18n from "../../../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -63,18 +64,18 @@ export default function ProductDetails({ route, navigation }) {
     addToCart(product, quantity);
     
     Alert.alert(
-      "Ajouté au panier ! 🛒",
+      i18n.t("added_to_cart") + " 🛒",
       `${quantity} × ${product.name}`,
       [
-        { text: "Continuer", style: "cancel" },
-        { text: "Voir le panier", onPress: () => navigation.navigate("Cart") }
+        { text: i18n.t("continue"), style: "cancel" },
+        { text: i18n.t("view_cart"), onPress: () => navigation.navigate("Cart") }
       ]
     );
   };
 
   if (loading) {
     return (
-      <ScreenLayout title="Chargement..." navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("loading")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#E91E63" />
         </View>
@@ -84,10 +85,10 @@ export default function ProductDetails({ route, navigation }) {
 
   if (!product) {
     return (
-      <ScreenLayout title="Erreur" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("error")} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="alert-circle" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyText}>Produit introuvable</Text>
+          <Text style={styles.emptyText}>{i18n.t("product_not_found")}</Text>
         </View>
       </ScreenLayout>
     );
@@ -97,7 +98,6 @@ export default function ProductDetails({ route, navigation }) {
     <ScreenLayout title={product.name} navigation={navigation} showBack showCart>
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* PHOTOS SLIDER */}
         <View style={styles.photosSection}>
           {product.photos && product.photos.length > 0 ? (
             <>
@@ -136,15 +136,13 @@ export default function ProductDetails({ route, navigation }) {
             </View>
           )}
 
-          {/* BADGE RUPTURE */}
           {product.stock === 0 && (
             <View style={styles.stockBadge}>
-              <Text style={styles.stockBadgeText}>Rupture de stock</Text>
+              <Text style={styles.stockBadgeText}>{i18n.t("out_of_stock")}</Text>
             </View>
           )}
         </View>
 
-        {/* HEADER INFO */}
         <View style={styles.header}>
           <Text style={styles.productName}>{product.name}</Text>
 
@@ -152,64 +150,58 @@ export default function ProductDetails({ route, navigation }) {
             <Text style={styles.brandText}>{product.brand}</Text>
           )}
 
-          {/* RATING */}
           {product.rating > 0 && (
             <View style={styles.ratingRow}>
               <MaterialCommunityIcons name="star" size={18} color="#FFD700" />
               <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
               {product.reviewsCount > 0 && (
-                <Text style={styles.reviewsCount}>({product.reviewsCount} avis)</Text>
+                <Text style={styles.reviewsCount}>({product.reviewsCount} {i18n.t("reviews")})</Text>
               )}
             </View>
           )}
 
-          {/* PRIX */}
           <View style={styles.priceSection}>
             <Text style={styles.price}>{product.price}₪</Text>
             {product.stock > 0 && (
-              <Text style={styles.stockText}>En stock : {product.stock}</Text>
+              <Text style={styles.stockText}>{i18n.t("in_stock")}: {product.stock}</Text>
             )}
           </View>
         </View>
 
-        {/* DESCRIPTION */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.sectionTitle}>{i18n.t("description")}</Text>
           <Text style={styles.description}>{product.description}</Text>
         </View>
 
-        {/* CARACTÉRISTIQUES */}
         {(product.weight || product.brand) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Caractéristiques</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("characteristics")}</Text>
             {product.brand && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Marque :</Text>
+                <Text style={styles.infoLabel}>{i18n.t("brand")}:</Text>
                 <Text style={styles.infoValue}>{product.brand}</Text>
               </View>
             )}
             {product.weight && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Poids :</Text>
+                <Text style={styles.infoLabel}>{i18n.t("weight")}:</Text>
                 <Text style={styles.infoValue}>{product.weight}</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* VENDEUR */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Vendeur</Text>
+          <Text style={styles.sectionTitle}>{i18n.t("seller")}</Text>
           <View style={styles.sellerCard}>
             <MaterialCommunityIcons name="store" size={24} color="#E91E63" />
             <Text style={styles.sellerName}>{product.sellerName}</Text>
           </View>
         </View>
 
-        {/* QUANTITÉ */}
         {product.stock > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quantité</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("quantity")}</Text>
             <View style={styles.quantityRow}>
               <TouchableOpacity
                 style={styles.quantityButton}
@@ -230,11 +222,10 @@ export default function ProductDetails({ route, navigation }) {
 
       </ScrollView>
 
-      {/* BOUTON AJOUTER AU PANIER */}
       {product.stock > 0 && (
         <View style={styles.footer}>
           <View style={styles.footerPrice}>
-            <Text style={styles.footerPriceLabel}>Total</Text>
+            <Text style={styles.footerPriceLabel}>{i18n.t("total")}</Text>
             <Text style={styles.footerPriceValue}>{product.price * quantity}₪</Text>
           </View>
           <TouchableOpacity
@@ -249,7 +240,7 @@ export default function ProductDetails({ route, navigation }) {
               end={{ x: 1, y: 0 }}
             >
               <MaterialCommunityIcons name="cart-plus" size={22} color="#FFF" />
-              <Text style={styles.addToCartButtonText}>Ajouter au panier</Text>
+              <Text style={styles.addToCartButtonText}>{i18n.t("add_to_cart")}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>

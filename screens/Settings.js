@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 import { ref, listAll, deleteObject } from "firebase/storage";
 import { removeUserId } from "../utils/authStorage";
+import i18n from "../utils/i18n";
 
 export default function Settings() {
   const navigation = useNavigation();
@@ -64,25 +65,25 @@ export default function Settings() {
       const refDoc = doc(db, "profiles", profileId);
       await updateDoc(refDoc, { [field]: value });
     } catch (error) {
-      Alert.alert("Erreur", "Impossible de mettre à jour les réglages.");
+      Alert.alert(i18n.t("error"), i18n.t("error_saving"));
     }
   };
 
   const handleLogout = async () => {
     Alert.alert(
-      "Déconnexion",
-      "Voulez-vous vraiment vous déconnecter ?",
+      i18n.t("logout"),
+      i18n.t("logout_confirm"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Oui",
+          text: i18n.t("yes"),
           style: "destructive",
           onPress: async () => {
             try {
               await removeUserId();
               await signOut(auth);
             } catch (error) {
-              Alert.alert("Erreur", "Impossible de se déconnecter.");
+              Alert.alert(i18n.t("error"), i18n.t("error_logout"));
             }
           },
         },
@@ -90,17 +91,14 @@ export default function Settings() {
     );
   };
 
-  // =============================================
-  // SUPPRESSION COMPLÈTE DU COMPTE (APPLE COMPLIANCE)
-  // =============================================
   const handleDeleteAccount = () => {
     Alert.alert(
-      "🛑 Action Irréversible",
-      "Supprimer ton compte effacera définitivement :\n\n• Ton profil et tes photos\n• Tous tes chiens\n• Tes conversations et messages\n• Tes likes et matchs\n\nEs-tu sûr de vouloir continuer ?",
+      i18n.t("delete_account_title"),
+      i18n.t("delete_account_warning"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Tout supprimer",
+          text: i18n.t("delete_all"),
           style: "destructive",
           onPress: () => confirmFinalDelete(),
         },
@@ -110,12 +108,12 @@ export default function Settings() {
 
   const confirmFinalDelete = () => {
     Alert.alert(
-      "⚠️ Dernière confirmation",
-      "Cette action est DÉFINITIVE et ne peut pas être annulée.",
+      i18n.t("final_confirmation"),
+      i18n.t("action_irreversible"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Supprimer définitivement",
+          text: i18n.t("delete_permanently"),
           style: "destructive",
           onPress: () => executeFullDeletion(),
         },
@@ -131,7 +129,6 @@ export default function Settings() {
     setIsDeleting(true);
 
     try {
-      // 1. SUPPRESSION PHOTOS (Firebase Storage)
       console.log("🗑️ Suppression des photos...");
       try {
         const userFolderRef = ref(storage, `users/${uid}`);
@@ -142,7 +139,6 @@ export default function Settings() {
         console.log("⚠️ Pas de photos ou erreur storage");
       }
 
-      // 2. SUPPRESSION DES CHIENS (sous-collection users/{uid}/dogs)
       console.log("🗑️ Suppression des chiens...");
       const dogsRef = collection(db, "users", uid, "dogs");
       const dogsSnap = await getDocs(dogsRef);
@@ -152,14 +148,12 @@ export default function Settings() {
       });
       await batch1.commit();
 
-      // 3. SUPPRESSION DES CONVERSATIONS ET MESSAGES
       console.log("🗑️ Suppression des conversations...");
       const convsRef = collection(db, "conversations");
       const convsQuery = query(convsRef, where("participants", "array-contains", uid));
       const convsSnap = await getDocs(convsQuery);
       
       for (const convDoc of convsSnap.docs) {
-        // Supprimer tous les messages de cette conversation
         const messagesRef = collection(db, "conversations", convDoc.id, "messages");
         const messagesSnap = await getDocs(messagesRef);
         const batch2 = writeBatch(db);
@@ -167,11 +161,9 @@ export default function Settings() {
           batch2.delete(msgDoc.ref);
         });
         await batch2.commit();
-        // Supprimer la conversation
         await deleteDoc(convDoc.ref);
       }
 
-      // 4. SUPPRESSION DES LIKES (envoyés ET reçus)
       console.log("🗑️ Suppression des likes...");
       const likesRef = collection(db, "likes");
       const likesSentQuery = query(likesRef, where("fromUserId", "==", uid));
@@ -184,7 +176,6 @@ export default function Settings() {
       likesReceivedSnap.docs.forEach((likeDoc) => batch3.delete(likeDoc.ref));
       await batch3.commit();
 
-      // 5. SUPPRESSION DES MATCHS
       console.log("🗑️ Suppression des matchs...");
       const matchesRef = collection(db, "matches");
       const matches1Query = query(matchesRef, where("user1Id", "==", uid));
@@ -197,20 +188,17 @@ export default function Settings() {
       matches2Snap.docs.forEach((matchDoc) => batch4.delete(matchDoc.ref));
       await batch4.commit();
 
-      // 6. SUPPRESSION PROFIL
       console.log("🗑️ Suppression du profil...");
       if (profileId) {
         await deleteDoc(doc(db, "profiles", profileId));
       }
 
-      // 7. SUPPRESSION COMPTE PRO (si existe)
       try {
         await deleteDoc(doc(db, "professional_accounts", uid));
       } catch (e) {
         console.log("⚠️ Pas de compte pro");
       }
 
-      // 8. SUPPRESSION DOCUMENT USERS & FCM TOKEN
       try {
         await deleteDoc(doc(db, "users", uid));
         await deleteDoc(doc(db, "fcm_tokens", uid));
@@ -218,11 +206,10 @@ export default function Settings() {
         console.log("⚠️ Document user inexistant");
       }
 
-      // 9. SUPPRESSION AUTHENTIFICATION FIREBASE
       await deleteUser(user);
       await removeUserId();
       
-      Alert.alert("Compte supprimé", "Toutes tes données ont été effacées. Au revoir !");
+      Alert.alert(i18n.t("account_deleted"), i18n.t("account_deleted_message"));
       
     } catch (error) {
       console.error("❌ Erreur suppression:", error);
@@ -230,34 +217,34 @@ export default function Settings() {
       
       if (error.code === 'auth/requires-recent-login') {
         Alert.alert(
-          "Sécurité", 
-          "Pour supprimer ton compte, tu dois t'être connecté récemment.\n\nDéconnecte-toi, reconnecte-toi, puis réessaie.",
+          i18n.t("security"), 
+          i18n.t("recent_login_required"),
           [
-            { text: "OK" },
-            { text: "Me déconnecter", onPress: () => handleLogout() }
+            { text: i18n.t("ok") },
+            { text: i18n.t("logout"), onPress: () => handleLogout() }
           ]
         );
       } else {
-        Alert.alert("Erreur", "Une erreur est survenue lors de la suppression.");
+        Alert.alert(i18n.t("error"), i18n.t("error_deleting"));
       }
     }
   };
 
   const handleSuspendAccount = () => {
     Alert.alert(
-      "Suspendre mon compte",
-      "Ton profil sera temporairement désactivé.",
+      i18n.t("suspend_account"),
+      i18n.t("suspend_account_desc"),
       [
-        { text: "Annuler", style: "cancel" },
+        { text: i18n.t("cancel"), style: "cancel" },
         {
-          text: "Suspendre",
+          text: i18n.t("suspend"),
           onPress: async () => {
             try {
               const refDoc = doc(db, "profiles", profileId);
               await updateDoc(refDoc, { status: "suspendu" });
-              Alert.alert("Compte suspendu", "Ton compte est maintenant en pause.");
+              Alert.alert(i18n.t("account_suspended"), i18n.t("account_suspended_message"));
             } catch {
-              Alert.alert("Erreur", "Impossible de suspendre le compte.");
+              Alert.alert(i18n.t("error"), i18n.t("error_suspend"));
             }
           },
         },
@@ -265,33 +252,32 @@ export default function Settings() {
     );
   };
 
-  // Écran de chargement pendant la suppression
   if (isDeleting) {
     return (
-      <ScreenLayout title="Suppression..." navigation={navigation}>
+      <ScreenLayout title={i18n.t("deleting")} navigation={navigation}>
         <View style={styles.deletingContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
-          <Text style={styles.deletingText}>Suppression en cours...</Text>
-          <Text style={styles.deletingSubtext}>Ne ferme pas l'application</Text>
+          <Text style={styles.deletingText}>{i18n.t("deleting_in_progress")}</Text>
+          <Text style={styles.deletingSubtext}>{i18n.t("dont_close_app")}</Text>
         </View>
       </ScreenLayout>
     );
   }
 
   return (
-    <ScreenLayout title="Réglages" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("settings")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
         
         <SettingSwitch
-          label="Notifications"
-          description="Active les notifications pour les conversations et les likes."
+          label={i18n.t("notifications")}
+          description={i18n.t("notifications_desc")}
           value={notificationsEnabled}
           onValueChange={(value) => setNotificationsEnabled(value)}
         />
 
         <SettingSwitch
-          label="Mode nomade"
-          description="Rencontrez les personnes proches même en déplacement."
+          label={i18n.t("nomad_mode")}
+          description={i18n.t("nomad_mode_desc")}
           value={nomadMode}
           onValueChange={(value) => {
             setNomadMode(value);
@@ -300,8 +286,8 @@ export default function Settings() {
         />
 
         <SettingSwitch
-          label="Masquer mon profil"
-          description="Ton profil ne sera plus visible par les autres."
+          label={i18n.t("hide_profile")}
+          description={i18n.t("hide_profile_desc")}
           value={hideProfile}
           onValueChange={(value) => {
             setHideProfile(value);
@@ -310,23 +296,23 @@ export default function Settings() {
         />
 
         <SettingButton
-          label="Liste rouge"
-          description="Bloquer un utilisateur (réservé aux abonnés)."
+          label={i18n.t("blocked_users")}
+          description={i18n.t("blocked_users_desc")}
           onPress={() => navigation.navigate("BlockedUsers")}
         />
 
         <SettingButton
-          label="Conditions générales"
+          label={i18n.t("terms")}
           onPress={() => navigation.navigate("Terms")}
         />
 
         <SettingButton
-          label="Suspendre mon compte"
+          label={i18n.t("suspend_account")}
           onPress={handleSuspendAccount}
         />
 
         <SettingButton
-          label="Supprimer mon compte"
+          label={i18n.t("delete_account")}
           onPress={handleDeleteAccount}
           destructive
         />
@@ -343,7 +329,7 @@ export default function Settings() {
             end={{ x: 1, y: 1 }}
           >
             <MaterialCommunityIcons name="logout" size={22} color="#FFF" />
-            <Text style={styles.logoutText}>Déconnexion</Text>
+            <Text style={styles.logoutText}>{i18n.t("logout")}</Text>
           </LinearGradient>
         </TouchableOpacity>
 

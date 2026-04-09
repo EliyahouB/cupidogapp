@@ -1,37 +1,38 @@
 import React from "react";
 import { ScrollView, Text, StyleSheet } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
 
 export default function PrivacyPolicy({ navigation }) {
   return (
-    <ScreenLayout title="Confidentialité" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("privacy")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Politique de Confidentialité</Text>
+        <Text style={styles.title}>{i18n.t("privacy_title")}</Text>
         <Text style={styles.subtitle}>CupiDog</Text>
 
-        <Text style={styles.section}>1. Collecte des données</Text>
-        <Text style={styles.text}>Nous collectons votre adresse e-mail lors de l inscription.</Text>
-        <Text style={styles.text}>Les informations de profil sont stockées de manière sécurisée.</Text>
-        <Text style={styles.text}>Les données de localisation sont collectées uniquement si vous activez cette fonctionnalité.</Text>
+        <Text style={styles.section}>{i18n.t("privacy_section1")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_1_1")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_1_2")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_1_3")}</Text>
 
-        <Text style={styles.section}>2. Utilisation des données</Text>
-        <Text style={styles.text}>Vos données servent à vous connecter avec d autres propriétaires de chiens.</Text>
-        <Text style={styles.text}>Nous utilisons votre localisation pour vous proposer des rencontres à proximité.</Text>
+        <Text style={styles.section}>{i18n.t("privacy_section2")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_2_1")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_2_2")}</Text>
 
-        <Text style={styles.section}>3. Partage des données</Text>
-        <Text style={styles.text}>Vos informations de profil sont visibles par les autres utilisateurs.</Text>
-        <Text style={styles.text}>Nous pouvons partager des données anonymisées avec nos partenaires.</Text>
+        <Text style={styles.section}>{i18n.t("privacy_section3")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_3_1")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_3_2")}</Text>
 
-        <Text style={styles.section}>4. Conservation des données</Text>
-        <Text style={styles.text}>Les messages sont conservés pendant 60 jours maximum.</Text>
-        <Text style={styles.text}>Les données de localisation sont conservées pendant 60 jours.</Text>
+        <Text style={styles.section}>{i18n.t("privacy_section4")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_4_1")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_4_2")}</Text>
 
-        <Text style={styles.section}>5. Vos droits</Text>
-        <Text style={styles.text}>Vous pouvez consulter, modifier ou supprimer vos données à tout moment.</Text>
-        <Text style={styles.text}>Vous pouvez désactiver la collecte de localisation dans les paramètres.</Text>
+        <Text style={styles.section}>{i18n.t("privacy_section5")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_5_1")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_5_2")}</Text>
 
-        <Text style={styles.section}>6. Contact</Text>
-        <Text style={styles.text}>Pour toute question, contactez-nous via le support.</Text>
+        <Text style={styles.section}>{i18n.t("privacy_section6")}</Text>
+        <Text style={styles.text}>{i18n.t("privacy_6_1")}</Text>
       </ScrollView>
     </ScreenLayout>
   );

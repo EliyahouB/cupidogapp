@@ -11,6 +11,7 @@ import {
 import ScreenLayout from "../components/ScreenLayout";
 import { db } from "../config/firebase";
 import { collectionGroup, query, where, getDocs } from "firebase/firestore";
+import i18n from "../utils/i18n";
 
 export default function ListeChiens({ route, navigation }) {
   const { purpose } = route.params;
@@ -49,7 +50,7 @@ export default function ListeChiens({ route, navigation }) {
         <Image source={{ uri: item.photoUrl }} style={styles.image} />
       ) : (
         <View style={styles.imagePlaceholder}>
-          <Text style={styles.imageText}>Pas d'image</Text>
+          <Text style={styles.imageText}>{i18n.t("no_image")}</Text>
         </View>
       )}
       <Text style={styles.name}>{item.dogName}</Text>
@@ -59,14 +60,14 @@ export default function ListeChiens({ route, navigation }) {
   );
 
   return (
-    <ScreenLayout title={`Chiens - ${purpose}`} navigation={navigation}>
+    <ScreenLayout title={`${i18n.t("dogs")} - ${purpose}`} navigation={navigation}>
       {loading ? (
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#ff914d" />
         </View>
       ) : dogs.length === 0 ? (
         <View style={styles.loader}>
-          <Text style={styles.empty}>Aucun chien trouvé</Text>
+          <Text style={styles.empty}>{i18n.t("no_dogs_found")}</Text>
         </View>
       ) : (
         <FlatList

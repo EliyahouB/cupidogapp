@@ -20,6 +20,7 @@ import { doc, getDoc } from "firebase/firestore";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth } from "../../../config/firebase";
 import { createProduct } from "../../../utils/marketplace";
+import i18n from "../../../utils/i18n";
 
 export default function CreateProduct({ navigation }) {
   const user = auth.currentUser;
@@ -37,10 +38,10 @@ export default function CreateProduct({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const categories = [
-    { id: "nourriture", name: "Nourriture", icon: "food" },
-    { id: "jouets", name: "Jouets", icon: "tennis-ball" },
-    { id: "accessoires", name: "Accessoires", icon: "bag-personal" },
-    { id: "hygiene", name: "Hygiène", icon: "spray-bottle" },
+    { id: "nourriture", name: i18n.t("food"), icon: "food" },
+    { id: "jouets", name: i18n.t("toys"), icon: "tennis-ball" },
+    { id: "accessoires", name: i18n.t("accessories"), icon: "bag-personal" },
+    { id: "hygiene", name: i18n.t("hygiene"), icon: "spray-bottle" },
   ];
 
   useEffect(() => {
@@ -56,11 +57,11 @@ export default function CreateProduct({ navigation }) {
       
       if (!proDoc.exists()) {
         Alert.alert(
-          "Compte professionnel requis",
-          "Vous devez d'abord créer un compte professionnel pour vendre des produits.",
+          i18n.t("pro_account_required"),
+          i18n.t("pro_account_required_desc"),
           [
-            { text: "Annuler", onPress: () => navigation.goBack(), style: "cancel" },
-            { text: "Créer mon compte", onPress: () => {
+            { text: i18n.t("cancel"), onPress: () => navigation.goBack(), style: "cancel" },
+            { text: i18n.t("create_my_account"), onPress: () => {
               navigation.goBack();
               navigation.navigate("InscriptionPro");
             }}
@@ -73,33 +74,30 @@ export default function CreateProduct({ navigation }) {
       
       if (proData.status === "pending") {
         Alert.alert(
-          "Compte en validation",
-          "Votre compte professionnel est en cours de validation (sous 48h).",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
+          i18n.t("account_pending"),
+          i18n.t("account_pending_desc"),
+          [{ text: i18n.t("ok"), onPress: () => navigation.goBack() }]
         );
         return;
       }
 
       if (proData.status === "rejected") {
         Alert.alert(
-          "Compte refusé",
-          `Votre compte a été refusé : ${proData.rejectionReason || "Raison non spécifiée"}`,
-          [{ text: "OK", onPress: () => navigation.goBack() }]
+          i18n.t("account_rejected"),
+          `${i18n.t("account_rejected_reason")}: ${proData.rejectionReason || i18n.t("not_specified")}`,
+          [{ text: i18n.t("ok"), onPress: () => navigation.goBack() }]
         );
         return;
       }
 
-      // Vérifier que c'est bien un vendeur
       if (proData.activityType !== "seller") {
         Alert.alert(
-          "Type de compte incorrect",
-          "Votre compte professionnel est configuré pour les services. Pour vendre des produits, veuillez créer un compte de type 'Vendeur'.",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
+          i18n.t("wrong_account_type"),
+          i18n.t("wrong_account_type_desc"),
+          [{ text: i18n.t("ok"), onPress: () => navigation.goBack() }]
         );
         return;
       }
-
-      // Si approved et seller, on continue normalement
     } catch (error) {
       console.error("Erreur checkProfessionalAccount:", error);
     }
@@ -109,7 +107,7 @@ export default function CreateProduct({ navigation }) {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (!permissionResult.granted) {
-      Alert.alert("Permission requise", "Accès à la galerie requis pour ajouter une photo");
+      Alert.alert(i18n.t("permission_required"), i18n.t("gallery_access_required"));
       return;
     }
 
@@ -146,33 +144,31 @@ export default function CreateProduct({ navigation }) {
   };
 
   const handleSubmit = async () => {
-    // VALIDATION
     if (!formData.name.trim()) {
-      Alert.alert("Erreur", "Nom du produit requis");
+      Alert.alert(i18n.t("error"), i18n.t("product_name_required"));
       return;
     }
     if (!formData.description.trim()) {
-      Alert.alert("Erreur", "Description requise");
+      Alert.alert(i18n.t("error"), i18n.t("description_required"));
       return;
     }
     if (!formData.price || isNaN(formData.price) || parseFloat(formData.price) <= 0) {
-      Alert.alert("Erreur", "Prix valide requis");
+      Alert.alert(i18n.t("error"), i18n.t("valid_price_required"));
       return;
     }
     if (!formData.stock || isNaN(formData.stock) || parseInt(formData.stock) < 0) {
-      Alert.alert("Erreur", "Stock valide requis");
+      Alert.alert(i18n.t("error"), i18n.t("valid_stock_required"));
       return;
     }
 
     setLoading(true);
 
     try {
-      // UPLOAD PHOTO
       const photoURL = await uploadPhoto();
 
       const productData = {
         sellerId: user.uid,
-        sellerName: user.displayName || "Vendeur",
+        sellerName: user.displayName || i18n.t("seller"),
         category: formData.category,
         name: formData.name,
         description: formData.description,
@@ -190,49 +186,45 @@ export default function CreateProduct({ navigation }) {
 
       if (result.success) {
         Alert.alert(
-          "Produit créé !",
-          `Votre produit est maintenant en vente.\n\nVous recevrez 80% du prix (${(productData.price * 0.8).toFixed(0)}₪ par vente)`,
+          i18n.t("product_created"),
+          i18n.t("product_created_desc", { amount: (productData.price * 0.8).toFixed(0) }),
           [
             { 
-              text: "OK", 
+              text: i18n.t("ok"), 
               onPress: () => navigation.navigate("BoutiqueHome")
             }
           ]
         );
       } else {
-        Alert.alert("Erreur", "Impossible de créer le produit.");
+        Alert.alert(i18n.t("error"), i18n.t("error_creating_product"));
       }
     } catch (error) {
       console.error("Erreur handleSubmit:", error);
-      Alert.alert("Erreur", "Une erreur s'est produite.");
+      Alert.alert(i18n.t("error"), i18n.t("error_occurred"));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <ScreenLayout title="Vendre un produit" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("sell_product")} navigation={navigation} showBack>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* HEADER */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Ajoutez votre produit</Text>
-            <Text style={styles.headerSubtitle}>
-              Vous recevrez 80% du prix de vente
-            </Text>
+            <Text style={styles.headerTitle}>{i18n.t("add_your_product")}</Text>
+            <Text style={styles.headerSubtitle}>{i18n.t("you_receive_80")}</Text>
             <View style={styles.commissionBadge}>
               <MaterialCommunityIcons name="cash-multiple" size={20} color="#43A047" />
-              <Text style={styles.commissionText}>Commission CupiDog : 20%</Text>
+              <Text style={styles.commissionText}>{i18n.t("cupidog_commission")}: 20%</Text>
             </View>
           </View>
 
-          {/* PHOTO */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Photo du produit *</Text>
+            <Text style={styles.label}>{i18n.t("product_photo")} *</Text>
             <TouchableOpacity
               style={styles.photoUpload}
               onPress={pickImage}
@@ -242,8 +234,8 @@ export default function CreateProduct({ navigation }) {
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <MaterialCommunityIcons name="camera-plus" size={40} color="#9CA3AF" />
-                  <Text style={styles.photoPlaceholderText}>Ajouter une photo</Text>
-                  <Text style={styles.photoPlaceholderHint}>Photo claire sur fond neutre</Text>
+                  <Text style={styles.photoPlaceholderText}>{i18n.t("add_photo")}</Text>
+                  <Text style={styles.photoPlaceholderHint}>{i18n.t("clear_photo_hint")}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -252,14 +244,13 @@ export default function CreateProduct({ navigation }) {
                 style={styles.changePhotoButton}
                 onPress={pickImage}
               >
-                <Text style={styles.changePhotoText}>Changer la photo</Text>
+                <Text style={styles.changePhotoText}>{i18n.t("change_photo")}</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* CATÉGORIE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Catégorie *</Text>
+            <Text style={styles.label}>{i18n.t("category")} *</Text>
             <View style={styles.categoryGrid}>
               {categories.map((cat) => (
                 <TouchableOpacity
@@ -286,23 +277,21 @@ export default function CreateProduct({ navigation }) {
             </View>
           </View>
 
-          {/* NOM PRODUIT */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom du produit *</Text>
+            <Text style={styles.label}>{i18n.t("product_name")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Royal Canin Maxi Adult 15kg"
+              placeholder={i18n.t("product_name_example")}
               value={formData.name}
               onChangeText={(text) => setFormData({ ...formData, name: text })}
             />
           </View>
 
-          {/* DESCRIPTION */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Description *</Text>
+            <Text style={styles.label}>{i18n.t("description")} *</Text>
             <TextInput
               style={[styles.input, styles.textarea]}
-              placeholder="Décrivez votre produit en détail..."
+              placeholder={i18n.t("describe_product")}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -311,9 +300,8 @@ export default function CreateProduct({ navigation }) {
             />
           </View>
 
-          {/* PRIX */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Prix de vente *</Text>
+            <Text style={styles.label}>{i18n.t("selling_price")} *</Text>
             <View style={styles.priceInputContainer}>
               <TextInput
                 style={styles.priceInput}
@@ -327,45 +315,42 @@ export default function CreateProduct({ navigation }) {
             {formData.price && !isNaN(formData.price) && parseFloat(formData.price) > 0 && (
               <View style={styles.calculationBox}>
                 <Text style={styles.calculationText}>
-                  💰 Vous recevrez : {(parseFloat(formData.price) * 0.8).toFixed(0)}₪
+                  💰 {i18n.t("you_will_receive")}: {(parseFloat(formData.price) * 0.8).toFixed(0)}₪
                 </Text>
                 <Text style={styles.calculationSubtext}>
-                  Commission CupiDog : {(parseFloat(formData.price) * 0.2).toFixed(0)}₪
+                  {i18n.t("cupidog_commission")}: {(parseFloat(formData.price) * 0.2).toFixed(0)}₪
                 </Text>
               </View>
             )}
           </View>
 
-          {/* STOCK */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Stock disponible *</Text>
+            <Text style={styles.label}>{i18n.t("available_stock")} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: 10"
+              placeholder={i18n.t("stock_example")}
               keyboardType="numeric"
               value={formData.stock}
               onChangeText={(text) => setFormData({ ...formData, stock: text })}
             />
           </View>
 
-          {/* MARQUE */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Marque (optionnel)</Text>
+            <Text style={styles.label}>{i18n.t("brand_optional")}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Ex: Royal Canin"
+              placeholder={i18n.t("brand_example")}
               value={formData.brand}
               onChangeText={(text) => setFormData({ ...formData, brand: text })}
             />
           </View>
 
-          {/* POIDS (pour nourriture) */}
           {formData.category === "nourriture" && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Poids (optionnel)</Text>
+              <Text style={styles.label}>{i18n.t("weight_optional")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: 15kg"
+                placeholder={i18n.t("weight_example")}
                 value={formData.weight}
                 onChangeText={(text) => setFormData({ ...formData, weight: text })}
               />
@@ -374,7 +359,6 @@ export default function CreateProduct({ navigation }) {
 
         </ScrollView>
 
-        {/* BOUTON SUBMIT */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.submitButtonContainer}
@@ -389,11 +373,11 @@ export default function CreateProduct({ navigation }) {
               end={{ x: 1, y: 0 }}
             >
               {loading ? (
-                <Text style={styles.submitButtonText}>Publication en cours...</Text>
+                <Text style={styles.submitButtonText}>{i18n.t("publishing")}</Text>
               ) : (
                 <>
                   <MaterialCommunityIcons name="check-circle" size={20} color="#FFF" />
-                  <Text style={styles.submitButtonText}>Publier le produit</Text>
+                  <Text style={styles.submitButtonText}>{i18n.t("publish_product")}</Text>
                 </>
               )}
             </LinearGradient>

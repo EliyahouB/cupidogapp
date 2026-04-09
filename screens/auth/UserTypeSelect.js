@@ -1,4 +1,3 @@
-// screens/auth/UserTypeSelect.js
 import React from "react";
 import {
   View,
@@ -9,6 +8,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import i18n from "../../utils/i18n";
 
 export default function UserTypeSelect({ navigation }) {
   const handleSelect = (userType) => {
@@ -30,10 +30,9 @@ export default function UserTypeSelect({ navigation }) {
         </TouchableOpacity>
 
         <View style={styles.container}>
-          <Text style={styles.title}>Comment souhaitez-vous{"\n"}utiliser CupiDog ?</Text>
+          <Text style={styles.title}>{i18n.t("how_use_cupidog")}</Text>
 
           <View style={styles.cardsContainer}>
-            {/* Particulier */}
             <TouchableOpacity
               style={styles.card}
               onPress={() => handleSelect("particulier")}
@@ -41,13 +40,10 @@ export default function UserTypeSelect({ navigation }) {
               <View style={styles.iconContainer}>
                 <MaterialCommunityIcons name="dog" size={48} color="#FF6B6B" />
               </View>
-              <Text style={styles.cardTitle}>Je suis propriétaire</Text>
-              <Text style={styles.cardSubtitle}>
-                Rencontres, saillie, vente{"\n"}de mon chien
-              </Text>
+              <Text style={styles.cardTitle}>{i18n.t("i_am_owner")}</Text>
+              <Text style={styles.cardSubtitle}>{i18n.t("owner_subtitle")}</Text>
             </TouchableOpacity>
 
-            {/* Professionnel */}
             <TouchableOpacity
               style={styles.card}
               onPress={() => handleSelect("professionnel")}
@@ -55,10 +51,8 @@ export default function UserTypeSelect({ navigation }) {
               <View style={[styles.iconContainer, { backgroundColor: "#E3F2FD" }]}>
                 <MaterialCommunityIcons name="star" size={48} color="#1976D2" />
               </View>
-              <Text style={styles.cardTitle}>Je suis professionnel</Text>
-              <Text style={styles.cardSubtitle}>
-                Vétérinaire, toiletteur,{"\n"}vendeur de produits...
-              </Text>
+              <Text style={styles.cardTitle}>{i18n.t("i_am_professional")}</Text>
+              <Text style={styles.cardSubtitle}>{i18n.t("professional_subtitle")}</Text>
             </TouchableOpacity>
           </View>
         </View>

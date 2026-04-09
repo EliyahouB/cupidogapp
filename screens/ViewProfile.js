@@ -14,6 +14,7 @@ import ScreenLayout from "../components/ScreenLayout";
 import PremiumBadge from "../components/PremiumBadge";
 import { db } from "../config/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import i18n from "../utils/i18n";
 
 export default function ViewProfile({ route, navigation }) {
   const { profileId, userId } = route.params;
@@ -84,7 +85,7 @@ export default function ViewProfile({ route, navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Profil" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("profile")} navigation={navigation} showBack>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B35" />
         </View>
@@ -94,10 +95,10 @@ export default function ViewProfile({ route, navigation }) {
 
   if (!profile) {
     return (
-      <ScreenLayout title="Profil" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("profile")} navigation={navigation} showBack>
         <View style={styles.loadingContainer}>
           <MaterialCommunityIcons name="account-off" size={60} color="#9CA3AF" />
-          <Text style={styles.errorText}>Profil introuvable</Text>
+          <Text style={styles.errorText}>{i18n.t("profile_not_found")}</Text>
         </View>
       </ScreenLayout>
     );
@@ -106,9 +107,8 @@ export default function ViewProfile({ route, navigation }) {
   const age = calculateAge(profile.dateOfBirth);
 
   return (
-    <ScreenLayout title="Profil" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("profile")} navigation={navigation} showBack>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* HEADER PROFIL */}
         <View style={styles.profileHeader}>
           {profile.photoUrl ? (
             <Image source={{ uri: profile.photoUrl }} style={styles.avatar} />
@@ -120,12 +120,11 @@ export default function ViewProfile({ route, navigation }) {
 
           <View style={styles.nameContainer}>
             <Text style={styles.name}>
-              {profile.name || profile.displayName || "Utilisateur"}
+              {profile.name || profile.displayName || i18n.t("user")}
             </Text>
             <PremiumBadge abonnement={profile.abonnement || "gratuit"} size="medium" />
           </View>
 
-          {/* INFOS */}
           <View style={styles.infoContainer}>
             {profile.city && (
               <View style={styles.infoRow}>
@@ -137,7 +136,7 @@ export default function ViewProfile({ route, navigation }) {
             {age && (
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="cake-variant" size={18} color="#6B7280" />
-                <Text style={styles.infoText}>{age} ans</Text>
+                <Text style={styles.infoText}>{age} {i18n.t("years_old")}</Text>
               </View>
             )}
 
@@ -153,7 +152,6 @@ export default function ViewProfile({ route, navigation }) {
             )}
           </View>
 
-          {/* BIO */}
           {profile.bio && (
             <View style={styles.bioContainer}>
               <Text style={styles.bioText}>{profile.bio}</Text>
@@ -161,11 +159,10 @@ export default function ViewProfile({ route, navigation }) {
           )}
         </View>
 
-        {/* CHIENS */}
         {dogs.length > 0 && (
           <View style={styles.dogsSection}>
             <Text style={styles.sectionTitle}>
-              {dogs.length === 1 ? "Son chien" : "Ses chiens"}
+              {dogs.length === 1 ? i18n.t("his_dog") : i18n.t("his_dogs")}
             </Text>
 
             {dogs.map((dog) => (
@@ -203,11 +200,10 @@ export default function ViewProfile({ route, navigation }) {
           </View>
         )}
 
-        {/* MESSAGE SI PAS DE CHIENS */}
         {dogs.length === 0 && (
           <View style={styles.noDogsContainer}>
             <MaterialCommunityIcons name="dog-side-off" size={40} color="#D1D5DB" />
-            <Text style={styles.noDogsText}>Aucun chien enregistré</Text>
+            <Text style={styles.noDogsText}>{i18n.t("no_dogs_registered")}</Text>
           </View>
         )}
       </ScrollView>
@@ -230,7 +226,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 12,
   },
-  // HEADER PROFIL
   profileHeader: {
     backgroundColor: "#F5F5F7",
     borderRadius: 16,
@@ -299,7 +294,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "center",
   },
-  // SECTION CHIENS
   dogsSection: {
     marginTop: 8,
   },

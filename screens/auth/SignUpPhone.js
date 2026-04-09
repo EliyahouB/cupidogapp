@@ -1,4 +1,3 @@
-// screens/auth/SignUpPhone.js
 import React, { useState, useRef } from "react";
 import {
   View,
@@ -19,6 +18,7 @@ import { PhoneAuthProvider, signInWithCredential } from "firebase/auth";
 import { auth, db } from "../../config/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import app from "../../config/firebase";
+import i18n from "../../utils/i18n";
 
 const COUNTRIES = [
   { code: "+972", flag: "🇮🇱", name: "Israël" },
@@ -56,7 +56,7 @@ export default function SignUpPhone({ navigation, route }) {
 
   const handleSendCode = async () => {
     if (!phoneNumber || phoneNumber.length < 9) {
-      Alert.alert("Erreur", "Veuillez entrer un numéro de téléphone valide");
+      Alert.alert(i18n.t("error"), i18n.t("enter_valid_phone"));
       return;
     }
 
@@ -73,15 +73,15 @@ export default function SignUpPhone({ navigation, route }) {
       
       setVerificationId(id);
       setStep(2);
-      Alert.alert("Code envoyé", "Un code de vérification a été envoyé au " + formattedPhone);
+      Alert.alert(i18n.t("code_sent"), i18n.t("code_sent_to") + " " + formattedPhone);
     } catch (e) {
       console.log("ERREUR SMS:", e.code, e.message);
-      let message = "Erreur lors de l'envoi du code";
-      if (e.code === "auth/invalid-phone-number") message = "Numéro de téléphone invalide";
-      if (e.code === "auth/too-many-requests") message = "Trop de tentatives, réessayez plus tard";
-      if (e.code === "auth/captcha-check-failed") message = "Vérification captcha échouée";
-      if (e.message.includes("region")) message = "Cette région n'est pas encore activée. Contactez le support.";
-      Alert.alert("Erreur", message);
+      let message = i18n.t("error_sending_sms");
+      if (e.code === "auth/invalid-phone-number") message = i18n.t("invalid_phone");
+      if (e.code === "auth/too-many-requests") message = i18n.t("too_many_requests");
+      if (e.code === "auth/captcha-check-failed") message = i18n.t("captcha_failed");
+      if (e.message.includes("region")) message = i18n.t("region_not_activated");
+      Alert.alert(i18n.t("error"), message);
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function SignUpPhone({ navigation, route }) {
 
   const handleVerifyCode = async () => {
     if (!verificationCode || verificationCode.length !== 6) {
-      Alert.alert("Erreur", "Veuillez entrer le code à 6 chiffres");
+      Alert.alert(i18n.t("error"), i18n.t("enter_6_digit_code"));
       return;
     }
 
@@ -106,9 +106,9 @@ export default function SignUpPhone({ navigation, route }) {
 
       if (profileSnap.exists()) {
         Alert.alert(
-          "Compte existant",
-          "Ce numéro est déjà associé à un compte. Vous avez été connecté automatiquement.",
-          [{ text: "OK" }]
+          i18n.t("existing_account"),
+          i18n.t("account_already_exists"),
+          [{ text: i18n.t("ok") }]
         );
         return;
       }
@@ -144,7 +144,6 @@ export default function SignUpPhone({ navigation, route }) {
       await setDoc(profileRef, profileData);
       console.log("Profil créé avec succès");
 
-      // Navigation explicite vers OnboardingProfile
       navigation.reset({
         index: 0,
         routes: [{ 
@@ -158,18 +157,18 @@ export default function SignUpPhone({ navigation, route }) {
 
     } catch (e) {
       console.log("ERREUR VERIF:", e.code, e.message);
-      let message = "Code de vérification incorrect";
-      if (e.code === "auth/invalid-verification-code") message = "Code invalide";
-      if (e.code === "auth/code-expired") message = "Code expiré, renvoyez un nouveau code";
-      Alert.alert("Erreur", message);
+      let message = i18n.t("invalid_code");
+      if (e.code === "auth/invalid-verification-code") message = i18n.t("wrong_code");
+      if (e.code === "auth/code-expired") message = i18n.t("code_expired");
+      Alert.alert(i18n.t("error"), message);
       setLoading(false);
     }
   };
 
   const getTitle = () => {
-    if (userType === "particulier") return "Inscription";
-    if (providerType === "prestataire") return "Inscription Prestataire";
-    return "Inscription Vendeur";
+    if (userType === "particulier") return i18n.t("signup");
+    if (providerType === "prestataire") return i18n.t("provider_signup");
+    return i18n.t("seller_signup");
   };
 
   return (
@@ -188,7 +187,7 @@ export default function SignUpPhone({ navigation, route }) {
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Choisir un pays</Text>
+              <Text style={styles.modalTitle}>{i18n.t("choose_country")}</Text>
               {COUNTRIES.map((country) => (
                 <TouchableOpacity
                   key={country.code}
@@ -213,7 +212,7 @@ export default function SignUpPhone({ navigation, route }) {
                 style={styles.modalClose}
                 onPress={() => setShowCountryPicker(false)}
               >
-                <Text style={styles.modalCloseText}>Fermer</Text>
+                <Text style={styles.modalCloseText}>{i18n.t("close")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -239,7 +238,7 @@ export default function SignUpPhone({ navigation, route }) {
           <View style={styles.card}>
             {step === 1 ? (
               <>
-                <Text style={styles.label}>Numéro de téléphone</Text>
+                <Text style={styles.label}>{i18n.t("phone_number")}</Text>
                 <View style={styles.phoneContainer}>
                   <TouchableOpacity
                     style={styles.countryCode}
@@ -260,9 +259,7 @@ export default function SignUpPhone({ navigation, route }) {
                     maxLength={10}
                   />
                 </View>
-                <Text style={styles.hint}>
-                  Vous recevrez un code de vérification par SMS
-                </Text>
+                <Text style={styles.hint}>{i18n.t("sms_hint")}</Text>
 
                 <TouchableOpacity
                   style={styles.buttonPrimary}
@@ -278,16 +275,16 @@ export default function SignUpPhone({ navigation, route }) {
                     {loading ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (
-                      <Text style={styles.buttonText}>Envoyer le code</Text>
+                      <Text style={styles.buttonText}>{i18n.t("send_code")}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={styles.label}>Code de vérification</Text>
+                <Text style={styles.label}>{i18n.t("verification_code")}</Text>
                 <Text style={styles.phoneDisplay}>
-                  Envoyé au {formatPhoneNumber(phoneNumber)}
+                  {i18n.t("sent_to")} {formatPhoneNumber(phoneNumber)}
                 </Text>
                 
                 <TextInput
@@ -315,7 +312,7 @@ export default function SignUpPhone({ navigation, route }) {
                     {loading ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (
-                      <Text style={styles.buttonText}>Vérifier</Text>
+                      <Text style={styles.buttonText}>{i18n.t("verify")}</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -329,7 +326,7 @@ export default function SignUpPhone({ navigation, route }) {
                   }}
                   disabled={loading}
                 >
-                  <Text style={styles.resendText}>Modifier le numéro</Text>
+                  <Text style={styles.resendText}>{i18n.t("change_number")}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -337,7 +334,7 @@ export default function SignUpPhone({ navigation, route }) {
                   onPress={handleSendCode}
                   disabled={loading}
                 >
-                  <Text style={styles.resendText}>Renvoyer le code</Text>
+                  <Text style={styles.resendText}>{i18n.t("resend_code")}</Text>
                 </TouchableOpacity>
               </>
             )}

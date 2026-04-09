@@ -16,6 +16,7 @@ import ScreenLayout from "../../../components/ScreenLayout";
 import { getProductsByCategory, getAllProducts } from "../../../utils/marketplace";
 import { auth, db } from "../../../config/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import i18n from "../../../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -72,7 +73,7 @@ export default function ProductsList({ route, navigation }) {
 
   const handleAddToCart = (product) => {
     addToCart(product, 1);
-    Alert.alert("Ajouté au panier", `${product.name} a été ajouté au panier`);
+    Alert.alert(i18n.t("added_to_cart"), `${product.name} ${i18n.t("added_to_cart_desc")}`);
   };
 
   if (loading) {
@@ -80,7 +81,7 @@ export default function ProductsList({ route, navigation }) {
       <ScreenLayout title={categoryName} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#FF9900" />
-          <Text style={styles.loadingText}>Chargement des produits...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading_products")}</Text>
         </View>
       </ScreenLayout>
     );
@@ -91,11 +92,11 @@ export default function ProductsList({ route, navigation }) {
       <ScreenLayout title={categoryName} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="package-variant-closed" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>Aucun produit</Text>
+          <Text style={styles.emptyTitle}>{i18n.t("no_products")}</Text>
           <Text style={styles.emptyText}>
             {isProfessional 
-              ? "Soyez le premier à vendre des produits !"
-              : "Aucun produit disponible pour le moment"
+              ? i18n.t("be_first_to_sell")
+              : i18n.t("no_products_available")
             }
           </Text>
           {isProfessional && (
@@ -103,7 +104,7 @@ export default function ProductsList({ route, navigation }) {
               style={styles.emptyButton}
               onPress={() => navigation.navigate("CreateProduct")}
             >
-              <Text style={styles.emptyButtonText}>Vendre un produit</Text>
+              <Text style={styles.emptyButtonText}>{i18n.t("sell_product")}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -116,10 +117,9 @@ export default function ProductsList({ route, navigation }) {
       <ScreenLayout title={categoryName} navigation={navigation} showBack showCart>
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* HEADER */}
           <View style={styles.header}>
             <Text style={styles.headerResults}>
-              {products.length} résultat{products.length > 1 ? "s" : ""}
+              {products.length} {products.length > 1 ? i18n.t("results") : i18n.t("result")}
             </Text>
             {isProfessional && (
               <TouchableOpacity
@@ -127,12 +127,11 @@ export default function ProductsList({ route, navigation }) {
                 onPress={() => navigation.navigate("CreateProduct")}
               >
                 <MaterialCommunityIcons name="plus-circle" size={20} color="#FF9900" />
-                <Text style={styles.sellButtonText}>Vendre</Text>
+                <Text style={styles.sellButtonText}>{i18n.t("sell")}</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* LISTE PRODUITS STYLE AMAZON */}
           <View style={styles.productsList}>
             {products.map((product, index) => (
               <TouchableOpacity
@@ -141,7 +140,6 @@ export default function ProductsList({ route, navigation }) {
                 activeOpacity={0.95}
                 onPress={() => navigation.navigate("ProductDetails", { productId: product.id })}
               >
-                {/* PHOTO + BADGES */}
                 <View style={styles.photoSection}>
                   {product.photos && product.photos.length > 0 ? (
                     <Image 
@@ -155,10 +153,9 @@ export default function ProductsList({ route, navigation }) {
                     </View>
                   )}
 
-                  {/* BADGES */}
                   {index === 0 && (
                     <View style={[styles.badge, styles.badgeBestSeller]}>
-                      <Text style={styles.badgeText}>Nº1 des ventes</Text>
+                      <Text style={styles.badgeText}>{i18n.t("best_seller")}</Text>
                     </View>
                   )}
                   {product.featured && (
@@ -168,19 +165,16 @@ export default function ProductsList({ route, navigation }) {
                   )}
                   {product.stock > 0 && product.stock < 5 && (
                     <View style={[styles.badge, styles.badgeStock]}>
-                      <Text style={styles.badgeText}>Plus que {product.stock}</Text>
+                      <Text style={styles.badgeText}>{i18n.t("only_left", { count: product.stock })}</Text>
                     </View>
                   )}
                 </View>
 
-                {/* INFO SECTION */}
                 <View style={styles.infoSection}>
-                  {/* NOM PRODUIT */}
                   <Text style={styles.productName} numberOfLines={2}>
                     {product.name}
                   </Text>
 
-                  {/* RATING */}
                   {product.rating > 0 && (
                     <View style={styles.ratingRow}>
                       <View style={styles.stars}>
@@ -200,40 +194,35 @@ export default function ProductsList({ route, navigation }) {
                     </View>
                   )}
 
-                  {/* PRIX */}
                   <View style={styles.priceSection}>
                     <View style={styles.priceRow}>
                       <Text style={styles.priceCurrency}>₪</Text>
                       <Text style={styles.priceValue}>{product.price.toFixed(0)}</Text>
                     </View>
                     {product.stock > 0 && (
-                      <Text style={styles.deliveryText}>Livraison GRATUITE</Text>
+                      <Text style={styles.deliveryText}>{i18n.t("free_delivery")}</Text>
                     )}
                   </View>
 
-                  {/* DESCRIPTION COURTE */}
                   {product.description && (
                     <Text style={styles.shortDescription} numberOfLines={2}>
                       {product.description}
                     </Text>
                   )}
 
-                  {/* STOCK */}
                   {product.stock === 0 ? (
-                    <Text style={styles.outOfStock}>Temporairement en rupture de stock</Text>
+                    <Text style={styles.outOfStock}>{i18n.t("temporarily_out_of_stock")}</Text>
                   ) : (
                     product.stock < 10 && (
-                      <Text style={styles.lowStock}>Plus que {product.stock} en stock</Text>
+                      <Text style={styles.lowStock}>{i18n.t("only_in_stock", { count: product.stock })}</Text>
                     )
                   )}
 
-                  {/* VENDEUR */}
                   <View style={styles.sellerRow}>
                     <MaterialCommunityIcons name="store-outline" size={14} color="#6B7280" />
                     <Text style={styles.sellerText}>{product.sellerName}</Text>
                   </View>
 
-                  {/* BOUTON PANIER */}
                   {product.stock > 0 && (
                     <TouchableOpacity
                       style={styles.addToCartButton}
@@ -243,7 +232,7 @@ export default function ProductsList({ route, navigation }) {
                       }}
                     >
                       <MaterialCommunityIcons name="cart-plus" size={18} color="#FFF" />
-                      <Text style={styles.addToCartText}>Ajouter au panier</Text>
+                      <Text style={styles.addToCartText}>{i18n.t("add_to_cart")}</Text>
                     </TouchableOpacity>
                   )}
                 </View>

@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import ScreenLayout from "../components/ScreenLayout";
 import MesMatchs from "./MesMatchs";
 import Favoris from "./Favoris";
+import i18n from "../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -57,7 +58,7 @@ export default function LikesHub({ navigation }) {
           onPress={() => setActiveTab("recu")}
         >
           <Text style={[styles.tabText, activeTab === "recu" && styles.tabTextActive]}>
-            Intéressés
+            {i18n.t("interested")}
           </Text>
         </TouchableOpacity>
 
@@ -66,7 +67,7 @@ export default function LikesHub({ navigation }) {
           onPress={() => setActiveTab("favoris")}
         >
           <Text style={[styles.tabText, activeTab === "favoris" && styles.tabTextActive]}>
-            Mes Favoris
+            {i18n.t("my_favorites")}
           </Text>
         </TouchableOpacity>
       </View>

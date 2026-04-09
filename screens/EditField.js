@@ -19,6 +19,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../config/firebase";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
 
 export default function EditField({ route, navigation }) {
   const { field, title, currentValue, profileId } = route.params;
@@ -45,19 +46,18 @@ export default function EditField({ route, navigation }) {
       }
     } catch (error) {
       console.error("Erreur sélection image :", error);
-      Alert.alert("Erreur", "Impossible de sélectionner l'image.");
+      Alert.alert(i18n.t("error"), i18n.t("error_selecting_image"));
     }
   };
 
   const handleSave = async () => {
-    // VALIDATION
     if (field === "name" && !value.trim()) {
-      Alert.alert("Erreur", "Le nom est obligatoire.");
+      Alert.alert(i18n.t("error"), i18n.t("name_required"));
       return;
     }
 
     if (field === "city" && !value.trim()) {
-      Alert.alert("Erreur", "La ville est obligatoire.");
+      Alert.alert(i18n.t("error"), i18n.t("city_required"));
       return;
     }
 
@@ -65,9 +65,9 @@ export default function EditField({ route, navigation }) {
       const age = calculateAge(date);
       if (age < 18) {
         Alert.alert(
-          "Âge minimum requis",
-          "Vous devez avoir au moins 18 ans pour utiliser CupiDog.",
-          [{ text: "OK" }]
+          i18n.t("minimum_age_required"),
+          i18n.t("must_be_18"),
+          [{ text: i18n.t("ok") }]
         );
         return;
       }
@@ -78,7 +78,6 @@ export default function EditField({ route, navigation }) {
     try {
       let finalValue = value;
 
-      // PHOTO : Upload vers Firebase Storage
       if (field === "photo") {
         if (imageUri && !imageUri.startsWith("https://")) {
           const response = await fetch(imageUri);
@@ -92,21 +91,19 @@ export default function EditField({ route, navigation }) {
         }
       }
 
-      // DATE : Conversion en Date object
       if (field === "dateOfBirth") {
         finalValue = date;
       }
 
-      // UPDATE FIRESTORE
       const profileRef = doc(db, "profiles", profileId);
       const fieldName = field === "photo" ? "photoUrl" : field;
       await updateDoc(profileRef, { [fieldName]: finalValue });
 
-      Alert.alert("Succès", "Profil mis à jour !");
+      Alert.alert(i18n.t("success"), i18n.t("profile_updated"));
       navigation.goBack();
     } catch (error) {
       console.error("Erreur sauvegarde :", error);
-      Alert.alert("Erreur", "Erreur lors de la sauvegarde.");
+      Alert.alert(i18n.t("error"), i18n.t("error_saving"));
     } finally {
       setLoading(false);
     }
@@ -131,6 +128,13 @@ export default function EditField({ route, navigation }) {
     }
   };
 
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
+
   const renderInput = () => {
     switch (field) {
       case "photo":
@@ -141,7 +145,7 @@ export default function EditField({ route, navigation }) {
             ) : (
               <View style={styles.photoPlaceholder}>
                 <MaterialCommunityIcons name="camera-plus" size={48} color="#999" />
-                <Text style={styles.photoText}>Choisir une photo</Text>
+                <Text style={styles.photoText}>{i18n.t("choose_photo")}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -156,7 +160,7 @@ export default function EditField({ route, navigation }) {
             >
               <MaterialCommunityIcons name="calendar" size={24} color="#FF6B35" />
               <Text style={styles.dateText}>
-                {date.toLocaleDateString("fr-FR", {
+                {date.toLocaleDateString(getLocale(), {
                   day: "numeric",
                   month: "long",
                   year: "numeric",
@@ -171,16 +175,16 @@ export default function EditField({ route, navigation }) {
                 display={Platform.OS === "ios" ? "spinner" : "default"}
                 onChange={onDateChange}
                 maximumDate={new Date()}
-                locale="fr-FR"
+                locale={getLocale()}
               />
             )}
 
             <Text style={styles.hint}>
-              Âge actuel : {calculateAge(date)} ans
+              {i18n.t("current_age")}: {calculateAge(date)} {i18n.t("years_old")}
             </Text>
             {calculateAge(date) < 18 && (
               <Text style={styles.warning}>
-                ⚠️ Vous devez avoir au moins 18 ans
+                ⚠️ {i18n.t("must_be_18")}
               </Text>
             )}
           </View>
@@ -193,8 +197,8 @@ export default function EditField({ route, navigation }) {
               selectedValue={value}
               onValueChange={(itemValue) => setValue(itemValue)}
             >
-              <Picker.Item label="Homme" value="Homme" />
-              <Picker.Item label="Femme" value="Femme" />
+              <Picker.Item label={i18n.t("male")} value="Homme" />
+              <Picker.Item label={i18n.t("female")} value="Femme" />
             </Picker>
           </View>
         );
@@ -206,11 +210,11 @@ export default function EditField({ route, navigation }) {
               selectedValue={value}
               onValueChange={(itemValue) => setValue(itemValue)}
             >
-              <Picker.Item label="Saillie" value="Saillie" />
-              <Picker.Item label="Adoption" value="Adoption" />
-              <Picker.Item label="Rencontre" value="Rencontre" />
-              <Picker.Item label="Vente" value="Vente" />
-              <Picker.Item label="Échange" value="Échange" />
+              <Picker.Item label={i18n.t("stud")} value="Saillie" />
+              <Picker.Item label={i18n.t("adoption")} value="Adoption" />
+              <Picker.Item label={i18n.t("meetup")} value="Rencontre" />
+              <Picker.Item label={i18n.t("sale")} value="Vente" />
+              <Picker.Item label={i18n.t("exchange")} value="Échange" />
             </Picker>
           </View>
         );
@@ -222,7 +226,7 @@ export default function EditField({ route, navigation }) {
             value={value}
             onChangeText={setValue}
             multiline
-            placeholder="Parlez-nous de vous..."
+            placeholder={i18n.t("tell_us_about_you")}
             placeholderTextColor="#999"
             textAlignVertical="top"
           />
@@ -234,7 +238,7 @@ export default function EditField({ route, navigation }) {
             style={styles.input}
             value={value}
             onChangeText={setValue}
-            placeholder={`Votre ${title.toLowerCase()}`}
+            placeholder={i18n.t("your") + " " + title.toLowerCase()}
             placeholderTextColor="#999"
           />
         );
@@ -248,7 +252,6 @@ export default function EditField({ route, navigation }) {
         {renderInput()}
       </ScrollView>
 
-      {/* BOUTON ENREGISTRER FLOTTANT */}
       <TouchableOpacity
         style={styles.saveButtonContainer}
         onPress={handleSave}
@@ -263,7 +266,7 @@ export default function EditField({ route, navigation }) {
         >
           <MaterialCommunityIcons name="check" size={24} color="#FFF" />
           <Text style={styles.saveText}>
-            {loading ? "Enregistrement..." : "Enregistrer"}
+            {loading ? i18n.t("saving") : i18n.t("save")}
           </Text>
         </LinearGradient>
       </TouchableOpacity>

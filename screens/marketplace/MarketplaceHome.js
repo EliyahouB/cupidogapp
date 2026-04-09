@@ -10,27 +10,24 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../components/ScreenLayout";
+import i18n from "../../utils/i18n";
 
 export default function MarketplaceHome({ navigation }) {
   return (
     <ScreenLayout title="Marketplace" navigation={navigation} active="marketplace">
       <ScrollView contentContainerStyle={styles.container}>
         
-        {/* HEADER */}
         <View style={styles.header}>
           <Image 
             source={require("../../assets/logo_shop.png")}
             style={styles.logoImage}
             resizeMode="contain"
           />
-          <Text style={styles.headerSubtitle}>
-            Services professionnels et produits pour votre chien
-          </Text>
+          <Text style={styles.headerSubtitle}>{i18n.t("marketplace_subtitle")}</Text>
         </View>
 
-        {/* SECTION SERVICES */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Services Professionnels</Text>
+          <Text style={styles.sectionTitle}>{i18n.t("professional_services")}</Text>
           <TouchableOpacity
             style={styles.bigCard}
             activeOpacity={0.8}
@@ -48,10 +45,8 @@ export default function MarketplaceHome({ navigation }) {
                 resizeMode="contain"
               />
               <View style={styles.cardContent}>
-                <Text style={styles.bigCardTitle}>Trouver un professionnel</Text>
-                <Text style={styles.bigCardSubtitle}>
-                  Vétérinaire • Toiletteur • Dog-walker • Éducateur • Pension
-                </Text>
+                <Text style={styles.bigCardTitle}>{i18n.t("find_professional")}</Text>
+                <Text style={styles.bigCardSubtitle}>{i18n.t("services_list_examples")}</Text>
               </View>
               <View style={styles.bigCardArrow}>
                 <MaterialCommunityIcons name="chevron-right" size={28} color="#FFF" />
@@ -60,9 +55,8 @@ export default function MarketplaceHome({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* SECTION BOUTIQUE */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Boutique</Text>
+          <Text style={styles.sectionTitle}>{i18n.t("shop")}</Text>
           <TouchableOpacity
             style={styles.bigCard}
             activeOpacity={0.8}
@@ -80,10 +74,8 @@ export default function MarketplaceHome({ navigation }) {
                 resizeMode="contain"
               />
               <View style={styles.cardContent}>
-                <Text style={styles.bigCardTitle}>Acheter des produits</Text>
-                <Text style={styles.bigCardSubtitle}>
-                  Croquettes • Jouets • Accessoires • Hygiène
-                </Text>
+                <Text style={styles.bigCardTitle}>{i18n.t("buy_products")}</Text>
+                <Text style={styles.bigCardSubtitle}>{i18n.t("products_list_examples")}</Text>
               </View>
               <View style={styles.bigCardArrow}>
                 <MaterialCommunityIcons name="chevron-right" size={28} color="#FFF" />
@@ -92,12 +84,9 @@ export default function MarketplaceHome({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* INFO BOX */}
         <View style={styles.infoBox}>
           <MaterialCommunityIcons name="information" size={24} color="#1976D2" />
-          <Text style={styles.infoText}>
-            Vous êtes prestataire ou vendeur ? Inscrivez-vous pour proposer vos services ou produits !
-          </Text>
+          <Text style={styles.infoText}>{i18n.t("provider_seller_info")}</Text>
         </View>
 
       </ScrollView>

@@ -17,6 +17,7 @@ import { useCart } from "../../../contexts/CartContext";
 import { auth } from "../../../config/firebase";
 import { createOrder } from "../../../utils/marketplace";
 import { generateCustomerInvoice } from "../../../utils/invoicing";
+import i18n from "../../../utils/i18n";
 
 export default function Checkout({ navigation }) {
   const { cartItems, getTotal, clearCart } = useCart();
@@ -34,27 +35,25 @@ export default function Checkout({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = () => {
-    // VALIDATION
     if (!formData.customerName.trim()) {
-      Alert.alert("Erreur", "Nom complet requis");
+      Alert.alert(i18n.t("error"), i18n.t("full_name_required"));
       return;
     }
     if (!formData.customerPhone.trim()) {
-      Alert.alert("Erreur", "Téléphone requis");
+      Alert.alert(i18n.t("error"), i18n.t("phone_required"));
       return;
     }
     if (!formData.street.trim() || !formData.city.trim()) {
-      Alert.alert("Erreur", "Adresse de livraison complète requise");
+      Alert.alert(i18n.t("error"), i18n.t("full_address_required"));
       return;
     }
 
-    // CONFIRMATION
     Alert.alert(
-      "Confirmer la commande",
-      `Total : ₪${getTotal().toFixed(0)}\n\nLivraison GRATUITE\n\nConfirmer votre commande ?`,
+      i18n.t("confirm_order"),
+      `${i18n.t("total")}: ₪${getTotal().toFixed(0)}\n\n${i18n.t("delivery")} ${i18n.t("free")}\n\n${i18n.t("confirm_order_question")}`,
       [
-        { text: "Annuler", style: "cancel" },
-        { text: "Commander", onPress: placeOrder }
+        { text: i18n.t("cancel"), style: "cancel" },
+        { text: i18n.t("order"), onPress: placeOrder }
       ]
     );
   };
@@ -90,11 +89,9 @@ export default function Checkout({ navigation }) {
         paymentMethod: "cash_on_delivery",
       };
 
-      // CRÉER LA COMMANDE
       const result = await createOrder(orderData);
 
       if (result.success) {
-        // GÉNÉRER LA FACTURE CLIENT
         const invoiceResult = await generateCustomerInvoice(orderData);
         
         if (invoiceResult.success) {
@@ -102,19 +99,18 @@ export default function Checkout({ navigation }) {
           
           clearCart();
           
-          // POPUP AVEC OPTION TÉLÉCHARGER FACTURE
           Alert.alert(
-            "Commande confirmée ! ✅",
-            "Votre commande a été enregistrée.\n\nVous recevrez :\n• Un SMS de confirmation\n• Une facture par email",
+            i18n.t("order_confirmed") + " ✅",
+            i18n.t("order_registered_message"),
             [
               {
-                text: "Télécharger ma facture",
+                text: i18n.t("download_invoice"),
                 onPress: () => {
                   navigation.navigate("InvoiceDetails", { invoiceId: invoiceResult.invoiceId });
                 }
               },
               {
-                text: "Retour à la boutique",
+                text: i18n.t("back_to_shop"),
                 onPress: () => navigation.navigate("BoutiqueHome")
               }
             ]
@@ -123,22 +119,22 @@ export default function Checkout({ navigation }) {
           console.error("❌ Erreur génération facture:", invoiceResult.error);
           clearCart();
           Alert.alert(
-            "Commande confirmée !",
-            "Votre commande a été enregistrée.\n\nVous recevrez un SMS de confirmation.",
+            i18n.t("order_confirmed") + " !",
+            i18n.t("order_registered_sms"),
             [
               {
-                text: "OK",
+                text: i18n.t("ok"),
                 onPress: () => navigation.navigate("BoutiqueHome")
               }
             ]
           );
         }
       } else {
-        Alert.alert("Erreur", "Impossible de passer la commande. Réessayez.");
+        Alert.alert(i18n.t("error"), i18n.t("error_placing_order"));
       }
     } catch (error) {
       console.error("Erreur placeOrder:", error);
-      Alert.alert("Erreur", "Une erreur s'est produite.");
+      Alert.alert(i18n.t("error"), i18n.t("error_occurred"));
     } finally {
       setLoading(false);
     }
@@ -146,62 +142,60 @@ export default function Checkout({ navigation }) {
 
   if (cartItems.length === 0) {
     return (
-      <ScreenLayout title="Commande" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("order")} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="cart-off" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyText}>Votre panier est vide</Text>
+          <Text style={styles.emptyText}>{i18n.t("cart_empty")}</Text>
         </View>
       </ScreenLayout>
     );
   }
 
   return (
-    <ScreenLayout title="Finaliser la commande" navigation={navigation} showBack showCart>
+    <ScreenLayout title={i18n.t("finalize_order")} navigation={navigation} showBack showCart>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container}>
           
-          {/* RÉSUMÉ COMMANDE */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Résumé de la commande</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("order_summary")}</Text>
             <View style={styles.summaryBox}>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{cartItems.length} article(s)</Text>
+                <Text style={styles.summaryLabel}>{cartItems.length} {cartItems.length > 1 ? i18n.t("items") : i18n.t("item")}</Text>
                 <Text style={styles.summaryValue}>₪{getTotal().toFixed(0)}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Livraison</Text>
-                <Text style={styles.summaryFree}>GRATUITE</Text>
+                <Text style={styles.summaryLabel}>{i18n.t("delivery")}</Text>
+                <Text style={styles.summaryFree}>{i18n.t("free")}</Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryTotalLabel}>Total</Text>
+                <Text style={styles.summaryTotalLabel}>{i18n.t("total")}</Text>
                 <Text style={styles.summaryTotalValue}>₪{getTotal().toFixed(0)}</Text>
               </View>
             </View>
           </View>
 
-          {/* COORDONNÉES */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Vos coordonnées</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("your_details")}</Text>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nom complet *</Text>
+              <Text style={styles.label}>{i18n.t("full_name")} *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: David Cohen"
+                placeholder={i18n.t("full_name_example")}
                 value={formData.customerName}
                 onChangeText={(text) => setFormData({ ...formData, customerName: text })}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Téléphone *</Text>
+              <Text style={styles.label}>{i18n.t("phone")} *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: 054-123-4567"
+                placeholder={i18n.t("phone_example")}
                 keyboardType="phone-pad"
                 value={formData.customerPhone}
                 onChangeText={(text) => setFormData({ ...formData, customerPhone: text })}
@@ -209,10 +203,10 @@ export default function Checkout({ navigation }) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>{i18n.t("email")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: david@example.com"
+                placeholder={i18n.t("email_example")}
                 keyboardType="email-address"
                 value={formData.customerEmail}
                 onChangeText={(text) => setFormData({ ...formData, customerEmail: text })}
@@ -220,35 +214,34 @@ export default function Checkout({ navigation }) {
             </View>
           </View>
 
-          {/* ADRESSE LIVRAISON */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Adresse de livraison</Text>
+            <Text style={styles.sectionTitle}>{i18n.t("delivery_address")}</Text>
             
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Rue *</Text>
+              <Text style={styles.label}>{i18n.t("street")} *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: 123 Rue Rothschild"
+                placeholder={i18n.t("street_example")}
                 value={formData.street}
                 onChangeText={(text) => setFormData({ ...formData, street: text })}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Ville *</Text>
+              <Text style={styles.label}>{i18n.t("city")} *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: Tel Aviv"
+                placeholder={i18n.t("city_example")}
                 value={formData.city}
                 onChangeText={(text) => setFormData({ ...formData, city: text })}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Code postal</Text>
+              <Text style={styles.label}>{i18n.t("postal_code")}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: 6801296"
+                placeholder={i18n.t("postal_code_example")}
                 keyboardType="numeric"
                 value={formData.postalCode}
                 onChangeText={(text) => setFormData({ ...formData, postalCode: text })}
@@ -256,10 +249,10 @@ export default function Checkout({ navigation }) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Instructions de livraison</Text>
+              <Text style={styles.label}>{i18n.t("delivery_instructions")}</Text>
               <TextInput
                 style={[styles.input, styles.textarea]}
-                placeholder="Code portail, étage, etc."
+                placeholder={i18n.t("delivery_instructions_example")}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -271,7 +264,6 @@ export default function Checkout({ navigation }) {
       
         </ScrollView>
 
-        {/* BOUTON COMMANDER */}
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.submitButtonContainer}
@@ -286,12 +278,12 @@ export default function Checkout({ navigation }) {
               end={{ x: 1, y: 0 }}
             >
               {loading ? (
-                <Text style={styles.submitButtonText}>Commande en cours...</Text>
+                <Text style={styles.submitButtonText}>{i18n.t("order_in_progress")}</Text>
               ) : (
                 <>
                   <MaterialCommunityIcons name="check-circle" size={22} color="#FFF" />
                   <Text style={styles.submitButtonText}>
-                    Commander · ₪{getTotal().toFixed(0)}
+                    {i18n.t("order")} · ₪{getTotal().toFixed(0)}
                   </Text>
                 </>
               )}

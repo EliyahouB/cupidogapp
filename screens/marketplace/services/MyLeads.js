@@ -13,6 +13,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth } from "../../../config/firebase";
 import { getLeadsByCustomer } from "../../../utils/marketplace";
+import i18n from "../../../utils/i18n";
 
 export default function MyLeads({ navigation }) {
   const user = auth.currentUser;
@@ -23,6 +24,13 @@ export default function MyLeads({ navigation }) {
   useEffect(() => {
     loadLeads();
   }, []);
+
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
 
   const loadLeads = async () => {
     setLoading(true);
@@ -61,7 +69,7 @@ export default function MyLeads({ navigation }) {
     } else {
       date = new Date(timestamp);
     }
-    return date.toLocaleDateString("fr-FR", {
+    return date.toLocaleDateString(getLocale(), {
       day: "numeric",
       month: "long",
       year: "numeric"
@@ -96,10 +104,10 @@ export default function MyLeads({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Mes demandes" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_requests")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#1976D2" />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <Text style={styles.loadingText}>{i18n.t("loading")}...</Text>
         </View>
       </ScreenLayout>
     );
@@ -107,16 +115,16 @@ export default function MyLeads({ navigation }) {
 
   if (leads.length === 0) {
     return (
-      <ScreenLayout title="Mes demandes" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_requests")} navigation={navigation} showBack>
         <View style={styles.empty}>
           <MaterialCommunityIcons name="clipboard-text-outline" size={80} color="#9CA3AF" />
-          <Text style={styles.emptyTitle}>Aucune demande</Text>
-          <Text style={styles.emptyText}>Vous n'avez pas encore contacte de prestataire.</Text>
+          <Text style={styles.emptyTitle}>{i18n.t("no_requests")}</Text>
+          <Text style={styles.emptyText}>{i18n.t("no_provider_contacted_yet")}</Text>
           <TouchableOpacity
             style={styles.emptyButton}
             onPress={() => navigation.navigate("ServicesHome")}
           >
-            <Text style={styles.emptyButtonText}>Decouvrir les services</Text>
+            <Text style={styles.emptyButtonText}>{i18n.t("discover_services")}</Text>
           </TouchableOpacity>
         </View>
       </ScreenLayout>
@@ -124,7 +132,7 @@ export default function MyLeads({ navigation }) {
   }
 
   return (
-    <ScreenLayout title="Mes demandes" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("my_requests")} navigation={navigation} showBack>
       <ScrollView 
         contentContainerStyle={styles.container}
         refreshControl={
@@ -134,7 +142,7 @@ export default function MyLeads({ navigation }) {
         
         <View style={styles.infoBox}>
           <MaterialCommunityIcons name="information" size={20} color="#1976D2" />
-          <Text style={styles.infoText}>Vous pouvez noter un prestataire 10 jours apres votre demande.</Text>
+          <Text style={styles.infoText}>{i18n.t("can_rate_after_10_days")}</Text>
         </View>
 
         <View style={styles.leadsList}>
@@ -156,7 +164,7 @@ export default function MyLeads({ navigation }) {
                 {lead.hasBeenRated && (
                   <View style={styles.ratedBadge}>
                     <MaterialCommunityIcons name="star" size={14} color="#FFD700" />
-                    <Text style={styles.ratedText}>Note</Text>
+                    <Text style={styles.ratedText}>{i18n.t("rated")}</Text>
                   </View>
                 )}
               </View>
@@ -181,7 +189,7 @@ export default function MyLeads({ navigation }) {
                       color={lead.hasBeenRated ? "#FFF" : "#003366"} 
                     />
                     <Text style={[styles.rateButtonText, lead.hasBeenRated && styles.rateButtonTextWhite]}>
-                      {lead.hasBeenRated ? "Modifier ma note" : "Noter ce prestataire"}
+                      {lead.hasBeenRated ? i18n.t("edit_my_rating") : i18n.t("rate_this_provider")}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -191,7 +199,7 @@ export default function MyLeads({ navigation }) {
                 <View style={styles.waitingBox}>
                   <MaterialCommunityIcons name="clock-outline" size={16} color="#6B7280" />
                   <Text style={styles.waitingText}>
-                    Vous pourrez noter dans {daysUntilCanRate(lead)} jour{daysUntilCanRate(lead) > 1 ? "s" : ""}
+                    {i18n.t("can_rate_in")} {daysUntilCanRate(lead)} {daysUntilCanRate(lead) > 1 ? i18n.t("days") : i18n.t("day")}
                   </Text>
                 </View>
               )}

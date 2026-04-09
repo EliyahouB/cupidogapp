@@ -12,16 +12,24 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../../../components/ScreenLayout";
 import { auth, db } from "../../../config/firebase";
 import { collection, getDocs } from "firebase/firestore";
+import i18n from "../../../utils/i18n";
 
 export default function MesVentes({ navigation }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState("all"); // all, pending, shipped, delivered
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     loadOrders();
   }, []);
+
+  const getLocale = () => {
+    if (i18n.locale === "he") return "he-IL";
+    if (i18n.locale === "ru") return "ru-RU";
+    if (i18n.locale === "en") return "en-US";
+    return "fr-FR";
+  };
 
   const loadOrders = async () => {
     const user = auth.currentUser;
@@ -31,7 +39,6 @@ export default function MesVentes({ navigation }) {
       const ordersQuery = collection(db, "marketplace_orders");
       const ordersSnap = await getDocs(ordersQuery);
       
-      // Filtrer les commandes qui contiennent mes produits
       const myOrders = [];
       ordersSnap.forEach(doc => {
         const order = doc.data();
@@ -41,7 +48,7 @@ export default function MesVentes({ navigation }) {
             myOrders.push({
               id: doc.id,
               ...order,
-              myItems, // Seulement mes produits
+              myItems,
             });
           }
         }
@@ -79,11 +86,11 @@ export default function MesVentes({ navigation }) {
 
   const getStatusLabel = (status) => {
     const labels = {
-      pending: "En attente",
-      processing: "En préparation",
-      shipped: "Expédiée",
-      delivered: "Livrée",
-      cancelled: "Annulée",
+      pending: i18n.t("pending"),
+      processing: i18n.t("processing"),
+      shipped: i18n.t("shipped"),
+      delivered: i18n.t("delivered"),
+      cancelled: i18n.t("cancelled"),
     };
     return labels[status] || status;
   };
@@ -108,7 +115,7 @@ export default function MesVentes({ navigation }) {
 
   if (loading) {
     return (
-      <ScreenLayout title="Mes ventes" navigation={navigation} showBack>
+      <ScreenLayout title={i18n.t("my_sales")} navigation={navigation} showBack>
         <View style={styles.loading}>
           <ActivityIndicator size="large" color="#E91E63" />
         </View>
@@ -121,36 +128,34 @@ export default function MesVentes({ navigation }) {
   const totalRevenue = getTotalRevenue();
 
   return (
-    <ScreenLayout title="Mes ventes" navigation={navigation} showBack>
+    <ScreenLayout title={i18n.t("my_sales")} navigation={navigation} showBack>
       <View style={styles.container}>
-        {/* STATS HEADER */}
         <View style={styles.statsHeader}>
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="shopping" size={24} color="#E91E63" />
             <Text style={styles.statValue}>{counts.all}</Text>
-            <Text style={styles.statLabel}>Commandes</Text>
+            <Text style={styles.statLabel}>{i18n.t("orders")}</Text>
           </View>
 
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="clock-outline" size={24} color="#FF9900" />
             <Text style={styles.statValue}>{counts.pending}</Text>
-            <Text style={styles.statLabel}>En attente</Text>
+            <Text style={styles.statLabel}>{i18n.t("pending")}</Text>
           </View>
 
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="check-circle" size={24} color="#43A047" />
             <Text style={styles.statValue}>{counts.delivered}</Text>
-            <Text style={styles.statLabel}>Livrées</Text>
+            <Text style={styles.statLabel}>{i18n.t("delivered")}</Text>
           </View>
 
           <View style={styles.statCard}>
             <MaterialCommunityIcons name="cash-multiple" size={24} color="#43A047" />
             <Text style={styles.statValue}>₪{totalRevenue.toFixed(0)}</Text>
-            <Text style={styles.statLabel}>Total</Text>
+            <Text style={styles.statLabel}>{i18n.t("total")}</Text>
           </View>
         </View>
 
-        {/* FILTRES */}
         <View style={styles.filters}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
             <TouchableOpacity
@@ -158,7 +163,7 @@ export default function MesVentes({ navigation }) {
               onPress={() => setFilter("all")}
             >
               <Text style={[styles.filterText, filter === "all" && styles.filterTextActive]}>
-                Toutes ({counts.all})
+                {i18n.t("all")} ({counts.all})
               </Text>
             </TouchableOpacity>
 
@@ -167,7 +172,7 @@ export default function MesVentes({ navigation }) {
               onPress={() => setFilter("pending")}
             >
               <Text style={[styles.filterText, filter === "pending" && styles.filterTextActive]}>
-                En attente ({counts.pending})
+                {i18n.t("pending")} ({counts.pending})
               </Text>
             </TouchableOpacity>
 
@@ -176,7 +181,7 @@ export default function MesVentes({ navigation }) {
               onPress={() => setFilter("shipped")}
             >
               <Text style={[styles.filterText, filter === "shipped" && styles.filterTextActive]}>
-                Expédiées ({counts.shipped})
+                {i18n.t("shipped")} ({counts.shipped})
               </Text>
             </TouchableOpacity>
 
@@ -185,13 +190,12 @@ export default function MesVentes({ navigation }) {
               onPress={() => setFilter("delivered")}
             >
               <Text style={[styles.filterText, filter === "delivered" && styles.filterTextActive]}>
-                Livrées ({counts.delivered})
+                {i18n.t("delivered")} ({counts.delivered})
               </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
 
-        {/* LISTE */}
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           refreshControl={
@@ -201,7 +205,7 @@ export default function MesVentes({ navigation }) {
           {filteredOrders.length === 0 ? (
             <View style={styles.empty}>
               <MaterialCommunityIcons name="shopping-outline" size={80} color="#9CA3AF" />
-              <Text style={styles.emptyText}>Aucune vente</Text>
+              <Text style={styles.emptyText}>{i18n.t("no_sales")}</Text>
             </View>
           ) : (
             <View style={styles.ordersList}>
@@ -212,7 +216,6 @@ export default function MesVentes({ navigation }) {
 
                 return (
                   <View key={order.id} style={styles.orderCard}>
-                    {/* HEADER */}
                     <View style={styles.orderHeader}>
                       <View style={styles.orderHeaderLeft}>
                         <MaterialCommunityIcons name="cart" size={20} color="#E91E63" />
@@ -223,7 +226,6 @@ export default function MesVentes({ navigation }) {
                       </View>
                     </View>
 
-                    {/* CLIENT */}
                     <View style={styles.customerSection}>
                       <View style={styles.customerRow}>
                         <MaterialCommunityIcons name="account" size={16} color="#6B7280" />
@@ -235,9 +237,8 @@ export default function MesVentes({ navigation }) {
                       </View>
                     </View>
 
-                    {/* MES PRODUITS */}
                     <View style={styles.itemsSection}>
-                      <Text style={styles.itemsLabel}>Mes produits dans cette commande :</Text>
+                      <Text style={styles.itemsLabel}>{i18n.t("my_products_in_order")} :</Text>
                       {order.myItems.map((item, index) => (
                         <View key={index} style={styles.itemRow}>
                           <Text style={styles.itemName}>{item.productName}</Text>
@@ -247,24 +248,22 @@ export default function MesVentes({ navigation }) {
                       ))}
                     </View>
 
-                    {/* TOTAL */}
                     <View style={styles.totalSection}>
                       <View style={styles.totalRow}>
-                        <Text style={styles.totalLabel}>Tu reçois :</Text>
+                        <Text style={styles.totalLabel}>{i18n.t("you_receive")} :</Text>
                         <Text style={styles.totalValue}>₪{myRevenue.toFixed(0)}</Text>
                       </View>
                       <Text style={styles.totalNote}>
-                        (Commission CupiDog : ₪{(order.myItems.reduce((sum, item) => 
+                        ({i18n.t("cupidog_commission")} : ₪{(order.myItems.reduce((sum, item) => 
                           sum + (item.commission * item.quantity), 0
                         )).toFixed(0)})
                       </Text>
                     </View>
 
-                    {/* DATE */}
                     <View style={styles.dateSection}>
                       <MaterialCommunityIcons name="calendar" size={14} color="#6B7280" />
                       <Text style={styles.dateText}>
-                        {order.createdAt?.toDate?.()?.toLocaleDateString("fr-FR") || "Date inconnue"}
+                        {order.createdAt?.toDate?.()?.toLocaleDateString(getLocale()) || i18n.t("unknown_date")}
                       </Text>
                     </View>
                   </View>
