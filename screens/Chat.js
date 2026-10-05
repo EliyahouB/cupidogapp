@@ -51,6 +51,7 @@ export default function Chat({ route, navigation }) {
   const [abonnement, setAbonnement] = useState("gratuit");
   const [otherUserProfile, setOtherUserProfile] = useState(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [snapshotError, setSnapshotError] = useState(null);
   const currentUser = auth.currentUser;
   const flatListRef = useRef(null);
 
@@ -105,19 +106,26 @@ export default function Chat({ route, navigation }) {
     const messagesRef = collection(db, "conversations", conversationId, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-      setMessages(msgs);
-      checkIfBlocked(msgs);
+        setMessages(msgs);
+        checkIfBlocked(msgs);
 
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    });
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      },
+      (error) => {
+        console.log("❌ Erreur onSnapshot messages:", error);
+        setSnapshotError(i18n.t("error_loading"));
+      }
+    );
 
     const conversationRef = doc(db, "conversations", conversationId);
     updateDoc(conversationRef, {
@@ -285,8 +293,18 @@ export default function Chat({ route, navigation }) {
       active="chat"
       showBack
     >
-      <View style={styles.container}>
-        <TouchableOpacity 
+      {snapshotError ? (
+        <View style={styles.errorBanner}>
+          <MaterialCommunityIcons name="wifi-off" size={16} color="#fff" />
+          <Text style={styles.errorBannerText}>{snapshotError}</Text>
+        </View>
+      ) : null}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 25}
+      >
+        <TouchableOpacity
           style={styles.userHeader}
           onPress={handleViewProfile}
           activeOpacity={0.7}
@@ -340,11 +358,7 @@ export default function Chat({ route, navigation }) {
           />
         </ImageBackground>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
-        >
-          <View style={styles.inputContainer}>
+        <View style={styles.inputContainer}>
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
@@ -357,7 +371,7 @@ export default function Chat({ route, navigation }) {
                 editable={!isBlocked}
               />
             </View>
-            
+
             <TouchableOpacity
               style={styles.sendButtonContainer}
               onPress={handleSend}
@@ -374,8 +388,7 @@ export default function Chat({ route, navigation }) {
               </LinearGradient>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </View>
+      </KeyboardAvoidingView>
     </ScreenLayout>
   );
 }
@@ -537,5 +550,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 40,
     fontSize: 16,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E53E3E",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  errorBannerText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

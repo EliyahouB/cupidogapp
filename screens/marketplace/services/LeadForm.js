@@ -27,6 +27,7 @@ export default function LeadForm({ route, navigation }) {
     customerEmail: user?.email || "",
     message: "",
   });
+  const [phonePrefix, setPhonePrefix] = useState("+972");
   const [loading, setLoading] = useState(false);
 
   const leadPrice = service.abonnement === "pro_plus" 
@@ -67,10 +68,11 @@ export default function LeadForm({ route, navigation }) {
         providerName: service.businessName,
         customerId: user.uid,
         customerName: formData.customerName,
-        customerPhone: formData.customerPhone,
+        customerPhone: phonePrefix + formData.customerPhone,
         customerEmail: formData.customerEmail,
         message: formData.message,
         leadPrice: leadPrice,
+        serviceCategory: service.category,
       };
 
       const result = await createLead(leadData);
@@ -145,6 +147,23 @@ export default function LeadForm({ route, navigation }) {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{i18n.t("phone")} *</Text>
+              <View style={styles.phoneRow}>
+                {[
+                  { code: "+972", flag: "🇮🇱" },
+                  { code: "+33", flag: "🇫🇷" },
+                  { code: "+1", flag: "🇺🇸" },
+                ].map((p) => (
+                  <TouchableOpacity
+                    key={p.code}
+                    style={[styles.prefixBtn, phonePrefix === p.code && styles.prefixBtnActive]}
+                    onPress={() => setPhonePrefix(p.code)}
+                  >
+                    <Text style={[styles.prefixText, phonePrefix === p.code && styles.prefixTextActive]}>
+                      {p.flag} {p.code}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder={i18n.t("phone_example")}
@@ -265,6 +284,32 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 15,
     color: "#003366",
+  },
+  phoneRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 8,
+  },
+  prefixBtn: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: "#F9FAFB",
+  },
+  prefixBtnActive: {
+    borderColor: "#1976D2",
+    backgroundColor: "#E3F2FD",
+  },
+  prefixText: {
+    fontSize: 13,
+    color: "#4B5563",
+  },
+  prefixTextActive: {
+    color: "#1976D2",
+    fontWeight: "600",
   },
   textarea: {
     minHeight: 100,

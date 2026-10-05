@@ -7,6 +7,8 @@ import FacturesPage from './FacturesPage'
 import VendeursPage from './VendeursPage'
 import SupportPage from './SupportPage'
 import AdminsPage from './AdminsPage'
+import LeadsProPage from './LeadsProPage'
+import BilanPage from './BilanPage'
 
 function Dashboard({ user }) {
   const [activeTab, setActiveTab] = useState('stats')
@@ -19,17 +21,21 @@ function Dashboard({ user }) {
 
   const tabs = [
     { id: 'stats', label: 'Statistiques', icon: '📊' },
+    { id: 'leads-pro', label: 'Leads prestataires', icon: '📞' },
     { id: 'comptes-pro', label: 'Comptes PRO', icon: '✅' },
     { id: 'factures', label: 'Factures', icon: '🧾' },
     { id: 'vendeurs', label: 'Vendeurs', icon: '💰' },
     { id: 'support', label: 'Support', icon: '🔧' },
     { id: 'admins', label: 'Admins', icon: '👤' },
+    { id: 'bilan', label: 'Bilan', icon: '📈' },
   ]
 
   const renderPage = () => {
     switch (activeTab) {
       case 'stats':
         return <StatsPage />
+      case 'leads-pro':
+        return <LeadsProPage />
       case 'comptes-pro':
         return <ComptesProPage />
       case 'factures':
@@ -40,6 +46,8 @@ function Dashboard({ user }) {
         return <SupportPage />
       case 'admins':
         return <AdminsPage />
+      case 'bilan':
+        return <BilanPage />
       default:
         return <StatsPage />
     }

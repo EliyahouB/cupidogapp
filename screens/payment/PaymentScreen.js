@@ -12,12 +12,18 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth, db } from "../../config/firebase";
-import { doc, updateDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { auth, db, functions } from "../../config/firebase";
+import { httpsCallable } from "firebase/functions";
+import { doc, setDoc } from "firebase/firestore";
+import { useCart } from "../../contexts/CartContext";
 import i18n from "../../utils/i18n";
 
 export default function PaymentScreen({ route, navigation }) {
-  const { plan, price, originalPrice } = route.params || {};
+  const { plan, price, originalPrice, mode, orderId, amount, customerPhone, customerName, customerEmail, shippingAddress, items, pendingProfessionalData } = route.params || {};
+  const { clearCart } = useCart();
+  const isMarketplace = mode === "marketplace";
+  const isRegisterToken = mode === "register_token";
+  const displayPrice = isMarketplace ? amount : price;
   
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -72,54 +78,95 @@ export default function PaymentScreen({ route, navigation }) {
         return;
       }
 
-      // TODO: Appeler API Tranzila ici
+      if (isRegisterToken) {
+        const registerProTranzilaToken = httpsCallable(functions, "registerProTranzilaToken");
+        const result = await registerProTranzilaToken({
+          cardNumber,
+          expiryDate,
+          cvv,
+          cardHolder,
+        });
 
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
+        if (pendingProfessionalData?.userId) {
+          const token = result?.data?.token;
+          await setDoc(doc(db, "professional_accounts", pendingProfessionalData.userId), {
+            ...pendingProfessionalData,
+            tranzilaToken: token || null,
+            cardOnFile: Boolean(token),
+            cardLastFourDigits: cardNumber.replace(/\s/g, "").slice(-4),
+            tokenRegisteredAt: new Date(),
+            status: "pending",
+          }, { merge: true });
+        }
 
-      await addDoc(collection(db, "subscriptions"), {
-        userId: user.uid,
-        plan: plan,
-        price: price,
-        status: "active",
-        createdAt: serverTimestamp(),
-        expiresAt: expiresAt,
-        autoRenew: true,
-        paymentMethod: "card",
-        lastFourDigits: cardNumber.replace(/\s/g, "").slice(-4),
-      });
+        Alert.alert(
+          "Carte enregistrée",
+          "Votre carte a bien été enregistrée. Votre compte pro sera activé après validation.",
+          [
+            {
+              text: "OK",
+              onPress: () => navigation.reset({
+                index: 0,
+                routes: [{ name: "Home" }],
+              }),
+            },
+          ]
+        );
+      } else if (isMarketplace) {
+        const processMarketplacePayment = httpsCallable(functions, "processMarketplacePayment");
+        await processMarketplacePayment({
+          orderId,
+          amount,
+          cardNumber,
+          expiryDate,
+          cvv,
+          customerPhone,
+          customerName,
+          customerEmail: customerEmail || "",
+          shippingAddress,
+          items,
+        });
 
-      await updateDoc(doc(db, "profiles", user.uid), {
-        abonnement: plan,
-        subscriptionExpiresAt: expiresAt,
-      });
+        clearCart();
+        Alert.alert(
+          i18n.t("order_confirmed") + " ✅",
+          i18n.t("order_registered_message"),
+          [{ text: i18n.t("ok"), onPress: () => navigation.navigate("BoutiqueHome") }]
+        );
+      } else {
+        const processPayment = httpsCallable(functions, "processPayment");
+        await processPayment({
+          plan,
+          price,
+          cardNumber,
+          expiryDate,
+          cvv,
+          cardHolder,
+        });
 
-      await addDoc(collection(db, "invoices"), {
-        userId: user.uid,
-        type: "subscription",
-        plan: plan,
-        amount: price,
-        status: "paid",
-        createdAt: serverTimestamp(),
-        paidAt: serverTimestamp(),
-      });
-
-      Alert.alert(
-        i18n.t("payment_success"),
-        i18n.t("subscription_active", { plan: plan.toUpperCase() }),
-        [
-          {
-            text: i18n.t("ok"),
-            onPress: () => navigation.reset({
-              index: 0,
-              routes: [{ name: "Home" }],
-            }),
-          },
-        ]
-      );
+        Alert.alert(
+          i18n.t("payment_success"),
+          i18n.t("subscription_active", { plan: plan.toUpperCase() }),
+          [
+            {
+              text: i18n.t("ok"),
+              onPress: () => navigation.reset({
+                index: 0,
+                routes: [{ name: "Home" }],
+              }),
+            },
+          ]
+        );
+      }
     } catch (error) {
       console.error("Erreur paiement:", error);
-      Alert.alert(i18n.t("error"), i18n.t("payment_failed"));
+      const code = error?.message?.includes("payment_declined:")
+        ? error.message.split("payment_declined:")[1]
+        : null;
+      const msg = code
+        ? `${i18n.t("payment_failed")} (${code})`
+        : i18n.t("payment_failed");
+      Alert.alert(i18n.t("error"), msg);
     } finally {
       setLoading(false);
     }
@@ -145,7 +192,7 @@ export default function PaymentScreen({ route, navigation }) {
             <MaterialCommunityIcons name="arrow-left" size={24} color="#003366" />
           </TouchableOpacity>
 
-          <Text style={styles.title}>{i18n.t("secure_payment")}</Text>
+          <Text style={styles.title}>{isRegisterToken ? "Enregistrer votre carte" : i18n.t("secure_payment")}</Text>
 
           <View style={styles.orderSummary}>
             <View style={styles.orderHeader}>
@@ -155,20 +202,20 @@ export default function PaymentScreen({ route, navigation }) {
               </Text>
             </View>
             <View style={styles.orderPriceRow}>
-              {originalPrice && originalPrice !== price && (
+              {originalPrice && originalPrice !== price && !isRegisterToken && (
                 <Text style={styles.orderPriceOld}>{originalPrice}₪</Text>
               )}
-              <Text style={styles.orderPrice}>{price}₪</Text>
-              <Text style={styles.orderPriceUnit}>/{i18n.t("month")}</Text>
+              <Text style={styles.orderPrice}>{isRegisterToken ? "0" : displayPrice}₪</Text>
+              {!isRegisterToken && <Text style={styles.orderPriceUnit}>/{i18n.t("month")}</Text>}
             </View>
             <View style={styles.orderFeatures}>
               <View style={styles.orderFeature}>
                 <MaterialCommunityIcons name="check" size={16} color={getPlanColor()} />
-                <Text style={styles.orderFeatureText}>{i18n.t("auto_renewal")}</Text>
+                <Text style={styles.orderFeatureText}>{isRegisterToken ? "Votre carte sera utilisée uniquement si un lead ou un boost est facturé." : i18n.t("auto_renewal")}</Text>
               </View>
               <View style={styles.orderFeature}>
                 <MaterialCommunityIcons name="check" size={16} color={getPlanColor()} />
-                <Text style={styles.orderFeatureText}>{i18n.t("cancel_anytime")}</Text>
+                <Text style={styles.orderFeatureText}>{isRegisterToken ? "Aucun débit immédiat n’est effectué." : i18n.t("cancel_anytime")}</Text>
               </View>
             </View>
           </View>
@@ -259,7 +306,7 @@ export default function PaymentScreen({ route, navigation }) {
               ) : (
                 <>
                   <MaterialCommunityIcons name="lock" size={20} color="#FFF" />
-                  <Text style={styles.payButtonText}>{i18n.t("pay")} {price}₪</Text>
+                  <Text style={styles.payButtonText}>{isRegisterToken ? "Enregistrer la carte" : `${i18n.t("pay")} ${displayPrice}₪`}</Text>
                 </>
               )}
             </LinearGradient>

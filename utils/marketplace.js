@@ -76,7 +76,7 @@ export const createLead = async (leadData) => {
   try {
     // Calculer la date à partir de laquelle le client peut noter (10 jours)
     const canRateAfter = new Date();
-    canRateAfter.setDate(canRateAfter.getDate() + 0);
+    canRateAfter.setDate(canRateAfter.getDate() + 10);
 
     const docRef = await addDoc(collection(db, "marketplace_leads"), {
       ...leadData,

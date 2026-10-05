@@ -91,12 +91,7 @@ export default function MyReferral({ navigation }) {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    var date;
-    if (timestamp.toDate) {
-      date = timestamp.toDate();
-    } else {
-      date = new Date(timestamp);
-    }
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString(getLocale(), {
       day: "numeric",
       month: "short",

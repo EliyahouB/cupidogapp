@@ -17,6 +17,8 @@ import {
   query,
   where,
   getDocs,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 import { db, auth } from "../config/firebase";
 import { useNavigation } from "@react-navigation/native";
@@ -78,7 +80,6 @@ export default function Profile() {
     if (!profileId) return;
 
     try {
-      const { doc, updateDoc } = await import("firebase/firestore");
       const profileRef = doc(db, "profiles", profileId);
       await updateDoc(profileRef, { [field]: value });
     } catch (error) {
@@ -91,7 +92,7 @@ export default function Profile() {
     if (!dateValue) return i18n.t("not_specified");
     
     try {
-      var date;
+      let date;
       if (dateValue.toDate) {
         date = dateValue.toDate();
       } else if (dateValue instanceof Date) {
@@ -117,7 +118,7 @@ export default function Profile() {
     if (!dateValue) return null;
     
     try {
-      var birthDate;
+      let birthDate;
       if (dateValue.toDate) {
         birthDate = dateValue.toDate();
       } else if (dateValue instanceof Date) {
@@ -128,9 +129,9 @@ export default function Profile() {
         return null;
       }
 
-      var today = new Date();
-      var age = today.getFullYear() - birthDate.getFullYear();
-      var monthDiff = today.getMonth() - birthDate.getMonth();
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
       
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         age--;
@@ -149,6 +150,23 @@ export default function Profile() {
     if (abonnement === "essentiel") return i18n.t("essential");
     if (abonnement === "premium") return "Premium";
     return i18n.t("free");
+  };
+
+  const getTranslatedGender = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "homme" || normalized === "male" || normalized === "mâle" || normalized === "זכר") return i18n.t("male_dog");
+    if (normalized === "femme" || normalized === "female" || normalized === "femelle" || normalized === "נקבה") return i18n.t("female_dog");
+    return value || i18n.t("not_specified");
+  };
+
+  const getTranslatedPurpose = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "rencontre" || normalized === "meetup" || normalized === "מפגש") return i18n.t("meetup");
+    if (normalized === "vente" || normalized === "sale" || normalized === "מכירה") return i18n.t("sale");
+    if (normalized === "saillie" || normalized === "stud" || normalized === "הרבעה") return i18n.t("stud");
+    if (normalized === "achat" || normalized === "buy") return i18n.t("buy_dog");
+    if (normalized === "achat" || normalized === "sell") return i18n.t("sell_dog");
+    return value || i18n.t("not_specified");
   };
 
   if (loading) {
@@ -173,7 +191,7 @@ export default function Profile() {
     );
   }
 
-  var age = calculateAge(profile.dateOfBirth);
+  const age = calculateAge(profile.dateOfBirth);
 
   return (
     <ScreenLayout title={i18n.t("my_profile")} navigation={navigation} active="profile">
@@ -282,7 +300,7 @@ export default function Profile() {
           <MenuItem
             icon="gender-male-female"
             label={i18n.t("gender")}
-            value={profile.gender}
+            value={getTranslatedGender(profile.gender)}
             onPress={() => navigation.navigate("EditField", {
               field: "gender",
               title: i18n.t("gender"),
@@ -306,7 +324,7 @@ export default function Profile() {
           <MenuItem
             icon="target"
             label={i18n.t("registration_purpose")}
-            value={profile.purpose}
+            value={getTranslatedPurpose(profile.purpose)}
             onPress={() => navigation.navigate("EditField", {
               field: "purpose",
               title: i18n.t("registration_purpose"),

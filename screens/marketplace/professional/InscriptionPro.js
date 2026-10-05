@@ -52,6 +52,7 @@ export default function InscriptionPro({ navigation }) {
     { id: "toiletteur", name: i18n.t("groomer"), needsCert: false },
     { id: "dogwalker", name: i18n.t("dog_walker_boarding"), needsCert: false },
     { id: "educateur", name: i18n.t("trainer_educator"), needsCert: true },
+    { id: "assurance", name: "Assurance chien", needsCert: false },
     { id: "pension", name: i18n.t("dog_boarding"), needsCert: true },
     { id: "transport", name: i18n.t("dog_transport"), needsCert: false },
     { id: "photographe", name: i18n.t("photographer"), needsCert: false },
@@ -110,8 +111,9 @@ export default function InscriptionPro({ navigation }) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
+      allowsMultipleSelection: false,
       aspect: [1, 1],
       quality: 0.8,
     });
@@ -217,12 +219,31 @@ export default function InscriptionPro({ navigation }) {
         requiresCertification: formData.requiresCertification,
         logo: logoURL,
         teoudatOsek: docURL,
-        status: "pending",
+        tranzilaToken: null,
+        status: "awaiting_token",
         createdAt: new Date(),
         approvedAt: null,
         rejectedAt: null,
         rejectionReason: null,
       };
+
+      if (formData.activityType === "service_provider") {
+        Alert.alert(
+          "Carte bancaire requise",
+          "Votre CB est requise pour activer votre compte pro. Vous ne serez débité qu'en cas de lead reçu ou d'achat de boost.",
+          [
+            { text: "Annuler", style: "cancel" },
+            {
+              text: "Continuer",
+              onPress: () => navigation.navigate("PaymentScreen", {
+                mode: "register_token",
+                pendingProfessionalData: professionalData,
+              }),
+            },
+          ]
+        );
+        return;
+      }
 
       await setDoc(doc(db, "professional_accounts", user.uid), professionalData);
 

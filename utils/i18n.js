@@ -19,8 +19,8 @@ i18n.defaultLocale = "en";
 i18n.enableFallback = true;
 
 // Initialiser avec la langue du téléphone
-const deviceLocale = Localization.locale?.split("-")[0] || "en";
 const supportedLocales = ["fr", "en", "he", "ru"];
+const deviceLocale = Localization.getLocales?.()[0]?.languageCode || Localization.locale?.split("-")[0] || "en";
 i18n.locale = supportedLocales.includes(deviceLocale) ? deviceLocale : "en";
 
 // Fonction pour changer la langue manuellement

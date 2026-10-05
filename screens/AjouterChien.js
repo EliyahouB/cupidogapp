@@ -86,6 +86,7 @@ export default function AjouterChien({ navigation }) {
   const [pedigree, setPedigree] = useState("Non");
   const [contest, setContest] = useState("Non");
   const [result, setResult] = useState("");
+  const [price, setPrice] = useState("");
   const [imageUris, setImageUris] = useState([null, null, null, null]);
   const [loading, setLoading] = useState(false);
   
@@ -169,7 +170,7 @@ export default function AjouterChien({ navigation }) {
 
   const pickImage = async (index) => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: false,
       aspect: [4, 3],
       quality: 0.8,
@@ -279,6 +280,7 @@ export default function AjouterChien({ navigation }) {
         pedigree,
         contest,
         result: contest === "Oui" ? result : "",
+        price: purpose === "Vente" ? price : null,
         photoUrl: photoUrls[0] || null,
         photoUrls: photoUrls,
         createdAt: new Date(),
@@ -400,6 +402,20 @@ export default function AjouterChien({ navigation }) {
             <Picker.Item label={i18n.t("stud")} value="Saillie" />
           </Picker>
         </View>
+
+        {purpose === "Vente" && (
+          <>
+            <Text style={styles.label}>{i18n.t("selling_price")} *</Text>
+            <TextInput
+              style={styles.inputSmall}
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="numeric"
+              placeholder={i18n.t("price_range_example")}
+              placeholderTextColor="#999"
+            />
+          </>
+        )}
 
         <Text style={styles.label}>{i18n.t("description")}</Text>
         <TextInput

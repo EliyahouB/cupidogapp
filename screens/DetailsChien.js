@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 import PremiumBadge from "../components/PremiumBadge";
 import ScreenLayout from "../components/ScreenLayout";
+import i18n from "../utils/i18n";
 
 const { width } = Dimensions.get("window");
 
@@ -48,6 +49,83 @@ export default function DetailsChien({ route, navigation }) {
     : dog.photoUrl 
     ? [dog.photoUrl] 
     : [];
+
+  const getTranslatedGender = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "male" || normalized === "mâle" || normalized === "זכר" || normalized === "male_dog") return i18n.t("male_dog");
+    if (normalized === "female" || normalized === "femelle" || normalized === "נקבה" || normalized === "female_dog") return i18n.t("female_dog");
+    return value || i18n.t("unknown");
+  };
+
+  const getTranslatedPurpose = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "meetup" || normalized === "rencontre" || normalized === "מפגש" || normalized === "meeting") return i18n.t("meetup");
+    if (normalized === "sale" || normalized === "vente" || normalized === "מכירה") return i18n.t("sale");
+    if (normalized === "stud" || normalized === "saillie" || normalized === "הרבעה") return i18n.t("stud");
+    return value || i18n.t("unknown");
+  };
+
+  const getTranslatedPedigree = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "oui" || normalized === "yes" || normalized === "true" || normalized === "כן") return i18n.t("yes");
+    if (normalized === "non" || normalized === "no" || normalized === "false" || normalized === "לא") return i18n.t("no");
+    return value || i18n.t("unknown");
+  };
+
+  const getTranslatedContest = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "oui" || normalized === "yes" || normalized === "true" || normalized === "כן") return i18n.t("yes");
+    if (normalized === "non" || normalized === "no" || normalized === "false" || normalized === "לא") return i18n.t("no");
+    return value || i18n.t("unknown");
+  };
+
+  const getTranslatedBreed = (value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    const breedMap = {
+      "autre": "other",
+      "other": "other",
+      "mixed breed": "mixed_breed",
+      "métis": "mixed_breed",
+      "croisé": "mixed_breed",
+      "croise": "mixed_breed",
+      "מעורב": "mixed_breed",
+      "akita inu": "akita_inu",
+      "beagle": "beagle",
+      "berger allemand": "berger_allemand",
+      "berger australien": "berger_australien",
+      "bichon frise": "bichon_frise",
+      "border collie": "border_collie",
+      "bulldog anglais": "bulldog_anglais",
+      "bouledogue francais": "bulldog_anglais",
+      "caniche": "caniche",
+      "chihuahua": "chihuahua",
+      "cocker spaniel": "cocker_spaniel",
+      "dalmatien": "dalmatien",
+      "doberman": "doberman",
+      "golden retriever": "golden_retriever",
+      "grand danois": "grand_danois",
+      "husky sibérien": "husky_siberien",
+      "husky siberien": "husky_siberien",
+      "labrador retriever": "labrador_retriever",
+      "mastiff": "mastiff",
+      "rottweiler": "rottweiler",
+      "saint bernard": "saint_bernard",
+      "samoyede": "samoyede",
+      "shiba inu": "shiba_inu",
+      "shih tzu": "shih_tzu",
+      "vizsla": "vizsla",
+      "weimaraner": "weimaraner",
+      "yorkshire terrier": "yorkshire_terrier",
+    };
+
+    const key = breedMap[normalized];
+    if (key) {
+      const translated = i18n.t(key);
+      return translated !== key ? translated : value || i18n.t("unknown");
+    }
+
+    return value || i18n.t("unknown");
+  };
 
   useEffect(() => {
     const checkFavorite = async () => {
@@ -145,12 +223,12 @@ export default function DetailsChien({ route, navigation }) {
 
   const handleContact = async () => {
     if (!user) {
-      alert("Vous devez être connecté");
+      alert(i18n.t("user_not_connected"));
       return;
     }
 
     if (user.uid === dog.ownerId) {
-      alert("C'est votre propre chien !");
+      alert(i18n.t("your_own_dog"));
       return;
     }
 
@@ -221,7 +299,7 @@ export default function DetailsChien({ route, navigation }) {
       });
     } catch (error) {
       console.log("Erreur création conversation:", error);
-      alert("Erreur lors de la création de la conversation");
+      alert(i18n.t("error_creating_conversation"));
     }
   };
 
@@ -294,7 +372,7 @@ export default function DetailsChien({ route, navigation }) {
               <View>
                 <View style={styles.imagePlaceholder}>
                   <MaterialCommunityIcons name="dog" size={60} color="#999" />
-                  <Text style={styles.imageText}>Pas d'image</Text>
+                  <Text style={styles.imageText}>{i18n.t("no_image")}</Text>
                 </View>
                 <TouchableOpacity 
                   style={styles.favoriteIconTop} 
@@ -321,7 +399,7 @@ export default function DetailsChien({ route, navigation }) {
             <View style={styles.badgesContainer}>
               <View style={styles.badge}>
                 <MaterialCommunityIcons name="check-decagram" size={14} color="#06D6A0" />
-                <Text style={styles.badgeText}>Vérifié</Text>
+                <Text style={styles.badgeText}>{i18n.t("verified")}</Text>
               </View>
               <PremiumBadge abonnement={ownerAbonnement} size="small" />
             </View>
@@ -332,7 +410,7 @@ export default function DetailsChien({ route, navigation }) {
               
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="dog" size={18} color="#6B7280" />
-                <Text style={styles.infoText}>{dog.breed}</Text>
+                <Text style={styles.infoText}>{getTranslatedBreed(dog.breed)}</Text>
               </View>
               
               <View style={styles.infoRow}>
@@ -342,25 +420,32 @@ export default function DetailsChien({ route, navigation }) {
               
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="gender-male-female" size={18} color="#6B7280" />
-                <Text style={styles.infoText}>{dog.gender}</Text>
+                <Text style={styles.infoText}>{getTranslatedGender(dog.gender)}</Text>
               </View>
               
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="heart-outline" size={18} color="#FF6B35" />
-                <Text style={styles.infoPurpose}>{dog.purpose}</Text>
+                <Text style={styles.infoPurpose}>{getTranslatedPurpose(dog.purpose)}</Text>
               </View>
 
-              {dog.pedigree && dog.pedigree !== "Non précisé" && (
+              {getTranslatedPurpose(dog.purpose) === i18n.t("sale") && dog.price ? (
+                <View style={styles.infoRow}>
+                  <MaterialCommunityIcons name="tag" size={18} color="#06D6A0" />
+                  <Text style={styles.infoPrice}>{dog.price} ₪</Text>
+                </View>
+              ) : null}
+
+              {dog.pedigree && dog.pedigree !== i18n.t("not_specified") && (
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="certificate" size={18} color="#6B7280" />
-                  <Text style={styles.infoText}>Pedigree: {dog.pedigree}</Text>
+                  <Text style={styles.infoText}>{i18n.t("pedigree")}: {getTranslatedPedigree(dog.pedigree)}</Text>
                 </View>
               )}
 
-              {dog.contest === "Oui" && (
+              {getTranslatedContest(dog.contest) === i18n.t("yes") && (
                 <View style={styles.infoRow}>
                   <MaterialCommunityIcons name="trophy" size={18} color="#FFB84D" />
-                  <Text style={styles.infoText}>{dog.result || "Concours"}</Text>
+                  <Text style={styles.infoText}>{dog.result || i18n.t("contest")}</Text>
                 </View>
               )}
 
@@ -400,7 +485,7 @@ export default function DetailsChien({ route, navigation }) {
                     end={{ x: 1, y: 1 }}
                   >
                     <MaterialCommunityIcons name="message-text-outline" size={18} color="#FFF" />
-                    <Text style={styles.chatText}>Contacter</Text>
+                    <Text style={styles.chatText}>{i18n.t("contact_owner")}</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               )}
@@ -427,12 +512,12 @@ export default function DetailsChien({ route, navigation }) {
               </LinearGradient>
             </View>
 
-            <Text style={styles.modalTitle}>Limite atteinte</Text>
+            <Text style={styles.modalTitle}>{i18n.t("limit_reached")}</Text>
             <Text style={styles.modalText}>
-              Vous avez atteint le nombre maximum de conversations gratuites ({getConversationLimit()}).
+              {i18n.t("limit_reached_tap_premium")}
             </Text>
             <Text style={styles.modalSubtext}>
-              Passez à Premium pour des conversations illimitées !
+              {i18n.t("premium")}
             </Text>
 
             <TouchableOpacity
@@ -446,7 +531,7 @@ export default function DetailsChien({ route, navigation }) {
                 colors={['#FFA85C', '#FF6A3D', '#F15156', '#E91E63']}
                 style={styles.modalButtonGradient}
               >
-                <Text style={styles.modalButtonTextPrimary}>Voir les abonnements</Text>
+                <Text style={styles.modalButtonTextPrimary}>{i18n.t("view_subscriptions")}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -454,7 +539,7 @@ export default function DetailsChien({ route, navigation }) {
               style={styles.modalButtonSecondary}
               onPress={() => setShowPaywall(false)}
             >
-              <Text style={styles.modalButtonTextSecondary}>Plus tard</Text>
+              <Text style={styles.modalButtonTextSecondary}>{i18n.t("later")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -587,6 +672,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
     color: "#FF6B35",
+  },
+  infoPrice: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#06D6A0",
   },
   description: {
     fontSize: 15,

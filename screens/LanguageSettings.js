@@ -11,7 +11,7 @@ import ScreenLayout from "../components/ScreenLayout";
 import i18n, { setLocale, availableLocales } from "../utils/i18n";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function LanguageSettings({ navigation }) {
+export default function LanguageSettings({ navigation, onLocaleChange }) {
   const [currentLocale, setCurrentLocale] = useState(i18n.locale);
 
   useEffect(() => {
@@ -38,10 +38,14 @@ export default function LanguageSettings({ navigation }) {
         {
           text: "OK",
           onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "Home" }],
-            });
+            if (onLocaleChange) {
+              onLocaleChange(locale);
+            } else {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Home" }],
+              });
+            }
           },
         },
       ]

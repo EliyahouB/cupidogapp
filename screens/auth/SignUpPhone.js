@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,11 +13,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import { PhoneAuthProvider, signInWithCredential } from "firebase/auth";
-import { auth, db } from "../../config/firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import app from "../../config/firebase";
+import { db } from "../../config/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { sendPhoneOtp, verifyPhoneOtp } from "../../utils/phoneOtp";
 import i18n from "../../utils/i18n";
 
 const COUNTRIES = [
@@ -29,28 +27,26 @@ const COUNTRIES = [
 
 export default function SignUpPhone({ navigation, route }) {
   const { userType, providerType } = route.params;
-  
+
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [verificationId, setVerificationId] = useState(null);
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
-  
-  const recaptchaVerifier = useRef(null);
+  const [codeSent, setCodeSent] = useState(false);
 
   const formatPhoneNumber = (number) => {
     let cleaned = number.replace(/\s/g, "").replace(/-/g, "");
-    
+
     if (cleaned.startsWith("0")) {
       cleaned = cleaned.substring(1);
     }
-    
+
     if (cleaned.startsWith("+")) {
       return cleaned;
     }
-    
+
     return selectedCountry.code + cleaned;
   };
 
@@ -61,26 +57,27 @@ export default function SignUpPhone({ navigation, route }) {
     }
 
     setLoading(true);
+
     try {
       const formattedPhone = formatPhoneNumber(phoneNumber);
-      console.log("Envoi SMS à:", formattedPhone);
-      
-      const phoneProvider = new PhoneAuthProvider(auth);
-      const id = await phoneProvider.verifyPhoneNumber(
-        formattedPhone,
-        recaptchaVerifier.current
-      );
-      
-      setVerificationId(id);
+      console.log("Envoi WhatsApp à:", formattedPhone);
+      await sendPhoneOtp({
+        phoneNumber: formattedPhone,
+        purpose: "signup",
+        userType,
+        providerType,
+      });
+      setCodeSent(true);
       setStep(2);
-      Alert.alert(i18n.t("code_sent"), i18n.t("code_sent_to") + " " + formattedPhone);
+      Alert.alert(i18n.t("code_sent"), i18n.t("code_sent_to") + " " + formattedPhone + " (WhatsApp)");
     } catch (e) {
-      console.log("ERREUR SMS:", e.code, e.message);
+      console.log("ERREUR WhatsApp:", e.code, e.message);
+
       let message = i18n.t("error_sending_sms");
-      if (e.code === "auth/invalid-phone-number") message = i18n.t("invalid_phone");
-      if (e.code === "auth/too-many-requests") message = i18n.t("too_many_requests");
-      if (e.code === "auth/captcha-check-failed") message = i18n.t("captcha_failed");
-      if (e.message.includes("region")) message = i18n.t("region_not_activated");
+      if (e.code === "functions/invalid-argument") message = i18n.t("invalid_phone");
+      if (e.code === "functions/resource-exhausted") message = i18n.t("too_many_requests");
+      if (e.message && e.message.includes("region")) message = i18n.t("region_not_activated");
+
       Alert.alert(i18n.t("error"), message);
     } finally {
       setLoading(false);
@@ -93,74 +90,81 @@ export default function SignUpPhone({ navigation, route }) {
       return;
     }
 
+    if (!codeSent) {
+      Alert.alert(i18n.t("error"), i18n.t("invalid_code"));
+      return;
+    }
+
     setLoading(true);
+
     try {
       console.log("Vérification du code...");
-      const credential = PhoneAuthProvider.credential(verificationId, verificationCode);
-      const userCredential = await signInWithCredential(auth, credential);
+      const userCredential = await verifyPhoneOtp(
+        formatPhoneNumber(phoneNumber),
+        verificationCode
+      );
       const user = userCredential.user;
       console.log("Authentification réussie, UID:", user.uid);
 
       const profileRef = doc(db, "profiles", user.uid);
       const profileSnap = await getDoc(profileRef);
 
-      if (profileSnap.exists()) {
-        Alert.alert(
-          i18n.t("existing_account"),
-          i18n.t("account_already_exists"),
-          [{ text: i18n.t("ok") }]
-        );
-        return;
+      if (!profileSnap.exists()) {
+        console.log("Création du profil Firestore...");
+        const profileData = {
+          uid: user.uid,
+          phone: user.phoneNumber,
+          email: "",
+          createdAt: new Date(),
+          authProvider: "phone",
+          userType: userType,
+          ...(userType === "professionnel" && {
+            providerType: providerType,
+            providerStatus: "pending",
+            subscription: "none",
+          }),
+          name: "",
+          displayName: "",
+          photoUrl: null,
+          city: "",
+          bio: "",
+          hideProfile: false,
+          nomadMode: true,
+          emailVerified: false,
+          phoneVerified: true,
+          onboardingCompleted: false,
+          purpose: "",
+          gender: "",
+          abonnement: "gratuit",
+        };
+
+        await setDoc(profileRef, profileData);
+        console.log("Profil créé avec succès");
       }
-
-      console.log("Création du profil Firestore...");
-      const profileData = {
-        uid: user.uid,
-        phone: user.phoneNumber,
-        email: "",
-        createdAt: new Date(),
-        authProvider: "phone",
-        userType: userType,
-        ...(userType === "professionnel" && {
-          providerType: providerType,
-          providerStatus: "pending",
-          subscription: "none",
-        }),
-        name: "",
-        displayName: "",
-        photoUrl: null,
-        city: "",
-        bio: "",
-        hideProfile: false,
-        nomadMode: true,
-        emailVerified: false,
-        phoneVerified: true,
-        onboardingCompleted: false,
-        purpose: "",
-        gender: "",
-        abonnement: "gratuit",
-      };
-
-      await setDoc(profileRef, profileData);
-      console.log("Profil créé avec succès");
 
       navigation.reset({
         index: 0,
-        routes: [{ 
-          name: 'OnboardingProfile',
-          params: { 
-            userType: userType,
-            providerType: providerType 
-          }
-        }],
+        routes: [
+          {
+            name: "OnboardingProfile",
+            params: {
+              userType: userType,
+              providerType: providerType,
+            },
+          },
+        ],
       });
-
     } catch (e) {
       console.log("ERREUR VERIF:", e.code, e.message);
+
       let message = i18n.t("invalid_code");
       if (e.code === "auth/invalid-verification-code") message = i18n.t("wrong_code");
       if (e.code === "auth/code-expired") message = i18n.t("code_expired");
+      if (e.code === "functions/invalid-argument") message = i18n.t("wrong_code");
+      if (e.code === "functions/already-exists") message = i18n.t("account_already_exists");
+
       Alert.alert(i18n.t("error"), message);
+    } finally {
       setLoading(false);
     }
   };
@@ -174,12 +178,6 @@ export default function SignUpPhone({ navigation, route }) {
   return (
     <LinearGradient colors={["#F5D547", "#FF9966"]} style={styles.gradient}>
       <SafeAreaView style={styles.safeArea}>
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={app.options}
-          attemptInvisibleVerification={true}
-        />
-        
         <Modal
           visible={showCountryPicker}
           transparent={true}
@@ -193,7 +191,7 @@ export default function SignUpPhone({ navigation, route }) {
                   key={country.code}
                   style={[
                     styles.countryOption,
-                    selectedCountry.code === country.code && styles.countryOptionActive
+                    selectedCountry.code === country.code && styles.countryOptionActive,
                   ]}
                   onPress={() => {
                     setSelectedCountry(country);
@@ -217,7 +215,7 @@ export default function SignUpPhone({ navigation, route }) {
             </View>
           </View>
         </Modal>
-        
+
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <TouchableOpacity
             style={styles.backButton}
@@ -286,7 +284,7 @@ export default function SignUpPhone({ navigation, route }) {
                 <Text style={styles.phoneDisplay}>
                   {i18n.t("sent_to")} {formatPhoneNumber(phoneNumber)}
                 </Text>
-                
+
                 <TextInput
                   style={styles.codeInput}
                   placeholder="000000"
@@ -322,7 +320,7 @@ export default function SignUpPhone({ navigation, route }) {
                   onPress={() => {
                     setStep(1);
                     setVerificationCode("");
-                    setVerificationId(null);
+                    setCodeSent(false);
                   }}
                   disabled={loading}
                 >

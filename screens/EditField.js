@@ -35,8 +35,9 @@ export default function EditField({ route, navigation }) {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        allowsMultipleSelection: false,
         aspect: [1, 1],
         quality: 0.8,
       });

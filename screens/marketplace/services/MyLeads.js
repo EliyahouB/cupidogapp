@@ -52,23 +52,15 @@ export default function MyLeads({ navigation }) {
 
   const canRate = (lead) => {
     if (!lead.canRateAfter) return false;
-    var canRateDate;
-    if (lead.canRateAfter.toDate) {
-      canRateDate = lead.canRateAfter.toDate();
-    } else {
-      canRateDate = new Date(lead.canRateAfter);
-    }
+    const canRateDate = lead.canRateAfter.toDate
+      ? lead.canRateAfter.toDate()
+      : new Date(lead.canRateAfter);
     return new Date() >= canRateDate;
   };
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    var date;
-    if (timestamp.toDate) {
-      date = timestamp.toDate();
-    } else {
-      date = new Date(timestamp);
-    }
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString(getLocale(), {
       day: "numeric",
       month: "long",
@@ -78,15 +70,12 @@ export default function MyLeads({ navigation }) {
 
   const daysUntilCanRate = (lead) => {
     if (!lead.canRateAfter) return 0;
-    var canRateDate;
-    if (lead.canRateAfter.toDate) {
-      canRateDate = lead.canRateAfter.toDate();
-    } else {
-      canRateDate = new Date(lead.canRateAfter);
-    }
-    var now = new Date();
-    var diff = canRateDate - now;
-    var days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    const canRateDate = lead.canRateAfter.toDate
+      ? lead.canRateAfter.toDate()
+      : new Date(lead.canRateAfter);
+    const now = new Date();
+    const diff = canRateDate - now;
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     if (days < 0) return 0;
     return days;
   };

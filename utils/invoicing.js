@@ -31,14 +31,14 @@ export const generateCustomerInvoice = async (orderData) => {
       status: "paid", // ou "pending"
       
       createdAt: new Date(),
-      paidAt: orderData.paymentMethod === "cash_on_delivery" ? null : new Date(),
+      paidAt: new Date(),
       
       // Info vendeur (pour facture légale)
       sellers: [], // On va remplir après
     };
 
     // Récupérer les infos pro de chaque vendeur
-    const sellerIds = [...new Set(orderData.items.map(item => item.sellerId))];
+    const sellerIds = [...new Set(orderData.items.map(item => item.sellerId).filter(Boolean))];
     
     for (const sellerId of sellerIds) {
       const proDoc = await getDoc(doc(db, "professional_accounts", sellerId));

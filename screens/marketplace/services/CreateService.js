@@ -43,6 +43,7 @@ export default function CreateService({ navigation }) {
     { id: "toiletteur", name: i18n.t("groomer"), leadPrices: { pro: 18, pro_plus: 13 } },
     { id: "dogwalker", name: i18n.t("dog_walker_boarding"), leadPrices: { pro: 12, pro_plus: 8 } },
     { id: "educateur", name: i18n.t("trainer_educator"), leadPrices: { pro: 25, pro_plus: 18 } },
+    { id: "assurance", name: "Assurance chien", leadPrices: { pro: 35, pro_plus: 25 } },
     { id: "pension", name: i18n.t("dog_boarding"), leadPrices: { pro: 20, pro_plus: 15 } },
     { id: "transport", name: i18n.t("dog_transport"), leadPrices: { pro: 15, pro_plus: 10 } },
     { id: "photographe", name: i18n.t("photographer"), leadPrices: { pro: 25, pro_plus: 18 } },
@@ -107,8 +108,9 @@ export default function CreateService({ navigation }) {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
+      allowsMultipleSelection: false,
       aspect: [16, 9],
       quality: 0.8,
     });

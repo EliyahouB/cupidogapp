@@ -27,7 +27,6 @@ import MesChiens from "./screens/MesChiens";
 import AjouterChien from "./screens/AjouterChien.js";
 import Abonnements from "./screens/Abonnements";
 import ModifierChien from "./screens/ModifierChien.js";
-import StylePreview from "./screens/StylePreview.js";
 import LikesHub from "./screens/LikesHub";
 import Favoris from "./screens/Favoris";
 import Profile from "./screens/Profile";
@@ -178,7 +177,6 @@ export default function App() {
                   <Stack.Screen name="MesFactures" component={MesFactures} />
                   <Stack.Screen name="AjouterChien" component={AjouterChien} />
                   <Stack.Screen name="ModifierChien" component={ModifierChien} />
-                  <Stack.Screen name="StylePreview" component={StylePreview} />
                   <Stack.Screen name="LikesHub" component={LikesHub} />
                   <Stack.Screen name="Favoris" component={Favoris} />
                   <Stack.Screen name="Profile" component={Profile} />
@@ -240,7 +238,6 @@ export default function App() {
                   <Stack.Screen name="MesFactures" component={MesFactures} />
                   <Stack.Screen name="AjouterChien" component={AjouterChien} />
                   <Stack.Screen name="ModifierChien" component={ModifierChien} />
-                  <Stack.Screen name="StylePreview" component={StylePreview} />
                   <Stack.Screen name="LikesHub" component={LikesHub} />
                   <Stack.Screen name="Favoris" component={Favoris} />
                   <Stack.Screen name="Profile" component={Profile} />

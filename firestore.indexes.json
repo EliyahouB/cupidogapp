@@ -1,0 +1,17 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "phone_otp_requests",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "phone_otp_rate_limits",
+      "fieldPath": "cleanupAt",
+      "ttl": true,
+      "indexes": []
+    }
+  ]
+}

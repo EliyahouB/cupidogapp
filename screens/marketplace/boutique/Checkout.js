@@ -16,7 +16,6 @@ import ScreenLayout from "../../../components/ScreenLayout";
 import { useCart } from "../../../contexts/CartContext";
 import { auth } from "../../../config/firebase";
 import { createOrder } from "../../../utils/marketplace";
-import { generateCustomerInvoice } from "../../../utils/invoicing";
 import i18n from "../../../utils/i18n";
 
 export default function Checkout({ navigation }) {
@@ -32,6 +31,7 @@ export default function Checkout({ navigation }) {
     postalCode: "",
     notes: "",
   });
+  const [phonePrefix, setPhonePrefix] = useState("+972");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = () => {
@@ -62,73 +62,48 @@ export default function Checkout({ navigation }) {
     setLoading(true);
 
     try {
-      const orderData = {
+      const shippingAddress = {
+        street: formData.street,
+        city: formData.city,
+        postalCode: formData.postalCode,
+        notes: formData.notes,
+      };
+      const items = cartItems.map(item => ({
+        productId: item.id,
+        sellerId: item.sellerId,
+        sellerName: item.sellerName,
+        productName: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        commission: item.price * 0.2,
+        sellerPayout: item.price * 0.8,
+      }));
+
+      const result = await createOrder({
         customerId: user.uid,
         customerName: formData.customerName,
-        customerPhone: formData.customerPhone,
+        customerPhone: phonePrefix + formData.customerPhone,
         customerEmail: formData.customerEmail,
-        shippingAddress: {
-          street: formData.street,
-          city: formData.city,
-          postalCode: formData.postalCode,
-          notes: formData.notes,
-        },
-        items: cartItems.map(item => ({
-          productId: item.id,
-          sellerId: item.sellerId,
-          sellerName: item.sellerName,
-          productName: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          commission: item.price * 0.2,
-          sellerPayout: item.price * 0.8,
-        })),
+        shippingAddress,
+        items,
         subtotal: getTotal(),
         totalCommission: getTotal() * 0.2,
         total: getTotal(),
-        paymentMethod: "cash_on_delivery",
-      };
-
-      const result = await createOrder(orderData);
+        paymentMethod: "credit_card",
+        status: "pending_payment",
+      });
 
       if (result.success) {
-        const invoiceResult = await generateCustomerInvoice(orderData);
-        
-        if (invoiceResult.success) {
-          console.log("✅ Facture client générée:", invoiceResult.invoiceId);
-          
-          clearCart();
-          
-          Alert.alert(
-            i18n.t("order_confirmed") + " ✅",
-            i18n.t("order_registered_message"),
-            [
-              {
-                text: i18n.t("download_invoice"),
-                onPress: () => {
-                  navigation.navigate("InvoiceDetails", { invoiceId: invoiceResult.invoiceId });
-                }
-              },
-              {
-                text: i18n.t("back_to_shop"),
-                onPress: () => navigation.navigate("BoutiqueHome")
-              }
-            ]
-          );
-        } else {
-          console.error("❌ Erreur génération facture:", invoiceResult.error);
-          clearCart();
-          Alert.alert(
-            i18n.t("order_confirmed") + " !",
-            i18n.t("order_registered_sms"),
-            [
-              {
-                text: i18n.t("ok"),
-                onPress: () => navigation.navigate("BoutiqueHome")
-              }
-            ]
-          );
-        }
+        navigation.navigate("PaymentScreen", {
+          mode: "marketplace",
+          orderId: result.orderId,
+          amount: getTotal(),
+          customerPhone: phonePrefix + formData.customerPhone,
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          shippingAddress,
+          items,
+        });
       } else {
         Alert.alert(i18n.t("error"), i18n.t("error_placing_order"));
       }
@@ -193,6 +168,23 @@ export default function Checkout({ navigation }) {
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>{i18n.t("phone")} *</Text>
+              <View style={styles.phoneRow}>
+                {[
+                  { code: "+972", flag: "🇮🇱" },
+                  { code: "+33",  flag: "🇫🇷" },
+                  { code: "+1",   flag: "🇺🇸" },
+                ].map((p) => (
+                  <TouchableOpacity
+                    key={p.code}
+                    style={[styles.prefixBtn, phonePrefix === p.code && styles.prefixBtnActive]}
+                    onPress={() => setPhonePrefix(p.code)}
+                  >
+                    <Text style={[styles.prefixText, phonePrefix === p.code && styles.prefixTextActive]}>
+                      {p.flag} {p.code}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <TextInput
                 style={styles.input}
                 placeholder={i18n.t("phone_example")}
@@ -366,6 +358,34 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     marginBottom: 16,
+  },
+  phoneRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  prefixBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFF",
+    alignItems: "center",
+  },
+  prefixBtnActive: {
+    borderColor: "#FF6B6B",
+    backgroundColor: "#FFF5F5",
+  },
+  prefixText: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  prefixTextActive: {
+    color: "#FF6B6B",
+    fontWeight: "700",
   },
   label: {
     fontSize: 14,

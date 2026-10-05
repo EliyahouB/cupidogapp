@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -13,17 +13,14 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import { 
-  signInWithEmailAndPassword, 
-  sendPasswordResetEmail, 
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   sendEmailVerification,
-  PhoneAuthProvider,
-  signInWithCredential,
 } from "firebase/auth";
 import * as SecureStore from "expo-secure-store";
 import { auth } from "../config/firebase";
-import app from "../config/firebase";
+import { sendPhoneOtp, verifyPhoneOtp } from "../utils/phoneOtp";
 import i18n from "../utils/i18n";
 
 const COUNTRIES = [
@@ -41,13 +38,11 @@ export default function SignIn({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   
   const [phone, setPhone] = useState("");
-  const [verificationId, setVerificationId] = useState(null);
+  const [codeSent, setCodeSent] = useState(false);
   const [code, setCode] = useState("");
   const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
-  
   const [loading, setLoading] = useState(false);
-  const recaptchaVerifier = useRef(null);
 
   const storeUserId = async (uid) => {
     try {
@@ -141,24 +136,21 @@ export default function SignIn({ navigation }) {
     setLoading(true);
     try {
       const formattedPhone = formatPhoneNumber(phone);
-      console.log("Envoi SMS à:", formattedPhone);
-
-      const phoneProvider = new PhoneAuthProvider(auth);
-      const verId = await phoneProvider.verifyPhoneNumber(
-        formattedPhone,
-        recaptchaVerifier.current
-      );
-
-      setVerificationId(verId);
-      Alert.alert(i18n.t("code_sent"), i18n.t("code_sent_to") + " " + formattedPhone);
+      console.log("Envoi WhatsApp à:", formattedPhone);
+      await sendPhoneOtp({ phoneNumber: formattedPhone, purpose: "signin" });
+      setCodeSent(true);
+      Alert.alert(i18n.t("code_sent"), i18n.t("code_sent_to") + " " + formattedPhone + " (WhatsApp)");
     } catch (error) {
-      console.log("Erreur envoi SMS:", error);
+      console.log("Erreur envoi WhatsApp:", error);
       let message = i18n.t("error_sending_sms");
-      if (error.code === "auth/invalid-phone-number") {
+      if (error.code === "functions/invalid-argument") {
         message = i18n.t("invalid_phone");
       }
-      if (error.code === "auth/too-many-requests") {
+      if (error.code === "functions/resource-exhausted") {
         message = i18n.t("too_many_requests");
+      }
+      if (error.code === "functions/not-found") {
+        message = i18n.t("user_not_found");
       }
       Alert.alert(i18n.t("error"), message);
     } finally {
@@ -172,11 +164,15 @@ export default function SignIn({ navigation }) {
       return;
     }
 
+    if (!codeSent) {
+      Alert.alert(i18n.t("error"), i18n.t("invalid_code"));
+      return;
+    }
+
     setLoading(true);
     try {
       console.log("Vérification du code...");
-      const credential = PhoneAuthProvider.credential(verificationId, code);
-      const userCredential = await signInWithCredential(auth, credential);
+      const userCredential = await verifyPhoneOtp(formatPhoneNumber(phone), code);
 
       console.log("Connexion réussie, UID:", userCredential.user.uid);
       await storeUserId(userCredential.user.uid);
@@ -190,6 +186,9 @@ export default function SignIn({ navigation }) {
       if (error.code === "auth/code-expired") {
         message = i18n.t("code_expired");
       }
+      if (error.code === "functions/not-found") {
+        message = i18n.t("user_not_found");
+      }
       Alert.alert(i18n.t("error"), message);
     } finally {
       setLoading(false);
@@ -199,12 +198,6 @@ export default function SignIn({ navigation }) {
   return (
     <LinearGradient colors={['#F5D547', '#FF9966']} style={styles.gradient}>
       <SafeAreaView style={styles.safeArea}>
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={app.options}
-          attemptInvisibleVerification={true}
-        />
-
         <Modal
           visible={showCountryPicker}
           transparent={true}
@@ -247,8 +240,8 @@ export default function SignIn({ navigation }) {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => {
-              if (verificationId) {
-                setVerificationId(null);
+              if (codeSent) {
+                setCodeSent(false);
                 setCode("");
               } else {
                 navigation.goBack();
@@ -265,7 +258,7 @@ export default function SignIn({ navigation }) {
               style={[styles.tab, mode === "email" && styles.tabActive]}
               onPress={() => {
                 setMode("email");
-                setVerificationId(null);
+                setCodeSent(false);
                 setCode("");
               }}
             >
@@ -349,7 +342,7 @@ export default function SignIn({ navigation }) {
               </>
             ) : (
               <>
-                {!verificationId ? (
+                {!codeSent ? (
                   <>
                     <Text style={styles.phoneHint}>{i18n.t("phone_hint")}</Text>
                     
@@ -433,7 +426,7 @@ export default function SignIn({ navigation }) {
                     <TouchableOpacity
                       style={styles.resendButton}
                       onPress={() => {
-                        setVerificationId(null);
+                        setCodeSent(false);
                         setCode("");
                       }}
                     >
