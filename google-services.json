@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1012348553481",
+    "project_id": "cupidog-3d60d",
+    "storage_bucket": "cupidog-3d60d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1012348553481:android:274c535719351601842bd8",
+        "android_client_info": {
+          "package_name": "app.cupidog.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1012348553481-53k6enjkiasq48r7qn2m805m6t6f3ivn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLvmp6x7Umi8ElU7IreuYjMrr-hfckD3E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1012348553481-53k6enjkiasq48r7qn2m805m6t6f3ivn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

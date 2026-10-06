@@ -179,6 +179,7 @@ export default function Abonnements({ navigation }) {
       duration: i18n.t("free"),
       leadPrice: "65₪/lead",
       icon: "account-outline",
+      emoji: "🐾",
       gradient: ["#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4"],
       features: [i18n.t("profile"), i18n.t("my_leads"), "65₪/lead", i18n.t("cancel_anytime")],
     },
@@ -284,6 +285,7 @@ export default function Abonnements({ navigation }) {
                             <Text style={styles.currentBadgeText}>✓ {i18n.t("current_plan")}</Text>
                           </View>
                         )}
+                        {plan.emoji && <Text style={styles.planEmoji}>{plan.emoji}</Text>}
                         <View style={{ marginTop: 10 }}>
                           <MaterialCommunityIcons name={plan.icon} size={36} color="#FFF" />
                         </View>
@@ -538,6 +540,7 @@ export default function Abonnements({ navigation }) {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
+                    <Text style={styles.planEmoji}>💰</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="sale" size={22} color="#1976D2" />
@@ -572,6 +575,7 @@ export default function Abonnements({ navigation }) {
                     start={{ x: 0, y: 1 }}
                     end={{ x: 1, y: 0 }}
                   >
+                    <Text style={styles.planEmoji}>❤️</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="heart-multiple" size={22} color="#FFF" />
@@ -609,6 +613,7 @@ export default function Abonnements({ navigation }) {
                     <View style={styles.badgePopular}>
                       <Text style={styles.badgePopularText}>⭐ {i18n.t("popular")}</Text>
                     </View>
+                    <Text style={styles.planEmoji}>⭐</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="star" size={22} color="#757575" />
@@ -650,6 +655,7 @@ export default function Abonnements({ navigation }) {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
+                    <Text style={styles.planEmoji}>👑</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="crown" size={22} color="#F57C00" />
@@ -1086,6 +1092,14 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     padding: 12,
+  },
+  planEmoji: {
+    alignSelf: "center",
+    fontSize: 44,
+    lineHeight: 54,
+    textAlign: "center",
+    marginTop: 4,
+    marginBottom: 8,
   },
   badgePopular: {
     position: "absolute",

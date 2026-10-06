@@ -700,7 +700,7 @@ export default {
   account_settings: "Настройки аккаунта",
   notification_settings: "Настройки уведомлений",
   privacy_settings: "Настройки конфиденциальности",
-  language: "Язык / Language / שפה / Langue",
+  language: "Язык",
   language_settings: "Настройки языка",
   select_language: "Выберите язык",
   language_changed: "Язык изменен",
