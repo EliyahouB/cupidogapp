@@ -179,7 +179,6 @@ export default function Abonnements({ navigation }) {
       duration: i18n.t("free"),
       leadPrice: "65₪/lead",
       icon: "account-outline",
-      emoji: "🐾",
       gradient: ["#81D4FA", "#4FC3F7", "#29B6F6", "#03A9F4"],
       features: [i18n.t("profile"), i18n.t("my_leads"), "65₪/lead", i18n.t("cancel_anytime")],
     },
@@ -285,7 +284,6 @@ export default function Abonnements({ navigation }) {
                             <Text style={styles.currentBadgeText}>✓ {i18n.t("current_plan")}</Text>
                           </View>
                         )}
-                        {plan.emoji && <Text style={styles.planEmoji}>{plan.emoji}</Text>}
                         <View style={{ marginTop: 10 }}>
                           <MaterialCommunityIcons name={plan.icon} size={36} color="#FFF" />
                         </View>
@@ -304,9 +302,14 @@ export default function Abonnements({ navigation }) {
                             style={styles.carouselButton}
                             onPress={() => handleProPlanClick(plan.id)}
                           >
-                            <Text style={styles.carouselButtonText}>
-                              {plan.id === "freemium" ? i18n.t("start_free") : i18n.t("subscribe")}
-                            </Text>
+                            <LinearGradient
+                              colors={["#43A047", "#66BB6A"]}
+                              style={styles.planButtonGradient}
+                            >
+                              <Text style={styles.planButtonText}>
+                                {plan.id === "freemium" ? i18n.t("start_free") : i18n.t("subscribe")}
+                              </Text>
+                            </LinearGradient>
                           </TouchableOpacity>
                         )}
                       </LinearGradient>
@@ -535,12 +538,11 @@ export default function Abonnements({ navigation }) {
                   onPress={() => handleSelectPlan("Vente", "99₪")}
                 >
                   <LinearGradient
-                    colors={["#E3F2FD", "#BBDEFB", "#90CAF9"]}
+                    colors={["#29B6F6", "#FFFFFF"]}
                     style={styles.cardGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    <Text style={styles.planEmoji}>💰</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="sale" size={22} color="#1976D2" />
@@ -555,11 +557,13 @@ export default function Abonnements({ navigation }) {
                       <Text style={styles.featureTextDark}>• {i18n.t("filter")}</Text>
                     </View>
                     <TouchableOpacity
-                      style={styles.buttonDark}
+                      style={styles.planButton}
                       onPress={() => handleSelectPlan("Vente", "99₪")}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.buttonDarkText}>{i18n.t("publish")}</Text>
+                      <LinearGradient colors={["#43A047", "#66BB6A"]} style={styles.planButtonGradient}>
+                        <Text style={styles.planButtonText}>{i18n.t("publish")}</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -575,7 +579,6 @@ export default function Abonnements({ navigation }) {
                     start={{ x: 0, y: 1 }}
                     end={{ x: 1, y: 0 }}
                   >
-                    <Text style={styles.planEmoji}>❤️</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="heart-multiple" size={22} color="#FFF" />
@@ -589,11 +592,13 @@ export default function Abonnements({ navigation }) {
                       <Text style={styles.featureText}>• {i18n.t("notifications")}</Text>
                     </View>
                     <TouchableOpacity
-                      style={styles.buttonWhite}
+                      style={styles.planButton}
                       onPress={() => handleSelectPlan("Saillie", "149₪")}
                       activeOpacity={0.8}
                     >
-                      <Text style={styles.buttonWhiteText}>{i18n.t("publish")}</Text>
+                      <LinearGradient colors={["#43A047", "#66BB6A"]} style={styles.planButtonGradient}>
+                        <Text style={styles.planButtonText}>{i18n.t("publish")}</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                   </LinearGradient>
                 </TouchableOpacity>
@@ -605,7 +610,7 @@ export default function Abonnements({ navigation }) {
                   disabled={isSubscribed("essentiel")}
                 >
                   <LinearGradient
-                    colors={["#F5F5F5", "#EEEEEE", "#E0E0E0"]}
+                    colors={["#E0E0E0", "#F5F5F5"]}
                     style={styles.cardGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -613,7 +618,6 @@ export default function Abonnements({ navigation }) {
                     <View style={styles.badgePopular}>
                       <Text style={styles.badgePopularText}>⭐ {i18n.t("popular")}</Text>
                     </View>
-                    <Text style={styles.planEmoji}>⭐</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="star" size={22} color="#757575" />
@@ -633,11 +637,13 @@ export default function Abonnements({ navigation }) {
                     </View>
                     {!isSubscribed("essentiel") && (
                       <TouchableOpacity
-                        style={styles.buttonDark}
+                        style={styles.planButton}
                         onPress={() => handleSelectPlan("Essentiel", "249₪/mois")}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.buttonDarkText}>{i18n.t("subscribe")}</Text>
+                        <LinearGradient colors={["#43A047", "#66BB6A"]} style={styles.planButtonGradient}>
+                          <Text style={styles.planButtonText}>{i18n.t("subscribe")}</Text>
+                        </LinearGradient>
                       </TouchableOpacity>
                     )}
                   </LinearGradient>
@@ -650,12 +656,11 @@ export default function Abonnements({ navigation }) {
                   disabled={isSubscribed("premium")}
                 >
                   <LinearGradient
-                    colors={["#FFF9E1", "#FFF3C4", "#FFECB3"]}
+                    colors={["#F5DEB3", "#E8C98A"]}
                     style={styles.cardGradient}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    <Text style={styles.planEmoji}>👑</Text>
                     <View style={styles.cardHeader}>
                       <View style={styles.cardTitleRow}>
                         <MaterialCommunityIcons name="crown" size={22} color="#F57C00" />
@@ -676,11 +681,13 @@ export default function Abonnements({ navigation }) {
                     </View>
                     {!isSubscribed("premium") && (
                       <TouchableOpacity
-                        style={styles.buttonDark}
+                        style={styles.planButton}
                         onPress={() => handleSelectPlan("Premium", "399₪/mois")}
                         activeOpacity={0.8}
                       >
-                        <Text style={styles.buttonDarkText}>{i18n.t("subscribe")}</Text>
+                        <LinearGradient colors={["#43A047", "#66BB6A"]} style={styles.planButtonGradient}>
+                          <Text style={styles.planButtonText}>{i18n.t("subscribe")}</Text>
+                        </LinearGradient>
                       </TouchableOpacity>
                     )}
                   </LinearGradient>
@@ -844,17 +851,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFF",
     marginTop: 2,
+    textAlign: "center",
   },
   carouselCardPrice: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#FFF",
     marginTop: 2,
+    textAlign: "center",
   },
   carouselCardDuration: {
     fontSize: 13,
     color: "#FFF",
     opacity: 0.9,
+    textAlign: "center",
   },
   carouselCardDivider: {
     width: 50,
@@ -867,26 +877,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#FFF",
     marginBottom: 6,
+    textAlign: "center",
   },
   carouselCardFeatures: {
     alignItems: "center",
     marginBottom: 10,
   },
   carouselFeatureText: {
-    fontSize: 13,
+    fontSize: 18,
     color: "#FFF",
     marginBottom: 2,
+    textAlign: "center",
   },
   carouselButton: {
-    backgroundColor: "#FFF",
-    paddingVertical: 8,
-    paddingHorizontal: 20,
+    alignSelf: "stretch",
     borderRadius: 20,
-  },
-  carouselButtonText: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#0288D1",
+    overflow: "hidden",
   },
   carouselIndicators: {
     flexDirection: "row",
@@ -932,18 +938,21 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     marginTop: 3,
     letterSpacing: 1,
+    textAlign: "center",
   },
   quickActionTitle: {
     color: "#FFF",
     fontSize: 14,
     fontWeight: "600",
     marginTop: 1,
+    textAlign: "center",
   },
   quickActionPrice: {
     color: "#FFF",
     fontSize: 18,
     fontWeight: "bold",
     marginTop: 2,
+    textAlign: "center",
   },
   section: {
     marginBottom: 24,
@@ -1045,11 +1054,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#FFF",
+    textAlign: "center",
   },
   boostCardDesc: {
     fontSize: 12,
     color: "#FFF",
     opacity: 0.9,
+    textAlign: "center",
   },
   boostCardPriceContainer: {
     alignItems: "center",
@@ -1092,14 +1103,7 @@ const styles = StyleSheet.create({
   },
   cardGradient: {
     padding: 12,
-  },
-  planEmoji: {
-    alignSelf: "center",
-    fontSize: 44,
-    lineHeight: 54,
-    textAlign: "center",
-    marginTop: 4,
-    marginBottom: 8,
+    alignItems: "center",
   },
   badgePopular: {
     position: "absolute",
@@ -1117,25 +1121,30 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   cardHeader: {
+    width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
   cardTitleRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 8,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#FFF",
+    textAlign: "center",
   },
   cardTitleDark: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#333",
+    textAlign: "center",
   },
   badgeActive: {
     backgroundColor: "#06D6A0",
@@ -1165,46 +1174,44 @@ const styles = StyleSheet.create({
     color: "#FFF",
     opacity: 0.9,
     marginBottom: 10,
+    textAlign: "center",
   },
   cardDurationDark: {
     fontSize: 12,
     color: "#555",
     marginBottom: 10,
+    textAlign: "center",
   },
   cardFeatures: {
+    alignItems: "center",
     marginBottom: 10,
   },
   featureText: {
-    fontSize: 13,
+    fontSize: 18,
     color: "#FFF",
     marginBottom: 3,
+    textAlign: "center",
   },
   featureTextDark: {
-    fontSize: 13,
+    fontSize: 18,
     color: "#333",
     marginBottom: 3,
+    textAlign: "center",
   },
-  buttonWhite: {
-    backgroundColor: "#FFF",
-    paddingVertical: 10,
+  planButton: {
+    alignSelf: "stretch",
     borderRadius: 10,
+    overflow: "hidden",
+  },
+  planButtonGradient: {
+    paddingVertical: 10,
     alignItems: "center",
   },
-  buttonWhiteText: {
-    color: "#333",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  buttonDark: {
-    backgroundColor: "#333",
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  buttonDarkText: {
+  planButtonText: {
     color: "#FFF",
     fontSize: 14,
     fontWeight: "bold",
+    textAlign: "center",
   },
   footer: {
     flexDirection: "row",
