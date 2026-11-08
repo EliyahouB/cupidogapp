@@ -29,6 +29,82 @@ const transporter = nodemailer.createTransport({
 // CONFIGURATION TWILIO
 const client = twilioSid && twilioToken ? new twilio(twilioSid, twilioToken) : null;
 
+exports.findNearbyParks = functions
+  .runWith({ secrets: ["GOOGLE_MAPS_API_KEY"] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Sign in to search nearby parks.");
+    }
+
+    const latitude = data?.latitude;
+    const longitude = data?.longitude;
+    const radiusMeters = data?.radiusMeters;
+    const allowedRadii = [1000, 2000, 5000, 10000];
+
+    if (
+      !Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
+      !Number.isFinite(longitude) || longitude < -180 || longitude > 180 ||
+      !allowedRadii.includes(radiusMeters)
+    ) {
+      throw new functions.https.HttpsError("invalid-argument", "Invalid location or search radius.");
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      throw new functions.https.HttpsError("failed-precondition", "Google Places is not configured.");
+    }
+
+    try {
+      const response = await axios.post(
+        "https://places.googleapis.com/v1/places:searchNearby",
+        {
+          includedTypes: [
+            "park",
+            "dog_park",
+            "city_park",
+            "state_park",
+            "national_park",
+            "garden",
+            "botanical_garden",
+            "picnic_ground",
+          ],
+          maxResultCount: 20,
+          rankPreference: "DISTANCE",
+          locationRestriction: {
+            circle: {
+              center: { latitude, longitude },
+              radius: radiusMeters,
+            },
+          },
+          languageCode: ["fr", "en", "he", "ru"].includes(data?.languageCode)
+            ? data.languageCode
+            : "fr",
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": apiKey,
+            "X-Goog-FieldMask": "places.id,places.displayName,places.location,places.googleMapsUri",
+          },
+          timeout: 15000,
+        }
+      );
+
+      return (response.data.places || [])
+        .filter((place) => place.id && place.location && place.displayName?.text)
+        .map((place) => ({
+          id: place.id,
+          name: place.displayName.text,
+          latitude: place.location.latitude,
+          longitude: place.location.longitude,
+          mapsUrl: place.googleMapsUri || `https://www.google.com/maps/search/?api=1&query_place_id=${place.id}`,
+        }));
+    } catch (error) {
+      console.error("Google Places nearby search failed:", error.response?.data || error.message);
+      throw new functions.https.HttpsError("unavailable", "Nearby parks could not be loaded.");
+    }
+  });
+
 const maskPhoneNumber = (phoneNumber) => {
   if (typeof phoneNumber !== "string") return "<invalid>";
   const prefixLength = Math.max(1, phoneNumber.length - 7);

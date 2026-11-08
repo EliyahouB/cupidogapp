@@ -4,12 +4,22 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  View,
+  Text,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNotificationBadges } from "../contexts/NotificationBadgeContext";
 
 export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, active }) {
   const bottomPad = Platform.OS === "android" ? 8 : 0;
+  const { chatUnreadCount, likesUnreadCount } = useNotificationBadges();
+
+  const renderBadge = (count) => count > 0 ? (
+    <View style={styles.badge}>
+      <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
+    </View>
+  ) : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -41,6 +51,7 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, ac
             size={28}
             color={active === "chat" ? "#FFD700" : "#fff"}
           />
+          {renderBadge(chatUnreadCount)}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onLikes}>
@@ -49,6 +60,7 @@ export default function Toolbar({ onHome, onPaws, onChat, onLikes, onProfile, ac
             size={28}
             color={active === "likes" ? "#FFD700" : "#fff"}
           />
+          {renderBadge(likesUnreadCount)}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.btn} onPress={onProfile}>
@@ -81,5 +93,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 2,
+  },
+  badge: {
+    position: "absolute",
+    top: -1,
+    right: 10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 3,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+    backgroundColor: "#FF6B35",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+    lineHeight: 12,
   },
 });

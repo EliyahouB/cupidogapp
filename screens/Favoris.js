@@ -24,6 +24,7 @@ import {
 import ScreenLayout from "../components/ScreenLayout";
 import PremiumBadge from "../components/PremiumBadge";
 import i18n from "../utils/i18n";
+import { formatDogAge } from "../utils/dogAge";
 
 const { width } = Dimensions.get("window");
 
@@ -201,7 +202,7 @@ export default function Favoris({ navigation, embedded = false }) {
             
             <View style={styles.infoRow}>
               <MaterialCommunityIcons name="cake-variant" size={16} color="#6B7280" />
-              <Text style={styles.detail}>{item.age} {i18n.t("years_old")}</Text>
+              <Text style={styles.detail}>{formatDogAge(item, i18n.locale)}</Text>
             </View>
 
             <View style={styles.infoRow}>

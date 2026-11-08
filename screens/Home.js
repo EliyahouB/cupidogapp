@@ -12,9 +12,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ScreenLayout from "../components/ScreenLayout";
-import { db } from "../config/firebase";
+import { auth, db } from "../config/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import i18n from "../utils/i18n";
+
+const WELCOME_POPUP_VERSION = "1";
+const getWelcomePopupStorageKey = (userId) =>
+  `welcomePopupSeen:${userId}:${WELCOME_POPUP_VERSION}`;
 
 function VignetteImage({ source, title, onPress }) {
   return (
@@ -34,12 +38,14 @@ export default function Home({ navigation }) {
 
   const checkWelcomePopup = async () => {
     try {
-      const lastSeen = await AsyncStorage.getItem("welcomePopupLastSeen");
-      const today = new Date().toDateString();
-      
-      if (lastSeen === today) {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
         return;
       }
+
+      const storageKey = getWelcomePopupStorageKey(userId);
+      const seenVersion = await AsyncStorage.getItem(storageKey);
+      if (seenVersion === WELCOME_POPUP_VERSION) return;
 
       const configRef = doc(db, "app_config", "settings");
       const configSnap = await getDoc(configRef);
@@ -54,17 +60,18 @@ export default function Home({ navigation }) {
       setShowWelcomePopup(true);
     } catch (error) {
       console.log("Erreur checkWelcomePopup:", error);
-      // Si erreur Firebase, on affiche quand même le popup
-      setShowWelcomePopup(true);
     }
   };
 
   const closeWelcomePopup = async () => {
     try {
-      const today = new Date().toDateString();
-      await AsyncStorage.setItem("welcomePopupLastSeen", today);
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        const storageKey = getWelcomePopupStorageKey(userId);
+        await AsyncStorage.setItem(storageKey, WELCOME_POPUP_VERSION);
+      }
     } catch (error) {
-      console.log("Erreur save popup date:", error);
+      console.log("Erreur save popup version:", error);
     }
     setShowWelcomePopup(false);
   };

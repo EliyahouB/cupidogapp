@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import Slider from "@react-native-community/slider";
 import { Picker } from "@react-native-picker/picker";
+import i18n from "../utils/i18n";
+import { formatDogAgeYears } from "../utils/dogAge";
 
 const races = [
   "Labrador Retriever",
@@ -43,9 +45,11 @@ export default function FiltreModal({
         <View style={styles.modal}>
           <Text style={styles.title}>🔍 Filtres de recherche</Text>
 
-          <Text style={styles.label}>Âge minimum : {filters.minAge} ans</Text>
+          <Text style={styles.label}>
+            Âge minimum : {formatDogAgeYears(filters.minAge, i18n.locale)}
+          </Text>
           <Slider
-            minimumValue={1}
+            minimumValue={0}
             maximumValue={15}
             step={1}
             value={filters.minAge}
@@ -54,9 +58,11 @@ export default function FiltreModal({
             }
           />
 
-          <Text style={styles.label}>Âge maximum : {filters.maxAge} ans</Text>
+          <Text style={styles.label}>
+            Âge maximum : {formatDogAgeYears(filters.maxAge, i18n.locale)}
+          </Text>
           <Slider
-            minimumValue={1}
+            minimumValue={0}
             maximumValue={15}
             step={1}
             value={filters.maxAge}

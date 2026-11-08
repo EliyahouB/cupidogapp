@@ -6,8 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
+  AppState,
   Alert,
   ImageBackground,
   Image,
@@ -33,6 +35,7 @@ import {
   getDocs,
   where,
   deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import i18n from "../utils/i18n";
 
@@ -52,8 +55,77 @@ export default function Chat({ route, navigation }) {
   const [otherUserProfile, setOtherUserProfile] = useState(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [snapshotError, setSnapshotError] = useState(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const currentUser = auth.currentUser;
   const flatListRef = useRef(null);
+  const messagesStateRef = useRef([]);
+  const markingReadRef = useRef(false);
+  const pendingReadCheckRef = useRef(false);
+
+  const markUnreadMessagesAsRead = async (loadedMessages) => {
+    if (!currentUser || AppState.currentState !== "active") return;
+    if (markingReadRef.current) {
+      pendingReadCheckRef.current = true;
+      return;
+    }
+
+    const unreadMessages = loadedMessages.filter(
+      (item) => item.senderId !== currentUser.uid && item.read !== true
+    );
+    if (unreadMessages.length === 0) return;
+
+    markingReadRef.current = true;
+    try {
+      for (let index = 0; index < unreadMessages.length; index += 10) {
+        if (AppState.currentState !== "active") break;
+
+        const batch = writeBatch(db);
+        unreadMessages.slice(index, index + 10).forEach((item) => {
+          batch.update(
+            doc(db, "conversations", conversationId, "messages", item.id),
+            { read: true }
+          );
+        });
+        await batch.commit();
+      }
+    } catch (error) {
+      console.log("Erreur marquage messages lus:", error);
+    } finally {
+      markingReadRef.current = false;
+      if (pendingReadCheckRef.current) {
+        pendingReadCheckRef.current = false;
+        const latestUnreadMessages = messagesStateRef.current.filter(
+          (item) => item.senderId !== currentUser.uid && item.read !== true
+        );
+        if (AppState.currentState === "active" && latestUnreadMessages.length > 0) {
+          markUnreadMessagesAsRead(latestUnreadMessages);
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener("keyboardDidShow", (event) => {
+      if (Platform.OS === "android") {
+        setKeyboardHeight(event.endCoordinates.height);
+      }
+
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      });
+    });
+
+    const hideListener = Keyboard.addListener("keyboardDidHide", () => {
+      if (Platform.OS === "android") {
+        setKeyboardHeight(0);
+      }
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const loadOtherUserProfile = async () => {
@@ -114,8 +186,12 @@ export default function Chat({ route, navigation }) {
           ...doc.data(),
         }));
 
+        messagesStateRef.current = msgs;
         setMessages(msgs);
         checkIfBlocked(msgs);
+        if (AppState.currentState === "active") {
+          markUnreadMessagesAsRead(msgs);
+        }
 
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
@@ -134,7 +210,16 @@ export default function Chat({ route, navigation }) {
       console.log("Erreur reset unreadCount:", error);
     });
 
-    return () => unsubscribe();
+    const appStateSubscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        markUnreadMessagesAsRead(messagesStateRef.current);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      appStateSubscription.remove();
+    };
   }, [conversationId]);
 
   const checkIfBlocked = (msgs) => {
@@ -277,9 +362,18 @@ export default function Chat({ route, navigation }) {
         <Text style={[styles.messageText, fromMe ? styles.messageTextMe : styles.messageTextThem]}>
           {item.text}
         </Text>
-        <Text style={[styles.timeText, fromMe ? styles.timeTextMe : styles.timeTextThem]}>
-          {formatTime(item.createdAt)}
-        </Text>
+        <View style={styles.messageMeta}>
+          <Text style={[styles.timeText, fromMe ? styles.timeTextMe : styles.timeTextThem]}>
+            {formatTime(item.createdAt)}
+          </Text>
+          {fromMe && (
+            <MaterialCommunityIcons
+              name={item.read === true ? "check-all" : "check"}
+              size={15}
+              color={item.read === true ? "#2196F3" : "#8E8E93"}
+            />
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -301,8 +395,8 @@ export default function Chat({ route, navigation }) {
       ) : null}
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "padding"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 25}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={90}
       >
         <TouchableOpacity
           style={styles.userHeader}
@@ -358,7 +452,12 @@ export default function Chat({ route, navigation }) {
           />
         </ImageBackground>
 
-        <View style={styles.inputContainer}>
+        <View
+          style={[
+            styles.inputContainer,
+            Platform.OS === "android" && { marginBottom: keyboardHeight },
+          ]}
+        >
             <View style={styles.inputWrapper}>
               <TextInput
                 style={styles.input}
@@ -506,6 +605,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
     alignSelf: "flex-end",
+  },
+  messageMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-end",
+    gap: 4,
   },
   timeTextMe: {
     color: "#5A7A62",

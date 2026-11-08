@@ -22,12 +22,15 @@ i18n.enableFallback = true;
 const supportedLocales = ["fr", "en", "he", "ru"];
 const deviceLocale = Localization.getLocales?.()[0]?.languageCode || Localization.locale?.split("-")[0] || "en";
 i18n.locale = supportedLocales.includes(deviceLocale) ? deviceLocale : "en";
+console.log("[i18n] Langue du téléphone:", deviceLocale);
+console.log("[i18n] Langue initialement utilisée:", i18n.locale);
 
 // Fonction pour changer la langue manuellement
 export const setLocale = async (locale) => {
   if (supportedLocales.includes(locale)) {
     i18n.locale = locale;
     await AsyncStorage.setItem("userLocale", locale);
+    console.log("[i18n] Langue enregistrée:", locale);
   }
 };
 
@@ -35,9 +38,11 @@ export const setLocale = async (locale) => {
 export const loadSavedLocale = async () => {
   try {
     const savedLocale = await AsyncStorage.getItem("userLocale");
+    console.log("[i18n] Langue lue par loadSavedLocale:", savedLocale);
     if (savedLocale && supportedLocales.includes(savedLocale)) {
       i18n.locale = savedLocale;
     }
+    console.log("[i18n] Langue finalement utilisée par loadSavedLocale:", i18n.locale);
   } catch (error) {
     console.log("Erreur chargement langue:", error);
   }

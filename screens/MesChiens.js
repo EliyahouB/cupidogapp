@@ -15,6 +15,7 @@ import { auth, db } from "../config/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import PremiumBadge from "../components/PremiumBadge";
 import i18n from "../utils/i18n";
+import { formatDogAge } from "../utils/dogAge";
 
 const { width } = Dimensions.get("window");
 
@@ -119,7 +120,7 @@ export default function MesChiens({ navigation }) {
           
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="cake-variant" size={14} color="#6B7280" />
-            <Text style={styles.dogCardDetail}>{item.age} {i18n.t("years_old")}</Text>
+            <Text style={styles.dogCardDetail}>{formatDogAge(item, i18n.locale)}</Text>
           </View>
           
           <View style={styles.infoRow}>

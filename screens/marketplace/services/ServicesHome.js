@@ -9,6 +9,7 @@ import {
   Dimensions,
   PanResponder,
   Image,
+  I18nManager,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -22,6 +23,7 @@ const PEEK_WIDTH = 28;
 export default function ServicesHome({ navigation }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerAnim = useRef(new Animated.Value(0)).current;
+  const isRTL = I18nManager.isRTL;
 
   const services = [
     {
@@ -130,7 +132,7 @@ export default function ServicesHome({ navigation }) {
 
   const drawerTranslateX = drawerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-DRAWER_WIDTH, 0],
+    outputRange: [isRTL ? DRAWER_WIDTH : -DRAWER_WIDTH, 0],
   });
 
   const panResponder = useRef(
@@ -140,18 +142,20 @@ export default function ServicesHome({ navigation }) {
         return Math.abs(gestureState.dx) > 10;
       },
       onPanResponderMove: (_, gestureState) => {
-        if (!drawerOpen && gestureState.dx > 0) {
-          const value = Math.min(gestureState.dx / DRAWER_WIDTH, 1);
+        const directionalDx = isRTL ? -gestureState.dx : gestureState.dx;
+        if (!drawerOpen && directionalDx > 0) {
+          const value = Math.min(directionalDx / DRAWER_WIDTH, 1);
           drawerAnim.setValue(value);
-        } else if (drawerOpen && gestureState.dx < 0) {
-          const value = Math.max(1 + gestureState.dx / DRAWER_WIDTH, 0);
+        } else if (drawerOpen && directionalDx < 0) {
+          const value = Math.max(1 + directionalDx / DRAWER_WIDTH, 0);
           drawerAnim.setValue(value);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (!drawerOpen && gestureState.dx > 50) {
+        const directionalDx = isRTL ? -gestureState.dx : gestureState.dx;
+        if (!drawerOpen && directionalDx > 50) {
           openDrawer();
-        } else if (drawerOpen && gestureState.dx < -50) {
+        } else if (drawerOpen && directionalDx < -50) {
           closeDrawer();
         } else {
           if (drawerOpen) {
@@ -487,7 +491,7 @@ const styles = StyleSheet.create({
   },
   peekStripFixed: {
     position: "absolute",
-    left: 0,
+    start: 0,
     top: 0,
     bottom: 0,
     width: PEEK_WIDTH,
@@ -495,7 +499,7 @@ const styles = StyleSheet.create({
   },
   peekItem: {
     position: "absolute",
-    left: 0,
+    start: 0,
     width: PEEK_WIDTH,
     height: 52,
     borderTopRightRadius: 12,
@@ -513,7 +517,7 @@ const styles = StyleSheet.create({
   },
   drawer: {
     position: "absolute",
-    left: 0,
+    start: 0,
     top: 120,
     bottom: 10,
     width: DRAWER_WIDTH,

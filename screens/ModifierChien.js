@@ -9,16 +9,19 @@ import {
   Image,
   Alert,
   Modal,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Picker } from "@react-native-picker/picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db, storage } from "../config/firebase";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { doc, updateDoc, deleteDoc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
+import { doc, updateDoc, deleteDoc, getDoc, getDocs, query, where, collection, Timestamp } from "firebase/firestore";
 import i18n from "../utils/i18n";
+import { formatDogAge, getDogAgeMonths } from "../utils/dogAge";
 
 const DOG_BREEDS = [
   "Akita Inu",
@@ -80,6 +83,13 @@ export default function ModifierChien({ route, navigation }) {
   const [breed, setBreed] = useState(dog.breed || DOG_BREEDS[0]);
   const [customBreed, setCustomBreed] = useState("");
   const [age, setAge] = useState(dog.age?.toString() || "");
+  const [birthDate, setBirthDate] = useState(() => {
+    if (typeof dog.birthDate?.toDate === "function") return dog.birthDate.toDate();
+    if (dog.birthDate?.seconds) return new Date(dog.birthDate.seconds * 1000);
+    if (dog.birthDate) return new Date(dog.birthDate);
+    return null;
+  });
+  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [gender, setGender] = useState(dog.gender || "Male");
   const [purpose, setPurpose] = useState(dog.purpose || "Rencontre");
   const [description, setDescription] = useState(dog.description || "");
@@ -92,6 +102,21 @@ export default function ModifierChien({ route, navigation }) {
   const [abonnement, setAbonnement] = useState("gratuit");
   const [showPaywall, setShowPaywall] = useState(false);
   const [originalPurpose, setOriginalPurpose] = useState(dog.purpose || "Rencontre");
+
+  const getDateLocale = () => ({
+    fr: "fr-FR",
+    en: "en-US",
+    he: "he-IL",
+    ru: "ru-RU",
+  }[i18n.locale] || "en-US");
+
+  const onBirthDateChange = (event, selectedDate) => {
+    setShowBirthDatePicker(Platform.OS === "ios");
+    if (selectedDate) {
+      setBirthDate(selectedDate);
+      setAge(String(Math.floor(getDogAgeMonths({ birthDate: selectedDate }) / 12)));
+    }
+  };
 
   useEffect(() => {
     loadUserAbonnement();
@@ -245,7 +270,10 @@ export default function ModifierChien({ route, navigation }) {
       await updateDoc(dogRef, {
         dogName,
         breed: finalBreed,
-        age,
+        age: birthDate
+          ? String(Math.floor(getDogAgeMonths({ birthDate }) / 12))
+          : age,
+        ...(birthDate ? { birthDate: Timestamp.fromDate(birthDate) } : {}),
         gender,
         purpose,
         description,
@@ -378,14 +406,38 @@ export default function ModifierChien({ route, navigation }) {
           </>
         )}
 
-        <Text style={styles.label}>{i18n.t("age")}</Text>
-        <TextInput
-          style={styles.inputSmall}
-          value={age}
-          onChangeText={setAge}
-          keyboardType="numeric"
-          placeholder={i18n.t("in_years")}
-        />
+        <Text style={styles.label}>{i18n.t("date_of_birth")}</Text>
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setShowBirthDatePicker(true)}
+        >
+          <MaterialCommunityIcons name="calendar" size={22} color="#FF6B35" />
+          <Text style={styles.dateText}>
+            {birthDate
+              ? birthDate.toLocaleDateString(getDateLocale(), {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : i18n.t("select_date")}
+          </Text>
+        </TouchableOpacity>
+        {showBirthDatePicker && (
+          <DateTimePicker
+            value={birthDate || new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={onBirthDateChange}
+            maximumDate={new Date()}
+            locale={getDateLocale()}
+          />
+        )}
+        <Text style={styles.ageHint}>
+          {i18n.t("current_age")}: {formatDogAge(
+            birthDate ? { ...dog, birthDate } : dog,
+            i18n.locale
+          )}
+        </Text>
 
         <Text style={styles.label}>{i18n.t("gender")}</Text>
         <View style={styles.pickerWrapper}>
@@ -565,6 +617,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     width: "50%",
+  },
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  dateText: {
+    color: "#1a1a1a",
+    fontSize: 15,
+  },
+  ageHint: {
+    color: "#fff",
+    marginTop: 6,
+    fontSize: 14,
   },
   pickerWrapper: {
     backgroundColor: "#fff",

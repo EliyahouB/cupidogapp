@@ -28,6 +28,7 @@ import {
 import PremiumBadge from "../components/PremiumBadge";
 import ScreenLayout from "../components/ScreenLayout";
 import i18n from "../utils/i18n";
+import { formatDogAge } from "../utils/dogAge";
 
 const { width } = Dimensions.get("window");
 
@@ -415,7 +416,7 @@ export default function DetailsChien({ route, navigation }) {
               
               <View style={styles.infoRow}>
                 <MaterialCommunityIcons name="cake-variant" size={18} color="#6B7280" />
-                <Text style={styles.infoText}>{dog.age}</Text>
+                <Text style={styles.infoText}>{formatDogAge(dog, i18n.locale)}</Text>
               </View>
               
               <View style={styles.infoRow}>

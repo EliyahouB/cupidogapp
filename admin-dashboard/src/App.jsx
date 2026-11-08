@@ -11,8 +11,8 @@ const firebaseConfig = {
   authDomain: "cupidog-3d60d.firebaseapp.com",
   projectId: "cupidog-3d60d",
   storageBucket: "cupidog-3d60d.appspot.com",
-  messagingSenderId: "1046022722691",
-  appId: "1:1046022722691:web:xxxxxxx"
+  messagingSenderId: "1012348553481",
+  appId: "1:1012348553481:web:94b00c0c56210e41842bd8"
 }
 
 const app = initializeApp(firebaseConfig)

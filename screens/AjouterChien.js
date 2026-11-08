@@ -9,16 +9,19 @@ import {
   Image,
   Alert,
   Modal,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Picker } from "@react-native-picker/picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import ScreenLayout from "../components/ScreenLayout";
 import { auth, db, storage } from "../config/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc, getDoc, getDocs, doc, query, where } from "firebase/firestore";
+import { collection, addDoc, getDoc, getDocs, doc, query, where, Timestamp } from "firebase/firestore";
 import i18n from "../utils/i18n";
+import { formatDogAge, getDogAgeMonths } from "../utils/dogAge";
 
 const DOG_BREEDS = [
   "Autre",
@@ -80,6 +83,8 @@ export default function AjouterChien({ navigation }) {
   const [breed, setBreed] = useState("Autre");
   const [customBreed, setCustomBreed] = useState("");
   const [age, setAge] = useState("");
+  const [birthDate, setBirthDate] = useState(null);
+  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [gender, setGender] = useState("Male");
   const [purpose, setPurpose] = useState("Rencontre");
   const [description, setDescription] = useState("");
@@ -97,6 +102,21 @@ export default function AjouterChien({ navigation }) {
   useEffect(() => {
     loadUserAbonnement();
   }, []);
+
+  const getDateLocale = () => ({
+    fr: "fr-FR",
+    en: "en-US",
+    he: "he-IL",
+    ru: "ru-RU",
+  }[i18n.locale] || "en-US");
+
+  const onBirthDateChange = (event, selectedDate) => {
+    setShowBirthDatePicker(Platform.OS === "ios");
+    if (selectedDate) {
+      setBirthDate(selectedDate);
+      setAge(String(Math.floor(getDogAgeMonths({ birthDate: selectedDate }) / 12)));
+    }
+  };
 
   const loadUserAbonnement = async () => {
     const user = auth.currentUser;
@@ -206,7 +226,7 @@ export default function AjouterChien({ navigation }) {
       return;
     }
 
-    if (!age.trim()) {
+    if (!birthDate) {
       Alert.alert(i18n.t("error"), i18n.t("dog_age_required"));
       return;
     }
@@ -274,6 +294,7 @@ export default function AjouterChien({ navigation }) {
         dogName,
         breed: finalBreed,
         age,
+        birthDate: Timestamp.fromDate(birthDate),
         gender,
         purpose,
         description,
@@ -370,15 +391,37 @@ export default function AjouterChien({ navigation }) {
           </>
         )}
 
-        <Text style={styles.label}>{i18n.t("age")} *</Text>
-        <TextInput
-          style={styles.inputSmall}
-          value={age}
-          onChangeText={setAge}
-          keyboardType="numeric"
-          placeholder={i18n.t("in_years")}
-          placeholderTextColor="#999"
-        />
+        <Text style={styles.label}>{i18n.t("date_of_birth")} *</Text>
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setShowBirthDatePicker(true)}
+        >
+          <MaterialCommunityIcons name="calendar" size={22} color="#FF6B35" />
+          <Text style={styles.dateText}>
+            {birthDate
+              ? birthDate.toLocaleDateString(getDateLocale(), {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })
+              : i18n.t("select_date")}
+          </Text>
+        </TouchableOpacity>
+        {showBirthDatePicker && (
+          <DateTimePicker
+            value={birthDate || new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={onBirthDateChange}
+            maximumDate={new Date()}
+            locale={getDateLocale()}
+          />
+        )}
+        {birthDate && (
+          <Text style={styles.ageHint}>
+            {i18n.t("current_age")}: {formatDogAge({ birthDate }, i18n.locale)}
+          </Text>
+        )}
 
         <Text style={styles.label}>{i18n.t("gender")} *</Text>
         <View style={styles.pickerWrapper}>
@@ -635,6 +678,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ccc",
     width: "50%",
+  },
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  dateText: {
+    color: "#1a1a1a",
+    fontSize: 15,
+  },
+  ageHint: {
+    color: "#fff",
+    marginTop: 6,
+    fontSize: 14,
   },
   pickerWrapper: {
     backgroundColor: "#fff",

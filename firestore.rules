@@ -15,7 +15,10 @@ service cloud.firestore {
 		}
     
 		function isAdmin() {
-			return isSignedIn() && request.auth.uid == 'yKCj9DkdQJhmjNuSIdZR31ZbFCA2';
+			return isSignedIn() && (
+				request.auth.uid == 'pNoNYjpzYeW1rnQiStF0RYJSiVJ2' ||
+				request.auth.uid == 'NpQIlnKvd8fUmDnYpdiiekitAl52'
+			);
 		}
     
 		function isProfessional() {
@@ -90,7 +93,9 @@ service cloud.firestore {
 			allow read: if isSignedIn();
 			allow create: if isSignedIn() && request.resource.data.fromUserId == request.auth.uid;
 			allow delete: if isSignedIn() && resource.data.fromUserId == request.auth.uid;
-			allow update: if false;
+			allow update: if isSignedIn() &&
+				request.auth.uid == resource.data.toOwnerId &&
+				request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead']);
 		}
     
 		// ============================================
@@ -131,7 +136,11 @@ service cloud.firestore {
 				allow delete: if isSignedIn() && 
 					request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
 					resource.data.senderId == request.auth.uid;
-				allow update: if false;
+				allow update: if isSignedIn() &&
+					request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+					resource.data.senderId != request.auth.uid &&
+					request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+					request.resource.data.read == true;
 			}
 		}
     

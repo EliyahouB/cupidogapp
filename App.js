@@ -5,9 +5,13 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { LogBox } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "./config/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import i18n, { loadSavedLocale } from "./utils/i18n";
+import { registerForPushNotificationsAsync } from "./utils/Notifications";
+import { NotificationBadgeProvider } from "./contexts/NotificationBadgeContext";
 
 // Auth screens
 import Welcome from "./screens/auth/Welcome";
@@ -81,6 +85,26 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [onboardingCompleted, setOnboardingCompleted] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [localeLoaded, setLocaleLoaded] = useState(false);
+
+  useEffect(() => {
+    const initializeLocale = async () => {
+      try {
+        await loadSavedLocale();
+        const savedLocale = await AsyncStorage.getItem("userLocale");
+        console.log("[i18n] Langue enregistrée/lue au démarrage:", savedLocale);
+        console.log("[i18n] Langue finalement utilisée au démarrage:", i18n.locale);
+      } catch (error) {
+        console.log("[i18n] Erreur lecture diagnostic de langue:", error.message);
+        console.log("[i18n] Langue finalement utilisée au démarrage:", i18n.locale);
+      } finally {
+        setLocaleLoaded(true);
+      }
+    };
+
+    initializeLocale();
+  }, []);
 
   useEffect(() => {
     let unsubscribeProfile = null;
@@ -95,6 +119,21 @@ export default function App() {
       }
 
       if (currentUser) {
+        setProfileLoaded(false);
+        registerForPushNotificationsAsync()
+          .then(async (token) => {
+            if (!token || auth.currentUser?.uid !== currentUser.uid) return;
+
+            await setDoc(
+              doc(db, "users", currentUser.uid),
+              { pushToken: token },
+              { merge: true }
+            );
+          })
+          .catch((error) => {
+            console.error("❌ Erreur enregistrement token push:", error);
+          });
+
         // Écouter le profil en temps réel
         unsubscribeProfile = onSnapshot(
           doc(db, "profiles", currentUser.uid),
@@ -113,15 +152,18 @@ export default function App() {
               setUserProfile(null);
               setOnboardingCompleted(false);
             }
+            setProfileLoaded(true);
             setLoading(false);
           },
           (error) => {
             console.log("❌ Erreur Firestore:", error);
             setOnboardingCompleted(true);
+            setProfileLoaded(false);
             setLoading(false);
           }
         );
       } else {
+        setProfileLoaded(false);
         setUser(null);
         setUserProfile(null);
         setOnboardingCompleted(true);
@@ -139,7 +181,7 @@ export default function App() {
     };
   }, []);
 
-  if (loading) {
+  if (loading || !localeLoaded) {
     return null;
   }
 
@@ -157,8 +199,9 @@ export default function App() {
           translucent
           backgroundColor="transparent"
         />
-        <NavigationContainer>
-          <Stack.Navigator 
+        <NotificationBadgeProvider uid={user?.uid} profileLoaded={profileLoaded}>
+          <NavigationContainer>
+            <Stack.Navigator
             key={user ? (onboardingCompleted ? "app" : "onboarding") : "guest"}
             screenOptions={{ headerShown: false }}
           >
@@ -290,8 +333,9 @@ export default function App() {
                 <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} />
               </>
             )}
-          </Stack.Navigator>
-        </NavigationContainer>
+            </Stack.Navigator>
+          </NavigationContainer>
+        </NotificationBadgeProvider>
       </SafeAreaProvider>
     </CartProvider>
   );

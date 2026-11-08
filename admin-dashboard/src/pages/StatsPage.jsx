@@ -66,6 +66,8 @@ function StatsPage() {
         usersPremium,
         usersByPurpose: purposeCounts,
       }))
+    }, (error) => {
+      console.error('StatsPage profiles listener error:', error)
     }))
 
     // 2. DOGS (sous-collection via collectionGroup)
@@ -84,6 +86,8 @@ function StatsPage() {
         totalDogs: dogs.length,
         dogsByPurpose,
       }))
+    }, (error) => {
+      console.error('StatsPage dogs listener error:', error)
     }))
 
     // 3. PROFESSIONAL ACCOUNTS
@@ -102,6 +106,8 @@ function StatsPage() {
         proVendeurs,
         proPending,
       }))
+    }, (error) => {
+      console.error('StatsPage professional_accounts listener error:', error)
     }))
 
     // 4. LEADS
@@ -118,6 +124,8 @@ function StatsPage() {
         leadsPending,
         leadsAccepted,
       }))
+    }, (error) => {
+      console.error('StatsPage marketplace_leads listener error:', error)
     }))
 
     // 5. MARKETPLACE ORDERS
@@ -134,6 +142,8 @@ function StatsPage() {
         totalOrdersAmount,
         commissionTotal,
       }))
+    }, (error) => {
+      console.error('StatsPage marketplace_orders listener error:', error)
     }))
 
     // 6. INVOICES
@@ -162,6 +172,8 @@ function StatsPage() {
       }))
       
       setLoading(false)
+    }, (error) => {
+      console.error('StatsPage invoices listener error:', error)
     }))
 
     return () => unsubscribes.forEach(unsub => unsub())

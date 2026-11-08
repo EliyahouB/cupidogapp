@@ -1,10 +1,11 @@
 // config/firebase.js
 import { initializeApp } from "firebase/app";
+import { Platform } from "react-native";
 import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getFunctions } from "firebase/functions";
+import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCcoAzHUihZCk8XWWrf2tJIxZZ7jERxtzA",
@@ -25,5 +26,11 @@ export const auth = initializeAuth(app, {
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+if (__DEV__ && process.env.EXPO_PUBLIC_USE_FUNCTIONS_EMULATOR === "true") {
+  const emulatorHost = process.env.EXPO_PUBLIC_FUNCTIONS_EMULATOR_HOST ||
+    (Platform.OS === "android" ? "10.0.2.2" : "127.0.0.1");
+  connectFunctionsEmulator(functions, emulatorHost, 5001);
+}
 
 export default app;

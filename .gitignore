@@ -6,3 +6,5 @@ ios/
 .env
 npm-debug.log*
 yarn-error.log*
+dist/
+admin-dashboard/dist/

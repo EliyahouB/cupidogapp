@@ -2,9 +2,16 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 
-export async function registerForPushNotificationsAsync() {
-  let token;
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
+export async function registerForPushNotificationsAsync() {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
       name: "default",
@@ -26,8 +33,7 @@ export async function registerForPushNotificationsAsync() {
   }
 
   if (Device.isDevice) {
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    return token;
+    return (await Notifications.getDevicePushTokenAsync()).data;
   } else {
     alert("Les notifications ne fonctionnent que sur un simulateur.");
     return null;

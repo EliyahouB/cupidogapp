@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import GoogleAuthButton from "../../components/GoogleAuthButton";
 import i18n from "../../utils/i18n";
 
 export default function AuthMethods({ navigation, route }) {
@@ -86,21 +88,20 @@ export default function AuthMethods({ navigation, route }) {
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity
-              style={styles.socialButton}
+            <GoogleAuthButton
               onPress={() => handleMethod("google")}
-            >
-              <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
-              <Text style={styles.socialText}>{i18n.t("continue_with_google")}</Text>
-            </TouchableOpacity>
+              disabled={loading !== null}
+            />
 
-            <TouchableOpacity
-              style={[styles.socialButton, styles.appleButton]}
-              onPress={() => handleMethod("apple")}
-            >
-              <MaterialCommunityIcons name="apple" size={24} color="#FFF" />
-              <Text style={[styles.socialText, { color: "#FFF" }]}>{i18n.t("continue_with_apple")}</Text>
-            </TouchableOpacity>
+            {Platform.OS === "ios" && (
+              <TouchableOpacity
+                style={[styles.socialButton, styles.appleButton]}
+                onPress={() => handleMethod("apple")}
+              >
+                <MaterialCommunityIcons name="apple" size={24} color="#FFF" />
+                <Text style={[styles.socialText, { color: "#FFF" }]}>{i18n.t("continue_with_apple")}</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.loginContainer}>

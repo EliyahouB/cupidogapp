@@ -2,7 +2,8 @@
   "expo": {
     "name": "CupiDogApp",
     "slug": "CupiDogApp",
-    "version": "1.0.0",
+    "scheme": "cupidog",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,7 +24,9 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "app.cupidog.mobile"
+      "package": "app.cupidog.mobile",
+      "versionCode": 2,
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,6 +36,7 @@
       "expo-web-browser",
       "expo-localization",
       "expo-font",
+      "@react-native-google-signin/google-signin",
       [
         "expo-notifications",
         {

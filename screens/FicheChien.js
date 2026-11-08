@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import ScreenLayout from "../components/ScreenLayout";
 import i18n from "../utils/i18n";
+import { formatDogAge } from "../utils/dogAge";
 
 export default function FicheChien({ route, navigation }) {
   const {
     dogName,
     breed,
     age,
+    birthDate,
     gender,
     description,
     pedigree,
@@ -116,7 +118,7 @@ export default function FicheChien({ route, navigation }) {
         <Text style={styles.value}>{getTranslatedBreed(breed)}</Text>
 
         <Text style={styles.label}>{i18n.t("age")}</Text>
-        <Text style={styles.value}>{age}</Text>
+        <Text style={styles.value}>{formatDogAge({ age, birthDate }, i18n.locale)}</Text>
 
         <Text style={styles.label}>{i18n.t("gender")}</Text>
         <Text style={styles.value}>{getTranslatedGender(gender)}</Text>
