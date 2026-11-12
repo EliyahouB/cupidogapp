@@ -15,23 +15,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   signInWithEmailAndPassword,
-  signInWithCredential,
-  GoogleAuthProvider,
   sendPasswordResetEmail,
   sendEmailVerification,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { GoogleSignin, isSuccessResponse } from "@react-native-google-signin/google-signin";
+import { signInWithGoogle } from "../utils/googleAuth";
 import Svg, { Path } from "react-native-svg";
 import * as SecureStore from "expo-secure-store";
 import GoogleAuthButton from "../components/GoogleAuthButton";
-import { auth, db } from "../config/firebase";
+import { auth } from "../config/firebase";
 import { sendPhoneOtp, verifyPhoneOtp } from "../utils/phoneOtp";
 import i18n from "../utils/i18n";
-
-GoogleSignin.configure({
-  webClientId: "1012348553481-53k6enjkiasq48r7qn2m805m6t6f3ivn.apps.googleusercontent.com",
-});
 
 const COUNTRIES = [
   { code: "+972", flag: "🇮🇱", name: "Israël" },
@@ -125,49 +118,9 @@ export default function SignIn({ navigation }) {
   };
 
   const handleSignInGoogle = async () => {
-    console.log("Google sign-in démarré");
     setLoading(true);
     try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const response = await GoogleSignin.signIn();
-      console.log("Google compte choisi");
-      const { idToken, user: googleUser } = response.data || {};
-      console.log("idToken reçu:", !!idToken);
-      if (!isSuccessResponse(response)) return;
-
-      if (!idToken) {
-        throw new Error("Google Sign-In did not return an ID token.");
-      }
-
-      const credential = GoogleAuthProvider.credential(idToken);
-      const user = (await signInWithCredential(auth, credential)).user;
-      await storeUserId(user.uid);
-
-      const profileRef = doc(db, "profiles", user.uid);
-      const profileSnapshot = await getDoc(profileRef);
-      if (!profileSnapshot.exists()) {
-        const name = user.displayName || (googleUser && googleUser.name) || "";
-        await setDoc(profileRef, {
-          uid: user.uid,
-          email: user.email || (googleUser && googleUser.email) || "",
-          createdAt: new Date(),
-          authProvider: "google",
-          userType: "particulier",
-          name,
-          displayName: name,
-          photoUrl: user.photoURL || (googleUser && googleUser.photo) || null,
-          city: "",
-          bio: "",
-          phone: "",
-          hideProfile: false,
-          nomadMode: true,
-          emailVerified: user.emailVerified,
-          onboardingCompleted: false,
-          purpose: "",
-          gender: "",
-          abonnement: "gratuit",
-        });
-      }
+      await signInWithGoogle({ userType: "particulier" });
     } catch (e) {
       console.log("Google ERREUR:", e.code, e.message);
       console.error("Erreur de connexion Google:", e);

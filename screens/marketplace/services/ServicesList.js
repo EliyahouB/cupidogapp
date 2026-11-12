@@ -47,6 +47,7 @@ export default function ServicesList({ route, navigation }) {
       toiletteur: ["#7B1FA2", "#8E24AA", "#AB47BC"],
       dogwalker: ["#00796B", "#00897B", "#26A69A"],
       educateur: ["#388E3C", "#43A047", "#66BB6A"],
+      assurance: ["#37474F", "#546E7A", "#90A4AE"],
       pension: ["#F57C00", "#FB8C00", "#FFA726"],
       transport: ["#C2185B", "#D81B60", "#EC407A"],
       photographe: ["#E64A19", "#F4511E", "#FF7043"],

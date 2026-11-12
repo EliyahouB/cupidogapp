@@ -592,6 +592,8 @@ export default {
   dog_boarding: "Pension canine",
   dog_transport: "Transport canin",
   animal_photographer: "Photographe animalier",
+  dog_insurance: "Assurance chien",
+  dog_insurance_desc: "Protection pour chiens",
   care_consultations: "Soins et consultations",
   professional_grooming: "Toilettage professionnel",
   walking_boarding: "Promenade et garde",
@@ -879,6 +881,7 @@ export default {
   // AUTH - CLÉS MANQUANTES
   // ============================================
   account_already_exists: "Ce compte existe déjà",
+  google_account_connected: "Ce compte existe déjà, vous êtes connecté.",
   account_created: "Compte créé !",
   account_deleted: "Compte supprimé",
   account_deleted_message: "Votre compte a été supprimé définitivement.",

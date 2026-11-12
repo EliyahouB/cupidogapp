@@ -4,13 +4,17 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "../../utils/i18n";
 
 export default function UserTypeSelect({ navigation }) {
+  const insets = useSafeAreaInsets();
+
   const handleSelect = (userType) => {
     if (userType === "particulier") {
       navigation.navigate("AuthMethods", { userType: "particulier" });
@@ -21,41 +25,43 @@ export default function UserTypeSelect({ navigation }) {
 
   return (
     <LinearGradient colors={["#F5D547", "#FF9966"]} style={styles.gradient}>
-      <SafeAreaView style={styles.safeArea}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
-        </TouchableOpacity>
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
+          </TouchableOpacity>
 
-        <View style={styles.container}>
-          <Text style={styles.title}>{i18n.t("how_use_cupidog")}</Text>
+          <View style={styles.container}>
+            <Text style={styles.title}>{i18n.t("how_use_cupidog")}</Text>
 
-          <View style={styles.cardsContainer}>
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => handleSelect("particulier")}
-            >
-              <View style={styles.iconContainer}>
-                <MaterialCommunityIcons name="dog" size={48} color="#FF6B6B" />
-              </View>
-              <Text style={styles.cardTitle}>{i18n.t("i_am_owner")}</Text>
-              <Text style={styles.cardSubtitle}>{i18n.t("owner_subtitle")}</Text>
-            </TouchableOpacity>
+            <View style={styles.cardsContainer}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => handleSelect("particulier")}
+              >
+                <View style={styles.iconContainer}>
+                  <MaterialCommunityIcons name="dog" size={48} color="#FF6B6B" />
+                </View>
+                <Text style={styles.cardTitle}>{i18n.t("i_am_owner")}</Text>
+                <Text style={styles.cardSubtitle}>{i18n.t("owner_subtitle")}</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => handleSelect("professionnel")}
-            >
-              <View style={[styles.iconContainer, { backgroundColor: "#E3F2FD" }]}>
-                <MaterialCommunityIcons name="star" size={48} color="#1976D2" />
-              </View>
-              <Text style={styles.cardTitle}>{i18n.t("i_am_professional")}</Text>
-              <Text style={styles.cardSubtitle}>{i18n.t("professional_subtitle")}</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => handleSelect("professionnel")}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: "#E3F2FD" }]}>
+                  <MaterialCommunityIcons name="star" size={48} color="#1976D2" />
+                </View>
+                <Text style={styles.cardTitle}>{i18n.t("i_am_professional")}</Text>
+                <Text style={styles.cardSubtitle}>{i18n.t("professional_subtitle")}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -72,7 +78,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
   },
   title: {

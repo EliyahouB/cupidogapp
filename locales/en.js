@@ -592,6 +592,8 @@ export default {
   dog_boarding: "Dog Boarding",
   dog_transport: "Dog Transport",
   animal_photographer: "Animal Photographer",
+  dog_insurance: "Dog insurance",
+  dog_insurance_desc: "Coverage for dogs",
   care_consultations: "Care and consultations",
   professional_grooming: "Professional grooming",
   walking_boarding: "Walking and boarding",
@@ -878,6 +880,7 @@ export default {
   // AUTH - MISSING KEYS
   // ============================================
   account_already_exists: "Account already exists",
+  google_account_connected: "This account already exists; you are now signed in.",
   account_created: "Account created!",
   account_deleted: "Account deleted",
   account_deleted_message: "Your account has been permanently deleted.",

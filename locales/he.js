@@ -618,6 +618,8 @@ export default {
   dog_boarding: "פנסיון כלבים",
   dog_transport: "הסעות כלבים",
   animal_photographer: "צלם בעלי חיים",
+  dog_insurance: "ביטוח כלבים",
+  dog_insurance_desc: "כיסוי ביטוחי לכלבים",
   care_consultations: "טיפול וייעוץ",
   professional_grooming: "טיפוח מקצועי",
   walking_boarding: "טיולים ופנסיון",
@@ -904,6 +906,7 @@ export default {
   // AUTH - מפתחות חסרים
   // ============================================
   account_already_exists: "חשבון כבר קיים",
+  google_account_connected: "החשבון כבר קיים, התחברת בהצלחה.",
   account_created: "החשבון נוצר!",
   account_deleted: "החשבון נמחק",
   account_deleted_message: "חשבונך נמחק לצמיתות.",

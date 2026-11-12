@@ -483,6 +483,8 @@ export default {
   dog_boarding: "Передержка собак",
   dog_transport: "Перевозка собак",
   animal_photographer: "Фотограф животных",
+  dog_insurance: "Страхование собак",
+  dog_insurance_desc: "Защита для собак",
   care_consultations: "Уход и консультации",
   professional_grooming: "Профессиональный груминг",
   walking_boarding: "Выгул и передержка",
@@ -828,6 +830,7 @@ export default {
   // AUTH - ОТСУТСТВУЮЩИЕ КЛЮЧИ
   // ============================================
   account_already_exists: "Аккаунт уже существует",
+  google_account_connected: "Этот аккаунт уже существует, вы вошли в систему.",
   account_created: "Аккаунт создан!",
   account_deleted: "Аккаунт удалён",
   account_deleted_message: "Ваш аккаунт был безвозвратно удалён.",

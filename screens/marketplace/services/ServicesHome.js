@@ -82,6 +82,14 @@ export default function ServicesHome({ navigation }) {
       description: i18n.t("professional_shooting"),
       gradient: ["#E64A19", "#F4511E", "#FF7043"],
     },
+    {
+      id: 8,
+      category: "assurance",
+      name: i18n.t("dog_insurance"),
+      icon: "shield-check",
+      description: i18n.t("dog_insurance_desc"),
+      gradient: ["#37474F", "#546E7A", "#90A4AE"],
+    },
   ];
 
   const openDrawer = () => {
@@ -168,8 +176,8 @@ export default function ServicesHome({ navigation }) {
     })
   ).current;
 
-  const CATEGORY_HEIGHT = 52;
-  const CATEGORY_GAP = 8;
+  const CATEGORY_HEIGHT = 58;
+  const CATEGORY_GAP = 6;
   const DRAWER_HEADER_HEIGHT = 50;
 
   return (
@@ -252,7 +260,7 @@ export default function ServicesHome({ navigation }) {
               key={service.id}
               style={[
                 styles.peekItem,
-                { top: 120 + DRAWER_HEADER_HEIGHT + index * (CATEGORY_HEIGHT + CATEGORY_GAP) }
+                { height: CATEGORY_HEIGHT, top: 120 + DRAWER_HEADER_HEIGHT + index * (CATEGORY_HEIGHT + CATEGORY_GAP) }
               ]}
               onPress={openDrawer}
               activeOpacity={0.9}
@@ -268,7 +276,7 @@ export default function ServicesHome({ navigation }) {
             </TouchableOpacity>
           ))}
           <TouchableOpacity
-            style={[styles.peekItem, styles.peekItemBottom]}
+            style={[styles.peekItem, styles.peekItemBottom, { height: CATEGORY_HEIGHT }]}
             onPress={openDrawer}
             activeOpacity={0.9}
           >
@@ -319,8 +327,15 @@ export default function ServicesHome({ navigation }) {
                   >
                     <MaterialCommunityIcons name={service.icon} size={22} color="#FFF" />
                     <View style={styles.drawerItemText}>
-                      <Text style={styles.drawerItemName}>{service.name}</Text>
-                      <Text style={styles.drawerItemDesc}>{service.description}</Text>
+                      <Text style={styles.drawerItemName} numberOfLines={2}>{service.name}</Text>
+                      <Text
+                        style={styles.drawerItemDesc}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
+                      >
+                        {service.description}
+                      </Text>
                     </View>
                     <MaterialCommunityIcons name="chevron-right" size={22} color="#FFF" />
                   </LinearGradient>
@@ -342,8 +357,15 @@ export default function ServicesHome({ navigation }) {
                 >
                   <MaterialCommunityIcons name="view-grid" size={22} color="#FFF" />
                   <View style={styles.drawerItemText}>
-                    <Text style={styles.drawerItemName}>{i18n.t("all_services")}</Text>
-                    <Text style={styles.drawerItemDesc}>{i18n.t("browse_all_providers")}</Text>
+                    <Text style={styles.drawerItemName} numberOfLines={2}>{i18n.t("all_services")}</Text>
+                    <Text
+                      style={styles.drawerItemDesc}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.8}
+                    >
+                      {i18n.t("browse_all_providers")}
+                    </Text>
                   </View>
                   <MaterialCommunityIcons name="chevron-right" size={22} color="#FFF" />
                 </LinearGradient>
@@ -560,6 +582,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
+    paddingVertical: 4,
     gap: 10,
   },
   drawerItemText: {
@@ -567,11 +590,13 @@ const styles = StyleSheet.create({
   },
   drawerItemName: {
     fontSize: 14,
+    lineHeight: 18,
     fontWeight: "bold",
     color: "#FFF",
   },
   drawerItemDesc: {
     fontSize: 10,
+    lineHeight: 13,
     color: "rgba(255,255,255,0.8)",
   },
   allProductsContainer: {

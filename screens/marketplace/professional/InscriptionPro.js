@@ -52,7 +52,7 @@ export default function InscriptionPro({ navigation }) {
     { id: "toiletteur", name: i18n.t("groomer"), needsCert: false },
     { id: "dogwalker", name: i18n.t("dog_walker_boarding"), needsCert: false },
     { id: "educateur", name: i18n.t("trainer_educator"), needsCert: true },
-    { id: "assurance", name: "Assurance chien", needsCert: false },
+    { id: "assurance", name: i18n.t("dog_insurance"), needsCert: false },
     { id: "pension", name: i18n.t("dog_boarding"), needsCert: true },
     { id: "transport", name: i18n.t("dog_transport"), needsCert: false },
     { id: "photographe", name: i18n.t("photographer"), needsCert: false },

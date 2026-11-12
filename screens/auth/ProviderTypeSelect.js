@@ -4,13 +4,17 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import i18n from "../../utils/i18n";
 
 export default function ProviderTypeSelect({ navigation }) {
+  const insets = useSafeAreaInsets();
+
   const handleSelect = (providerType) => {
     navigation.navigate("AuthMethods", { 
       userType: "professionnel",
@@ -20,47 +24,49 @@ export default function ProviderTypeSelect({ navigation }) {
 
   return (
     <LinearGradient colors={["#F5D547", "#FF9966"]} style={styles.gradient}>
-      <SafeAreaView style={styles.safeArea}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
-        </TouchableOpacity>
+      <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={28} color="#FFF" />
+          </TouchableOpacity>
 
-        <View style={styles.container}>
-          <Text style={styles.title}>{i18n.t("what_type_professional")}</Text>
+          <View style={styles.container}>
+            <Text style={styles.title}>{i18n.t("what_type_professional")}</Text>
 
-          <View style={styles.cardsContainer}>
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => handleSelect("prestataire")}
-            >
-              <View style={styles.iconContainer}>
-                <MaterialCommunityIcons name="medical-bag" size={44} color="#4CAF50" />
-              </View>
-              <Text style={styles.cardTitle}>{i18n.t("service_provider")}</Text>
-              <Text style={styles.cardSubtitle}>{i18n.t("service_provider_examples")}</Text>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{i18n.t("receive_clients")}</Text>
-              </View>
-            </TouchableOpacity>
+            <View style={styles.cardsContainer}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => handleSelect("prestataire")}
+              >
+                <View style={styles.iconContainer}>
+                  <MaterialCommunityIcons name="medical-bag" size={44} color="#4CAF50" />
+                </View>
+                <Text style={styles.cardTitle}>{i18n.t("service_provider")}</Text>
+                <Text style={styles.cardSubtitle}>{i18n.t("service_provider_examples")}</Text>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{i18n.t("receive_clients")}</Text>
+                </View>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => handleSelect("vendeur")}
-            >
-              <View style={[styles.iconContainer, { backgroundColor: "#FFF3E0" }]}>
-                <MaterialCommunityIcons name="store" size={44} color="#FF9800" />
-              </View>
-              <Text style={styles.cardTitle}>{i18n.t("marketplace_seller")}</Text>
-              <Text style={styles.cardSubtitle}>{i18n.t("seller_examples")}</Text>
-              <View style={[styles.badge, { backgroundColor: "#FFF3E0" }]}>
-                <Text style={[styles.badgeText, { color: "#FF9800" }]}>{i18n.t("sell_products")}</Text>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => handleSelect("vendeur")}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: "#FFF3E0" }]}>
+                  <MaterialCommunityIcons name="store" size={44} color="#FF9800" />
+                </View>
+                <Text style={styles.cardTitle}>{i18n.t("marketplace_seller")}</Text>
+                <Text style={styles.cardSubtitle}>{i18n.t("seller_examples")}</Text>
+                <View style={[styles.badge, { backgroundColor: "#FFF3E0" }]}>
+                  <Text style={[styles.badgeText, { color: "#FF9800" }]}>{i18n.t("sell_products")}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -77,7 +83,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
   },
   title: {
