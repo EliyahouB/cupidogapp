@@ -1,0 +1,131 @@
+rules_version = '2';
+
+// Règles Firebase Storage de CupiDog.
+// Ancienne règle (en ligne jusqu'ici, depuis le 08.01.2026), conservée pour retour arrière :
+//   match /{allPaths=**} {
+//     allow read: if true;
+//     allow write: if request.auth != null;
+//   }
+//
+// Remarque : les liens getDownloadURL (avec jeton) ne passent pas par ces règles.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ============================================
+    // FONCTIONS UTILITAIRES
+    // ============================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Mêmes administrateurs que dans firestore.rules
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == 'pNoNYjpzYeW1rnQiStF0RYJSiVJ2' ||
+        request.auth.uid == 'NpQIlnKvd8fUmDnYpdiiekitAl52'
+      );
+    }
+
+    // Fichier dont le nom commence par l'uid de l'utilisateur ("{uid}_...")
+    function fileNameOwned(fileName) {
+      return isSignedIn() && fileName.matches(request.auth.uid + '_.*');
+    }
+
+    // Pas de filtre sur le type de fichier : l'ancienne version de l'app
+    // envoie les fichiers sans contentType.
+    function isImageSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    function isDocumentSize() {
+      return request.resource.size < 15 * 1024 * 1024;
+    }
+
+    // ============================================
+    // PHOTOS DE PROFIL
+    // ============================================
+
+    // OnboardingProfile : profiles/{uid}_{date}.jpg
+    match /profiles/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if fileNameOwned(fileName) && isImageSize();
+      allow delete: if fileNameOwned(fileName) || isAdmin();
+    }
+
+    // EditField (ancienne version) : profilePhotos/{date}.jpg, sans uid.
+    // Création seulement : personne ne peut écraser ni supprimer la photo d'un autre.
+    match /profilePhotos/{fileName} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isImageSize();
+      allow update, delete: if isAdmin();
+    }
+
+    // Nouvelle version prévue : profilePhotos/{uid}/{fichier}
+    match /profilePhotos/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && (request.resource == null || isImageSize());
+    }
+
+    // ============================================
+    // CHIENS, SERVICES, PRODUITS
+    // ============================================
+
+    match /dogs/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && (request.resource == null || isImageSize());
+    }
+
+    match /services/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && (request.resource == null || isImageSize());
+    }
+
+    // CreateProduct : products/{uid}/... ; EditProduct : products/{productId}/...
+    match /products/{ownerOrProductId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+        && (request.resource == null || isImageSize())
+        && (request.auth.uid == ownerOrProductId
+            || firestore.get(/databases/(default)/documents/marketplace_products/$(ownerOrProductId)).data.sellerId == request.auth.uid);
+    }
+
+    // ============================================
+    // PROFESSIONNELS
+    // ============================================
+
+    // Logos : visibles par les utilisateurs connectés
+    match /professional/logos/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId) && (request.resource == null || isImageSize());
+    }
+
+    // Teoudat osek : propriétaire et admin uniquement
+    match /professional/documents/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if (isOwner(userId) && (request.resource == null || isDocumentSize())) || isAdmin();
+    }
+
+    // Justificatifs (vétérinaires...) : documents/{uid}_legal_{date}.{ext}
+    // Propriétaire et admin uniquement
+    match /documents/{fileName} {
+      allow read: if fileNameOwned(fileName) || isAdmin();
+      allow write: if (fileNameOwned(fileName) && (request.resource == null || isDocumentSize())) || isAdmin();
+    }
+
+    // ============================================
+    // DOSSIER UTILISATEUR (suppression de compte dans Settings)
+    // ============================================
+
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+
+    // Tout autre chemin : refusé (aucune règle = refus).
+  }
+}

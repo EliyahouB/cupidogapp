@@ -763,6 +763,34 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
 });
 
 // ========================================
+// GRILLE DES PRIX DES LEADS (source officielle, côté serveur)
+// Le prix envoyé par l'app (leadData.leadPrice) n'est jamais utilisé pour débiter.
+// ========================================
+const LEAD_PRICES = {
+  veterinaire: { pro: 45, pro_plus: 34 },
+  toiletteur: { pro: 35, pro_plus: 26 },
+  educateur: { pro: 35, pro_plus: 26 },
+  pension: { pro: 30, pro_plus: 22 },
+  dogwalker: { pro: 25, pro_plus: 19 },
+  assurance: { pro: 50, pro_plus: 38 },
+  transport: { pro: 25, pro_plus: 19 },
+  photographe: { pro: 35, pro_plus: 26 },
+};
+const DECOUVERTE_LEAD_PRICE = 65;
+
+// Ramène l'offre enregistrée à "decouverte", "pro" ou "pro_plus".
+// Offre absente ou inconnue => Découverte.
+function normalizeProPlan(rawPlan) {
+  const plan = String(rawPlan || "").toLowerCase().trim();
+  if (plan === "pro") return "pro";
+  if (plan === "pro+" || plan === "pro_plus") return "pro_plus";
+  if (plan && plan !== "decouverte") {
+    console.warn(`Offre pro inconnue "${plan}", tarif Découverte appliqué`);
+  }
+  return "decouverte";
+}
+
+// ========================================
 // FUNCTION 6 : Débit automatique des leads
 // ========================================
 exports.processLeadPayment = functions.firestore
@@ -772,41 +800,73 @@ exports.processLeadPayment = functions.firestore
       const leadData = snap.data();
       const leadId = context.params.leadId;
       const providerId = leadData.providerId;
+      const db = admin.firestore();
 
       if (!providerId) {
         console.warn("Lead sans providerId, débit ignoré");
         return null;
       }
 
-      const providerDoc = await admin.firestore().collection("professional_accounts").doc(providerId).get();
+      // Verrou anti-double débit : un déclencheur peut être exécuté plusieurs fois.
+      // Collection absente des règles Firestore => inaccessible depuis l'app.
+      const lockRef = db.collection("lead_charges").doc(leadId);
+      const lockAcquired = await db.runTransaction(async (tx) => {
+        const lockSnap = await tx.get(lockRef);
+        if (lockSnap.exists) return false;
+        tx.set(lockRef, {
+          providerId,
+          status: "processing",
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return true;
+      });
+      if (!lockAcquired) {
+        console.log(`Lead ${leadId} déjà traité, débit ignoré`);
+        return null;
+      }
+
+      const providerDoc = await db.collection("professional_accounts").doc(providerId).get();
       if (!providerDoc.exists) {
         console.warn(`Compte pro introuvable pour le lead ${leadId}`);
+        await lockRef.update({ status: "skipped", reason: "no_pro_account" });
         return null;
       }
 
       const providerData = providerDoc.data() || {};
-      const plan = (providerData.subscriptionPlan || "pro").toLowerCase();
-      const isProPlus = plan === "pro+" || plan === "pro_plus";
-      const category = (leadData.serviceCategory || "").toLowerCase();
+      const plan = normalizeProPlan(providerData.subscriptionPlan);
 
-      const leadPrices = {
-        veterinaire: { pro: 20, pro_plus: 15 },
-        toiletteur: { pro: 18, pro_plus: 13 },
-        dogwalker: { pro: 12, pro_plus: 8 },
-        educateur: { pro: 25, pro_plus: 18 },
-        assurance: { pro: 35, pro_plus: 25 },
-      };
+      // Catégorie lue dans le service (jamais dans le lead) ;
+      // le service doit appartenir au pro facturé.
+      let category = "";
+      let failureReason = null;
+      const serviceId = leadData.serviceId;
+      if (!serviceId) {
+        failureReason = "missing_service_id";
+      } else {
+        const serviceDoc = await db.collection("marketplace_services").doc(String(serviceId)).get();
+        if (!serviceDoc.exists) {
+          failureReason = "service_not_found";
+        } else {
+          const serviceData = serviceDoc.data() || {};
+          category = String(serviceData.category || "").toLowerCase();
+          if (serviceData.providerId !== providerId) {
+            failureReason = "service_provider_mismatch";
+          } else if (!LEAD_PRICES[category]) {
+            failureReason = "unknown_category";
+          }
+        }
+      }
 
-      const amount = leadPrices[category]
-        ? leadPrices[category][isProPlus ? "pro_plus" : "pro"]
-        : 0;
+      const amount = failureReason
+        ? 0
+        : (plan === "decouverte" ? DECOUVERTE_LEAD_PRICE : LEAD_PRICES[category][plan]);
 
-      const db = admin.firestore();
-      const invoiceRef = db.collection("invoices").doc();
+      const invoiceRef = db.collection("invoices").doc(`lead_${leadId}`);
       const invoiceData = {
         userId: providerId,
         type: "lead",
         leadId,
+        serviceId: serviceId || null,
         serviceCategory: category || "unknown",
         plan,
         amount,
@@ -817,11 +877,16 @@ exports.processLeadPayment = functions.firestore
 
       await invoiceRef.set(invoiceData);
 
-      if (!amount || amount <= 0) {
-        await db.collection("marketplace_leads").doc(leadId).update({
-          paymentStatus: "skipped",
-          invoiceId: invoiceRef.id,
-        });
+      if (failureReason) {
+        console.error(`Lead ${leadId} non débité : ${failureReason}`);
+        await Promise.all([
+          invoiceRef.update({ status: "failed", failureReason }),
+          db.collection("marketplace_leads").doc(leadId).update({
+            paymentStatus: "failed",
+            invoiceId: invoiceRef.id,
+          }),
+          lockRef.update({ status: "failed", reason: failureReason }),
+        ]);
         return null;
       }
 
@@ -830,6 +895,7 @@ exports.processLeadPayment = functions.firestore
           paymentStatus: "pending_token",
           invoiceId: invoiceRef.id,
         });
+        await lockRef.update({ status: "pending_token", amount });
 
         if (providerData.email || leadData.providerEmail) {
           try {
@@ -862,6 +928,7 @@ exports.processLeadPayment = functions.firestore
           paymentStatus: "failed",
           invoiceId: invoiceRef.id,
         });
+        await lockRef.update({ status: "failed", reason: "missing_tranzila_key" });
         return null;
       }
 
@@ -898,6 +965,7 @@ exports.processLeadPayment = functions.firestore
             paymentStatus: "failed",
             invoiceId: invoiceRef.id,
           });
+          await lockRef.update({ status: "failed", reason: "tranzila_request_error" });
           return null;
         }
       }
@@ -909,11 +977,17 @@ exports.processLeadPayment = functions.firestore
           paymentStatus: "failed",
           invoiceId: invoiceRef.id,
         });
+        await lockRef.update({ status: "failed", reason: `tranzila_${responseCode}` });
         return null;
       }
 
       const confirmation = tranzilaData.ConfirmationCode || tranzilaData.Confirmationcode || "";
       await Promise.all([
+        lockRef.update({
+          status: "paid",
+          amount,
+          paidAt: admin.firestore.FieldValue.serverTimestamp(),
+        }),
         invoiceRef.update({
           status: "paid",
           paidAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -1218,7 +1292,8 @@ exports.generateMonthlyInvoices = functions.pubsub
               leadId: leadDoc.id,
               customerName: lead.customerName || 'Client',
               date: lead.createdAt?.toDate ? lead.createdAt.toDate() : null,
-              amount: Number(lead.leadPrice || 0),
+              // Montant réellement débité ; leadPrice (envoyé par l'app) seulement pour les anciens leads
+              amount: Number(lead.amountCharged ?? lead.leadPrice ?? 0),
             };
           });
 
@@ -1431,6 +1506,54 @@ exports.checkExpiringSubscriptions = functions.pubsub
       return null;
     } catch (error) {
       console.error('❌ Erreur abonnements:', error);
+      return null;
+    }
+  });
+
+// ========================================
+// FUNCTION : Déplacement du justificatif hors de profiles (correction Storage 2b)
+// L'ancienne version de l'app écrit profiles.legalDocumentUrl, lisible par tout
+// utilisateur connecté. Le lien est copié dans un document privé, puis retiré du profil.
+// - compte pro existant  => professional_accounts/{uid}.legalDocumentUrl
+// - pas de compte pro    => professional_documents/{uid} (collection serveur, inaccessible
+//   depuis l'app). On ne crée PAS professional_accounts ici : cela déclencherait
+//   onNewProfessionalAccount et bloquerait la future inscription pro de l'ancienne version.
+// ========================================
+exports.onProfileLegalDoc = functions.firestore
+  .document("profiles/{uid}")
+  .onWrite(async (change, context) => {
+    try {
+      if (!change.after.exists) return null;
+      const data = change.after.data() || {};
+      const url = data.legalDocumentUrl;
+      if (!url) return null;
+
+      const uid = context.params.uid;
+      const db = admin.firestore();
+      const proRef = db.collection("professional_accounts").doc(uid);
+      const docInfo = {
+        legalDocumentUrl: url,
+        legalDocumentVerified: data.legalDocumentVerified === true,
+        legalDocumentMovedAt: admin.firestore.FieldValue.serverTimestamp(),
+        legalDocumentActivityType: data.activityType || null,
+      };
+
+      const proSnap = await proRef.get();
+      if (proSnap.exists) {
+        await proRef.set(docInfo, { merge: true });
+      } else {
+        await db.collection("professional_documents").doc(uid).set(docInfo, { merge: true });
+      }
+
+      // Le lien est désormais conservé ailleurs : on le retire du profil public.
+      await change.after.ref.update({
+        legalDocumentUrl: admin.firestore.FieldValue.delete(),
+      });
+
+      console.log(`Justificatif de ${uid} déplacé hors de profiles (${proSnap.exists ? "professional_accounts" : "professional_documents"})`);
+      return null;
+    } catch (error) {
+      console.error("❌ Erreur onProfileLegalDoc:", error);
       return null;
     }
   });

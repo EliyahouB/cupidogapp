@@ -21,6 +21,12 @@ service cloud.firestore {
 			);
 		}
     
+		// Vrai si le champ a la même valeur avant et après l'écriture
+		// (un champ absent et un champ à null sont considérés égaux).
+		function unchanged(field) {
+			return request.resource.data.get(field, null) == resource.data.get(field, null);
+		}
+
 		function isProfessional() {
 			return isSignedIn() && 
 						 exists(/databases/$(database)/documents/professional_accounts/$(request.auth.uid)) &&
@@ -242,11 +248,34 @@ service cloud.firestore {
 		// PROFESSIONAL ACCOUNTS (ADMIN PEUT TOUT VOIR)
 		// ============================================
     
+		// Ancienne règle (avant correction C3, 16.11.2026), conservée pour retour arrière :
+		// match /professional_accounts/{accountId} {
+		// 	allow read: if isSignedIn();
+		// 	allow create: if isOwner(accountId);
+		// 	allow update: if isAdmin() || (isOwner(accountId) &&
+		// 									 request.resource.data.status == resource.data.status);
+		// 	allow delete: if false;
+		// }
+
+		// Correction C3 : lecture réservée au propriétaire et à l'admin ;
+		// statut, token de carte et approbation non modifiables par le pro.
 		match /professional_accounts/{accountId} {
-			allow read: if isSignedIn();
-			allow create: if isOwner(accountId);
-			allow update: if isAdmin() || (isOwner(accountId) && 
-											 request.resource.data.status == resource.data.status);
+			allow read: if isOwner(accountId) || isAdmin();
+			allow create: if isOwner(accountId)
+				&& request.resource.data.get('status', 'awaiting_token') in ['awaiting_token', 'pending']
+				&& request.resource.data.get('tranzilaToken', null) == null
+				&& request.resource.data.get('approvedAt', null) == null;
+			allow update: if isAdmin() || (isOwner(accountId)
+				&& unchanged('status')
+				&& unchanged('tranzilaToken')
+				&& unchanged('cardOnFile')
+				&& unchanged('cardLastFourDigits')
+				&& unchanged('approvedAt')
+				&& unchanged('rejectedAt')
+				&& unchanged('rejectionReason')
+				&& (unchanged('subscriptionPlan')
+					|| resource.data.get('subscriptionPlan', null) == null
+					|| resource.data.get('status', null) != 'approved'));
 			allow delete: if false;
 		}
     
