@@ -319,6 +319,23 @@ service cloud.firestore {
 		}
     
 		// ============================================
+		// BOOSTS (écrits uniquement par le serveur)
+		// ============================================
+
+		// Achats de boost : lisibles seulement par l'acheteur et l'admin
+		// (contiennent le prix, les 4 derniers chiffres de la carte, la confirmation).
+		match /boosts/{boostDocId} {
+			allow read: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+			allow write: if false;
+		}
+
+		// Boosts en cours, par cible : lisibles par tout utilisateur connecté (tri des listes).
+		match /active_boosts/{activeBoostId} {
+			allow read: if isSignedIn();
+			allow write: if false;
+		}
+
+		// ============================================
 		// FCM TOKENS
 		// ============================================
     

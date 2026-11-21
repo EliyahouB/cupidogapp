@@ -104,13 +104,13 @@ export default {
   or: "или",
   continue_with_google: "Продолжить с Google",
   continue_with_apple: "Продолжить с Apple",
-  continue_with_email: "Продолжить с Email",
-  continue_with_phone: "Продолжить с телефоном",
+  continue_with_email: "Продолжить по email",
+  continue_with_phone: "Продолжить по номеру телефона",
   verify_phone: "Подтвердить телефон",
   verification_code: "Код подтверждения",
   send_code: "Отправить код",
   resend_code: "Отправить код повторно",
-  user_not_connected: "Пользователь не подключен",
+  user_not_connected: "Вы не вошли в аккаунт",
   session_expired: "Сессия истекла",
   
   // ============================================
@@ -118,9 +118,9 @@ export default {
   // ============================================
   user_type_select: "Что вы ищете?",
   i_am_looking: "Я ищу",
-  i_am_provider: "Я поставщик услуг",
+  i_am_provider: "Я специалист",
   dog_owner: "Владелец собаки",
-  service_provider: "Поставщик услуг",
+  service_provider: "Специалист",
   choose_your_profile: "Выберите свой профиль",
   referral_code_optional: "Реферальный код (необязательно)",
   referral_code_placeholder: "Например: CUPIDOG123",
@@ -139,7 +139,7 @@ export default {
   city: "Город",
   city_example: "Например: Тель-Авив",
   description: "Описание",
-  bio: "Биография",
+  bio: "О себе",
   age: "Возраст",
   gender: "Пол",
   male: "Мужской",
@@ -154,7 +154,7 @@ export default {
   camera_permission_required: "Требуется доступ к камере",
   profile_not_found: "Профиль не найден",
   create_profile: "Создать мой профиль",
-  provider: "Поставщик",
+  provider: "Специалист",
   seller: "Продавец",
   individual: "Частное лицо",
   
@@ -172,8 +172,8 @@ export default {
   breed: "Порода",
   select_breed: "Выбрать породу",
   mixed_breed: "Метис",
-  male_dog: "Кобель",
-  female_dog: "Сука",
+  male_dog: "Мальчик",
+  female_dog: "Девочка",
   purpose: "Цель",
   meetup: "Встреча",
   sale: "Продажа",
@@ -381,19 +381,19 @@ export default {
   contacted: "Связались",
   mark_contacted: "Отметить как связались",
   mark_completed: "Отметить как завершено",
-  refuse: "Отказать",
+  refuse: "Отклонить",
   lead_price: "Цена лида",
   message: "Сообщение",
   
   // ============================================
   // ЛИДЫ / ЗАЯВКИ (КЛИЕНТ)
   // ============================================
-  no_provider_contacted_yet: "Вы еще не связывались с поставщиком",
+  no_provider_contacted_yet: "Вы еще не связывались со специалистом",
   discover_services: "Найти услуги",
-  can_rate_after_10_days: "Вы можете оценить поставщика через 10 дней после заявки",
+  can_rate_after_10_days: "Вы можете оценить специалиста через 10 дней после заявки",
   rated: "Оценено",
   edit_my_rating: "Изменить мою оценку",
-  rate_this_provider: "Оценить этого поставщика",
+  rate_this_provider: "Оценить этого специалиста",
   can_rate_in: "Можно оценить через",
   
   // ============================================
@@ -402,7 +402,7 @@ export default {
   rate: "Оценить",
   rating: "Рейтинг",
   reviews: "отзывов",
-  rate_provider: "Оценить поставщика",
+  rate_provider: "Оценить специалиста",
   rate_service: "Оценить услугу",
   please_select_rating: "Пожалуйста, выберите оценку",
   rating_updated: "Ваша оценка обновлена!",
@@ -417,7 +417,7 @@ export default {
   select_rating: "Выберите оценку",
   request_from: "Заявка от",
   edit_your_rating: "Изменить вашу оценку",
-  how_was_your_experience: "Как прошел ваш опыт?",
+  how_was_your_experience: "Как всё прошло?",
   can_edit_anytime: "Вы можете изменить оценку в любое время.",
   your_review_helps_others: "Ваш отзыв помогает другим пользователям.",
   current_rating: "Текущая оценка",
@@ -493,7 +493,7 @@ export default {
   taxi_specialized_transport: "Такси и специализированная перевозка",
   professional_shooting: "Профессиональная съемка",
   all_services: "Все услуги",
-  browse_all_providers: "Все поставщики",
+  browse_all_providers: "Все специалисты",
   
   // ============================================
   // УСЛУГИ - ГЛАВНАЯ
@@ -502,19 +502,19 @@ export default {
   boost_visibility: "Повысьте свою видимость!",
   appear_top_results: "Появляйтесь в топе результатов и получайте больше заявок",
   discover_boosts: "Узнать о бустах",
-  are_you_provider: "Вы поставщик услуг?",
+  are_you_provider: "Вы специалист?",
   register_receive_requests: "Зарегистрируйтесь, чтобы получать заявки и развивать свой бизнес.",
-  become_provider: "Стать поставщиком",
+  become_provider: "Стать специалистом",
   
   // ============================================
   // УСЛУГИ - СПИСОК
   // ============================================
-  providers_available: "поставщиков доступно",
-  provider_available: "поставщик доступен",
+  providers_available: "специалистов доступно",
+  provider_available: "специалист доступен",
   sorted_by_relevance: "Отсортировано по релевантности",
-  no_provider: "Нет поставщиков",
+  no_provider: "Нет специалистов",
   be_first_to_offer_services: "Станьте первым, кто предложит свои услуги!",
-  loading_providers: "Загрузка поставщиков",
+  loading_providers: "Загрузка специалистов",
   rates: "Тарифы",
   register_grow_business: "Зарегистрируйтесь и развивайте бизнес",
   
@@ -656,7 +656,7 @@ export default {
   subscribe: "Подписаться",
   subscribe_offer: "Подписаться на этот план",
   start_free: "Начать бесплатно",
-  pro_offers: "Планы для поставщиков",
+  pro_offers: "Планы для специалистов",
   pro_subtitle: "Развивайте бизнес и получайте клиентов",
   swipe_offers: "Свайпните, чтобы увидеть все планы",
   early_bird: "ОГРАНИЧЕННОЕ ПРЕДЛОЖЕНИЕ",
@@ -808,7 +808,7 @@ export default {
   // ============================================
   // VENDOR / ПРОДАВЕЦ
   // ============================================
-  vendor_space: "Пространство продавца",
+  vendor_space: "Кабинет продавца",
   vendor_subtitle: "Продавайте товары на CupiDog",
   unlimited_products: "Неограниченное количество товаров",
   no_monthly_fee: "Без ежемесячной подписки",
@@ -842,7 +842,7 @@ export default {
   account_suspended_message: "Ваш аккаунт приостановлен. Свяжитесь с поддержкой для получения дополнительной информации.",
   action_irreversible: "Это действие необратимо",
   activate_pro_account: "Активировать профессиональный аккаунт",
-  by_connecting: "Подключаясь, вы соглашаетесь с",
+  by_connecting: "Продолжая, вы соглашаетесь с",
   captcha_failed: "Проверка безопасности не пройдена. Попробуйте снова.",
   change_number: "Изменить номер",
   check_inbox: "Проверьте вашу почту",
@@ -876,7 +876,7 @@ export default {
   phone_number: "Номер телефона",
   phone_required: "Номер телефона обязателен",
   receive_code: "Получить код",
-  recent_login_required: "Требуется недавний вход",
+  recent_login_required: "Войдите снова, чтобы продолжить",
   resend_email: "Отправить письмо повторно",
   reset_email_sent: "Письмо для сброса отправлено!",
   signup_error: "Ошибка регистрации",
@@ -888,13 +888,13 @@ export default {
   wrong_code: "Неверный код",
   wrong_password: "Неверный пароль",
   wrong_account_type: "Неверный тип аккаунта",
-  wrong_account_type_desc: "Этот аккаунт не зарегистрирован как поставщик",
+  wrong_account_type_desc: "Этот аккаунт не зарегистрирован как специалист",
 
   // ============================================
   // ПРОФИЛЬ - ОТСУТСТВУЮЩИЕ КЛЮЧИ
   // ============================================
   bio_description: "Расскажите о себе",
-  bio_optional: "Биография (необязательно)",
+  bio_optional: "О себе (необязательно)",
   bio_placeholder: "Опишите себя, вашу собаку, ваши ожидания...",
   city_required: "Город обязателен",
   complete_profile_to_start: "Заполните профиль для начала",
@@ -946,12 +946,12 @@ export default {
   // ============================================
   // СОБАКИ - ОТСУТСТВУЮЩИЕ КЛЮЧИ
   // ============================================
-  add_new_dog: "Добавить нового пса",
+  add_new_dog: "Добавить новую собаку",
   characteristics: "Характеристики",
   current_age: "Текущий возраст",
   date_of_birth: "Дата рождения",
   days_short: "д",
-  describe_dog: "Опишите вашего пса",
+  describe_dog: "Опишите вашу собаку",
   dog: "Собака",
   dog_age_required: "Возраст собаки обязателен",
   dog_gender_required: "Пол собаки обязателен",
@@ -1036,7 +1036,7 @@ export default {
   add_your_product: "Добавьте ваш товар",
   added_to_cart: "Добавлено в корзину!",
   added_to_cart_desc: "Товар добавлен в вашу корзину",
-  adoption: "Усыновление",
+  adoption: "Пристройство",
   all_of_above: "Всё вышеперечисленное",
   all_products: "Все товары",
   are_you_seller: "Вы продавец?",
@@ -1203,9 +1203,9 @@ export default {
   pro_account_required_desc: "Для доступа к этой функции нужен профессиональный аккаунт",
   professional_services: "Профессиональные услуги",
   professional_subtitle: "Зарегистрируйтесь и получайте запросы клиентов",
-  provider_profile: "Профиль поставщика",
-  provider_seller_info: "Информация о поставщике / продавце",
-  provider_signup: "Регистрация поставщика",
+  provider_profile: "Профиль специалиста",
+  provider_seller_info: "Информация о специалисте / продавце",
+  provider_signup: "Регистрация специалиста",
   receive_clients: "Получать клиентов",
   receive_clients_grow: "Получайте клиентов и развивайте бизнес",
   referred_by: "Приглашён",
@@ -1252,7 +1252,7 @@ export default {
   terms_1_3: "Продолжение использования означает принятие обновлённых условий.",
   terms_1_4: "Для использования приложения вам должно быть 18 лет или больше.",
   terms_1_5: "При регистрации вы подтверждаете, что вам 18 лет или больше.",
-  terms_2_1: "CupiDog соединяет владельцев собак с поставщиками услуг.",
+  terms_2_1: "CupiDog соединяет владельцев собак со специалистами.",
   terms_2_2: "Мы не гарантируем качество услуг третьих сторон.",
   terms_2_3: "Услуги могут изменяться или прекращаться.",
   terms_2_4: "Функции Премиум требуют платной подписки.",
@@ -1303,4 +1303,15 @@ export default {
   modified: "Изменено",
   enter_6_digit_code: "Введите 6-значный код",
   password_min_6: "Пароль должен содержать не менее 6 символов",
+
+  // Clés manquantes ajoutées le 21.11.2026
+  unblock_confirm: "Разблокировать %{name}?",
+  delete_conversation_confirm: "Удалить диалог с %{name}?",
+  conversations_remaining: "Осталось диалогов: %{count}",
+  conversation_limit_reached: "Вы достигли лимита диалогов: %{limit}.",
+  verified: "Проверено",
+  only_left: "Осталось: %{count} шт.",
+  only_in_stock: "В наличии: %{count} шт.",
+  product_created_desc: "Ваш товар опубликован. Вы получите %{amount}₪ с каждой продажи.",
+  people_liked_dog: "Лайков: %{count}",
 };

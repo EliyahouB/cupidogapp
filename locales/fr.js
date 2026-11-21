@@ -1353,4 +1353,15 @@ export default {
   full_name_caps: "NOM COMPLET",
   manage_subscription: "Gérer l'abonnement",
   modified: "Modifié",
+
+  // Clés manquantes ajoutées le 21.11.2026
+  unblock_confirm: "Débloquer %{name} ?",
+  delete_conversation_confirm: "Supprimer la conversation avec %{name} ?",
+  conversations_remaining: "Conversations restantes : %{count}",
+  conversation_limit_reached: "Vous avez atteint la limite de %{limit} conversations.",
+  verified: "Vérifié",
+  only_left: "Plus que %{count} en stock",
+  only_in_stock: "Plus que %{count} en stock",
+  product_created_desc: "Votre produit est en ligne. Vous recevrez %{amount}₪ par vente.",
+  people_liked_dog: "Nombre de likes : %{count}",
 };

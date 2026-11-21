@@ -762,6 +762,134 @@ const LEGACY_BOOST_LABELS = {
 };
 
 // ========================================
+// CIBLE DES BOOSTS (chien, service ou vendeur) et activation dans active_boosts
+// - boost_stud / boost_sale  => un chien de l'acheteur dont le but correspond
+// - boost_3days / boost_7days => le service du prestataire, ou tous les produits du vendeur
+// ========================================
+const DAY_MS = 24 * 60 * 60 * 1000;
+const BOOST_DOG_PURPOSES = {
+  boost_stud: ["saillie", "stud", "הרבעה", "вязка"],
+  boost_sale: ["vente", "sale", "מכירה", "продажа"],
+};
+const normalizePurpose = (p) => String(p || "").trim().toLowerCase();
+
+function invalidTarget() {
+  return new functions.https.HttpsError("invalid-argument", "invalid_target");
+}
+
+// "service" (prestataire), "seller" (vendeur) ou null
+async function getBoostAccountKind(db, uid) {
+  const proSnap = await db.collection("professional_accounts").doc(uid).get();
+  const activity = proSnap.exists ? String(proSnap.data().activityType || "").toLowerCase() : "";
+  if (activity === "service_provider") return "service";
+  if (activity === "seller" || activity === "vendeur") return "seller";
+  const profileSnap = await db.collection("profiles").doc(uid).get();
+  const providerType = profileSnap.exists ? String(profileSnap.data().providerType || "").toLowerCase() : "";
+  if (providerType === "prestataire") return "service";
+  if (providerType === "vendeur") return "seller";
+  return null;
+}
+
+// Renvoie { status: "resolved", targetType, targetId, purpose } ou { status: "awaiting", targetType }.
+// Une cible fournie par l'app est toujours vérifiée (refus "invalid_target" si elle ne convient pas).
+async function resolveBoostTarget(db, uid, boostId, rawType, rawId) {
+  const dogPurposes = BOOST_DOG_PURPOSES[boostId];
+  const hasTarget = rawType !== undefined && rawType !== null && rawType !== "";
+
+  if (hasTarget) {
+    const targetType = String(rawType);
+    const targetId = String(rawId || "").trim();
+    if (!targetId || targetId.includes("/")) throw invalidTarget();
+
+    if (dogPurposes) {
+      if (targetType !== "dog") throw invalidTarget();
+      const dogSnap = await db.collection("users").doc(uid).collection("dogs").doc(targetId).get();
+      if (!dogSnap.exists || !dogPurposes.includes(normalizePurpose(dogSnap.data().purpose))) throw invalidTarget();
+      return { status: "resolved", targetType, targetId, purpose: dogSnap.data().purpose || null };
+    }
+    if (targetType === "service") {
+      const serviceSnap = await db.collection("marketplace_services").doc(targetId).get();
+      if (!serviceSnap.exists || serviceSnap.data().providerId !== uid) throw invalidTarget();
+      return { status: "resolved", targetType, targetId, purpose: null };
+    }
+    if (targetType === "seller") {
+      if (targetId !== uid || (await getBoostAccountKind(db, uid)) !== "seller") throw invalidTarget();
+      return { status: "resolved", targetType, targetId, purpose: null };
+    }
+    throw invalidTarget();
+  }
+
+  // Pas de cible (ancienne version de l'app) : choix automatique s'il n'y a qu'une possibilité
+  if (dogPurposes) {
+    const dogsSnap = await db.collection("users").doc(uid).collection("dogs").get();
+    const matching = dogsSnap.docs.filter((d) => dogPurposes.includes(normalizePurpose(d.data().purpose)));
+    if (matching.length === 1) {
+      return { status: "resolved", targetType: "dog", targetId: matching[0].id, purpose: matching[0].data().purpose || null };
+    }
+    return { status: "awaiting", targetType: "dog" };
+  }
+
+  const kind = await getBoostAccountKind(db, uid);
+  if (kind === "seller") {
+    return { status: "resolved", targetType: "seller", targetId: uid, purpose: null };
+  }
+  if (kind === "service") {
+    const servicesSnap = await db.collection("marketplace_services").where("providerId", "==", uid).get();
+    if (servicesSnap.size === 1) {
+      return { status: "resolved", targetType: "service", targetId: servicesSnap.docs[0].id, purpose: null };
+    }
+    return { status: "awaiting", targetType: "service" };
+  }
+  return { status: "awaiting", targetType: null };
+}
+
+// Active un boost sur sa cible. Le compte à rebours démarre maintenant ; si la cible est
+// déjà boostée, la durée s'ajoute à la fin du boost en cours.
+async function activateBoost(db, boostRef, target) {
+  const activeRef = db.collection("active_boosts").doc(`${target.targetType}_${target.targetId}`);
+  return db.runTransaction(async (tx) => {
+    const [boostSnap, activeSnap] = await Promise.all([tx.get(boostRef), tx.get(activeRef)]);
+    if (!boostSnap.exists) throw new Error("boost introuvable");
+    const boost = boostSnap.data() || {};
+    if (boost.targetId) {
+      throw new functions.https.HttpsError("failed-precondition", "already_assigned");
+    }
+    const days = (BOOSTS[boost.boostId] && BOOSTS[boost.boostId].days) || Number(boost.durationDays) || 0;
+    if (!(days > 0)) throw new Error("durée de boost invalide");
+
+    const now = Date.now();
+    const current = activeSnap.exists ? activeSnap.data() || {} : null;
+    const currentEnd = current && current.endsAt && current.endsAt.toDate ? current.endsAt.toDate().getTime() : 0;
+    const start = currentEnd > now ? currentEnd : now;
+    const startsAt = new Date(start);
+    const endsAt = new Date(start + days * DAY_MS);
+
+    tx.set(activeRef, {
+      targetType: target.targetType,
+      targetId: target.targetId,
+      ownerId: boost.userId,
+      purpose: target.purpose || null,
+      lastBoostId: boost.boostId,
+      boostDocIds: admin.firestore.FieldValue.arrayUnion(boostRef.id),
+      ...(currentEnd > now ? {} : { startsAt }),
+      endsAt,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    tx.set(boostRef, {
+      targetType: target.targetType,
+      targetId: target.targetId,
+      status: "active",
+      startsAt,
+      endsAt,
+      activatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    return { startsAt, endsAt };
+  });
+}
+
+// ========================================
 // FUNCTION 6 : Paiement Tranzila + mise à jour Firestore
 // ========================================
 exports.processPayment = functions.https.onCall(async (data, context) => {
@@ -769,7 +897,7 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }
 
-  const { plan, price, cardNumber, expiryDate, cvv, boostId: rawBoostId } = data || {};
+  const { plan, price, cardNumber, expiryDate, cvv, boostId: rawBoostId, targetType, targetId } = data || {};
 
   if ((!plan && !rawBoostId) || price === undefined || price === null || !cardNumber || !expiryDate || !cvv) {
     throw new functions.https.HttpsError("invalid-argument", "Missing payment fields");
@@ -815,6 +943,11 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
   if (!Number.isFinite(displayedPrice) || displayedPrice + 0.005 < serverPrice) {
     throw new functions.https.HttpsError("failed-precondition", "price_changed");
   }
+
+  // Cible du boost vérifiée AVANT le débit (cible fournie invalide => refus, rien n'est débité)
+  const boostTarget = boostId
+    ? await resolveBoostTarget(db, userId, boostId, targetType, targetId)
+    : null;
 
   const tranzilaPrivateKey = process.env.TRANZILA_PRIVATE_KEY;
   const ccno = String(cardNumber).replace(/\s/g, "");
@@ -863,20 +996,22 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
 
   const confirmation = tranzilaData.ConfirmationCode || tranzilaData.Confirmationcode || "";
 
-  // 3a. Boost : enregistré dans "boosts", jamais dans profiles.abonnement
+  // 3a. Boost : enregistré dans "boosts", jamais dans profiles.abonnement.
+  // Il est d'abord créé "awaiting_target", puis activé sur sa cible si elle est connue.
+  // Sinon il attend : le compte à rebours démarrera au choix de la cible (assignBoostTarget).
   if (boostId) {
     const boost = BOOSTS[boostId];
-    const startsAt = new Date();
-    const endsAt = new Date(startsAt.getTime() + boost.days * 24 * 60 * 60 * 1000);
+    const boostRef = db.collection("boosts").doc();
     await Promise.all([
-      db.collection("boosts").add({
+      boostRef.set({
         userId,
         boostId,
         price: serverPrice,
         durationDays: boost.days,
-        startsAt,
-        endsAt,
-        status: "active",
+        startsAt: null,
+        endsAt: null,
+        status: "awaiting_target",
+        expectedTargetType: boostTarget ? boostTarget.targetType : null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         paymentMethod: "card",
         lastFourDigits: ccno.slice(-4),
@@ -893,7 +1028,30 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
         tranzilaConfirmation: confirmation,
       }),
     ]);
-    return { success: true, confirmation, type: "boost", boostId, amount: serverPrice };
+
+    let activation = null;
+    if (boostTarget && boostTarget.status === "resolved") {
+      try {
+        activation = await activateBoost(db, boostRef, boostTarget);
+      } catch (err) {
+        // Paiement déjà fait : le boost reste "awaiting_target" et pourra être attribué plus tard
+        console.error(`Activation du boost ${boostRef.id} impossible :`, err.message);
+      }
+    }
+
+    return {
+      success: true,
+      confirmation,
+      type: "boost",
+      boostId,
+      boostDocId: boostRef.id,
+      amount: serverPrice,
+      status: activation ? "active" : "awaiting_target",
+      targetType: activation ? boostTarget.targetType : (boostTarget ? boostTarget.targetType : null),
+      targetId: activation ? boostTarget.targetId : null,
+      startsAt: activation ? activation.startsAt.toISOString() : null,
+      endsAt: activation ? activation.endsAt.toISOString() : null,
+    };
   }
 
   // 3b. Abonnement
@@ -931,6 +1089,87 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
 
   return { success: true, confirmation, type: "subscription", plan: planId, amount: serverPrice };
 });
+
+// ========================================
+// FUNCTION 6b : Attribution de la cible d'un boost en attente
+// (boost acheté sans cible, par exemple avec l'ancienne version de l'app).
+// Le compte à rebours démarre au moment de l'attribution.
+// ========================================
+exports.assignBoostTarget = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "Authentication required");
+  }
+
+  const { boostDocId, targetType, targetId } = data || {};
+  if (!boostDocId || String(boostDocId).includes("/") || !targetType || !targetId) {
+    throw new functions.https.HttpsError("invalid-argument", "Missing fields");
+  }
+
+  const uid = context.auth.uid;
+  const db = admin.firestore();
+  const boostRef = db.collection("boosts").doc(String(boostDocId));
+  const boostSnap = await boostRef.get();
+  if (!boostSnap.exists || boostSnap.data().userId !== uid) {
+    throw new functions.https.HttpsError("not-found", "boost_not_found");
+  }
+
+  const boost = boostSnap.data() || {};
+  if (boost.targetId) {
+    throw new functions.https.HttpsError("failed-precondition", "already_assigned");
+  }
+  // "active" sans cible = boost acheté avant l'ajout des cibles (21.11.2026)
+  if (!["awaiting_target", "active"].includes(boost.status) || !BOOSTS[boost.boostId]) {
+    throw new functions.https.HttpsError("failed-precondition", "boost_not_assignable");
+  }
+
+  const target = await resolveBoostTarget(db, uid, boost.boostId, targetType, targetId);
+  const activation = await activateBoost(db, boostRef, target);
+
+  return {
+    success: true,
+    boostDocId: boostRef.id,
+    targetType: target.targetType,
+    targetId: target.targetId,
+    startsAt: activation.startsAt.toISOString(),
+    endsAt: activation.endsAt.toISOString(),
+  };
+});
+
+// ========================================
+// FUNCTION 6c : Boosts terminés => statut "expired" (historique)
+// Les listes de l'app n'affichent que les active_boosts dont endsAt est dans le futur ;
+// cette tâche ne sert qu'à tenir la collection "boosts" à jour.
+// ========================================
+exports.expireBoosts = functions.pubsub
+  .schedule("every 60 minutes")
+  .timeZone("Asia/Jerusalem")
+  .onRun(async () => {
+    try {
+      const db = admin.firestore();
+      const snap = await db.collection("boosts")
+        .where("status", "==", "active")
+        .where("endsAt", "<=", new Date())
+        .limit(400)
+        .get();
+
+      // Un boost "active" sans cible (acheté avant l'ajout des cibles) n'est pas expiré :
+      // il attend encore son attribution.
+      const toExpire = snap.docs.filter((d) => d.data().targetId);
+      if (toExpire.length === 0) return null;
+
+      const batch = db.batch();
+      toExpire.forEach((d) => batch.update(d.ref, {
+        status: "expired",
+        expiredAt: admin.firestore.FieldValue.serverTimestamp(),
+      }));
+      await batch.commit();
+      console.log(`${toExpire.length} boost(s) marqué(s) expiré(s)`);
+      return null;
+    } catch (error) {
+      console.error("❌ Erreur expireBoosts:", error.message);
+      return null;
+    }
+  });
 
 // ========================================
 // GRILLE DES PRIX DES LEADS (source officielle, côté serveur)
