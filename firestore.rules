@@ -208,13 +208,25 @@ service cloud.firestore {
 		// MARKETPLACE - ORDERS (ADMIN PEUT TOUT VOIR)
 		// ============================================
     
+		// Ancienne règle de création (avant correction C6, 21.11.2026), conservée pour retour arrière :
+		// allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+
+		// Correction C6 : une commande est créée "pending", sans aucun champ de paiement.
+		// Seul le serveur (processMarketplacePayment) la passe en "payment_processing" puis "paid".
 		match /marketplace_orders/{orderId} {
 			allow read: if isSignedIn() && (
 				isAdmin() ||
 				resource.data.customerId == request.auth.uid ||
 				resource.data.sellerId == request.auth.uid
 			);
-			allow create: if isSignedIn() && request.resource.data.customerId == request.auth.uid;
+			allow create: if isSignedIn()
+				&& request.resource.data.customerId == request.auth.uid
+				&& request.resource.data.status == 'pending'
+				&& !request.resource.data.keys().hasAny([
+					'paidAt', 'paymentStatus', 'tranzilaConfirmation', 'lastFourDigits',
+					'amountCharged', 'amountDisplayed', 'paymentAttemptAt', 'itemsAsSubmitted',
+					'commissionRate', 'sellerIds', 'stockConflict', 'stuckAlertSentAt'
+				]);
 			allow update: if isAdmin();
 			allow delete: if false;
 		}

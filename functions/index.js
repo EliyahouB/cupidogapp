@@ -665,6 +665,103 @@ exports.registerProTranzilaToken = functions.https.onCall(async (data, context) 
 });
 
 // ========================================
+// OUTILS COMMUNS : échappement, masquage, alertes admin
+// ========================================
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Texte brut sûr (WhatsApp, push) : sans caractères de contrôle, longueur limitée
+function cleanText(value, maxLength = 200) {
+  return String(value ?? "")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+const EMAIL_REGEX = /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/;
+
+// Numéro au format +XXXXXXXX (8 à 15 chiffres), sinon null
+function normalizePhone(raw) {
+  let phone = String(raw || "").replace(/[\s\-().]/g, "");
+  if (!phone) return null;
+  if (!phone.startsWith("+")) phone = "+972" + phone.replace(/^0/, "");
+  phone = phone.replace(/^\+9720/, "+972");
+  return /^\+\d{8,15}$/.test(phone) ? phone : null;
+}
+
+function maskPhone(phone) {
+  const p = String(phone || "");
+  return p.length > 6 ? `${p.slice(0, 6)}•••${p.slice(-2)}` : "•••";
+}
+
+const roundMoney = (n) => Math.round(Number(n) * 100) / 100;
+
+// E-mail d'alerte à l'admin (jamais de coordonnées client dans "lines")
+async function sendAdminAlert(subject, lines) {
+  if (!gmailEmail) return;
+  try {
+    await transporter.sendMail({
+      from: "CupiDog <" + gmailEmail + ">",
+      to: gmailEmail,
+      subject,
+      html: `<div style="font-family:sans-serif;line-height:1.6;">${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join("")}</div>`,
+    });
+  } catch (err) {
+    console.error("Erreur envoi alerte admin:", err.message);
+  }
+}
+
+// ========================================
+// TABLES DES PRIX (abonnements et boosts) — source officielle, côté serveur
+// ========================================
+const SUBSCRIPTION_PLANS = {
+  vente: 99,
+  saillie: 149,
+  essentiel: 249,
+  premium: 399,
+  pro: 159,
+  pro_plus: 299,
+};
+const PLAN_ALIASES = { "pro+": "pro_plus" };
+
+const BOOSTS = {
+  boost_3days: { price: 59, days: 3 },
+  boost_7days: { price: 99, days: 7 },
+  boost_stud: { price: 99, priceSubscribed: 49, days: 7 },
+  boost_sale: { price: 69, priceSubscribed: 39, days: 7 },
+};
+// Abonnements donnant droit au tarif boost réduit (même liste que Abonnements.js hasSubscription)
+const BOOST_SUBSCRIBER_PLANS = ["essentiel", "premium", "pro", "pro_plus", "freemium"];
+
+// Ancienne version de l'app : elle envoie le libellé traduit du boost dans "plan".
+// Ces libellés viennent de locales/{fr,en,he,ru}.js (boost_3days, boost_7days, "Boost " + stud / sale).
+const LEGACY_BOOST_LABELS = {
+  "Boost 3 jours": "boost_3days",
+  "3-day Boost": "boost_3days",
+  "בוסט 3 ימים": "boost_3days",
+  "Буст на 3 дня": "boost_3days",
+  "Boost 7 jours": "boost_7days",
+  "7-day Boost": "boost_7days",
+  "בוסט 7 ימים": "boost_7days",
+  "Буст на 7 дней": "boost_7days",
+  "Boost Saillie": "boost_stud",
+  "Boost Stud": "boost_stud",
+  "Boost הרבעה": "boost_stud",
+  "Boost Вязка": "boost_stud",
+  "Boost Vente": "boost_sale",
+  "Boost Sale": "boost_sale",
+  "Boost מכירה": "boost_sale",
+  "Boost Продажа": "boost_sale",
+};
+
+// ========================================
 // FUNCTION 6 : Paiement Tranzila + mise à jour Firestore
 // ========================================
 exports.processPayment = functions.https.onCall(async (data, context) => {
@@ -672,21 +769,62 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }
 
-  const { plan, price, cardNumber, expiryDate, cvv } = data;
+  const { plan, price, cardNumber, expiryDate, cvv, boostId: rawBoostId } = data || {};
 
-  if (!plan || !price || !cardNumber || !expiryDate || !cvv) {
+  if ((!plan && !rawBoostId) || price === undefined || price === null || !cardNumber || !expiryDate || !cvv) {
     throw new functions.https.HttpsError("invalid-argument", "Missing payment fields");
   }
 
+  const userId = context.auth.uid;
+  const db = admin.firestore();
+
+  // 1. Identifier l'achat : boost (identifiant fixe ou ancien libellé traduit) ou abonnement
+  let boostId = null;
+  let planId = null;
+  if (rawBoostId !== undefined && rawBoostId !== null) {
+    boostId = String(rawBoostId);
+    if (!BOOSTS[boostId]) {
+      throw new functions.https.HttpsError("invalid-argument", "unknown_boost");
+    }
+  } else if (LEGACY_BOOST_LABELS[String(plan).trim()]) {
+    boostId = LEGACY_BOOST_LABELS[String(plan).trim()];
+  } else {
+    const normalized = String(plan).trim().toLowerCase();
+    planId = PLAN_ALIASES[normalized] || normalized;
+    if (!Object.prototype.hasOwnProperty.call(SUBSCRIPTION_PLANS, planId)) {
+      throw new functions.https.HttpsError("invalid-argument", "unknown_plan");
+    }
+  }
+
+  // 2. Prix fixé par le serveur (jamais celui envoyé par l'app)
+  let serverPrice;
+  if (boostId) {
+    const boost = BOOSTS[boostId];
+    serverPrice = boost.price;
+    if (boost.priceSubscribed !== undefined) {
+      const profileSnap = await db.collection("profiles").doc(userId).get();
+      const currentPlan = profileSnap.exists ? (profileSnap.data().abonnement || "") : "";
+      if (BOOST_SUBSCRIBER_PLANS.includes(currentPlan)) serverPrice = boost.priceSubscribed;
+    }
+  } else {
+    serverPrice = SUBSCRIPTION_PLANS[planId];
+  }
+
+  // Ne jamais débiter plus que le prix affiché au client
+  const displayedPrice = Number(price);
+  if (!Number.isFinite(displayedPrice) || displayedPrice + 0.005 < serverPrice) {
+    throw new functions.https.HttpsError("failed-precondition", "price_changed");
+  }
+
   const tranzilaPrivateKey = process.env.TRANZILA_PRIVATE_KEY;
-  const ccno = cardNumber.replace(/\s/g, "");
-  const expdate = expiryDate.replace("/", ""); // MM/YY → MMYY
+  const ccno = String(cardNumber).replace(/\s/g, "");
+  const expdate = String(expiryDate).replace("/", ""); // MM/YY → MMYY
 
   const params = new URLSearchParams({
     supplier: "cupidog",
     TranzilaTK: "cupidogtok",
     apikey: tranzilaPrivateKey,
-    sum: price.toString(),
+    sum: String(serverPrice),
     currency: "1", // ILS
     ccno,
     expdate,
@@ -716,25 +854,57 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
     }
   }
 
-  console.log("Tranzila full response:", JSON.stringify(tranzilaData));
-
   const responseCode = tranzilaData.Response || tranzilaData.response;
+  // Seul le code de réponse est journalisé (jamais la réponse complète de Tranzila)
+  console.log(`Tranzila processPayment : code ${responseCode}`);
   if (responseCode !== "000") {
-    console.warn("Tranzila decline:", responseCode);
     throw new functions.https.HttpsError("aborted", `payment_declined:${responseCode}`);
   }
 
   const confirmation = tranzilaData.ConfirmationCode || tranzilaData.Confirmationcode || "";
-  const userId = context.auth.uid;
-  const db = admin.firestore();
+
+  // 3a. Boost : enregistré dans "boosts", jamais dans profiles.abonnement
+  if (boostId) {
+    const boost = BOOSTS[boostId];
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt.getTime() + boost.days * 24 * 60 * 60 * 1000);
+    await Promise.all([
+      db.collection("boosts").add({
+        userId,
+        boostId,
+        price: serverPrice,
+        durationDays: boost.days,
+        startsAt,
+        endsAt,
+        status: "active",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        paymentMethod: "card",
+        lastFourDigits: ccno.slice(-4),
+        tranzilaConfirmation: confirmation,
+      }),
+      db.collection("invoices").add({
+        userId,
+        type: "boost",
+        boostId,
+        amount: serverPrice,
+        status: "paid",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        paidAt: admin.firestore.FieldValue.serverTimestamp(),
+        tranzilaConfirmation: confirmation,
+      }),
+    ]);
+    return { success: true, confirmation, type: "boost", boostId, amount: serverPrice };
+  }
+
+  // 3b. Abonnement
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + 1);
 
   await Promise.all([
     db.collection("subscriptions").add({
       userId,
-      plan,
-      price,
+      plan: planId,
+      price: serverPrice,
       status: "active",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       subscriptionEndDate: expiresAt,
@@ -744,14 +914,14 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
       tranzilaConfirmation: confirmation,
     }),
     db.collection("profiles").doc(userId).update({
-      abonnement: plan,
+      abonnement: planId,
       subscriptionEndDate: expiresAt,
     }),
     db.collection("invoices").add({
       userId,
       type: "subscription",
-      plan,
-      amount: price,
+      plan: planId,
+      amount: serverPrice,
       status: "paid",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       paidAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -759,7 +929,7 @@ exports.processPayment = functions.https.onCall(async (data, context) => {
     }),
   ]);
 
-  return { success: true, confirmation };
+  return { success: true, confirmation, type: "subscription", plan: planId, amount: serverPrice };
 });
 
 // ========================================
@@ -1010,29 +1180,142 @@ exports.processLeadPayment = functions.firestore
 
 // ========================================
 // FUNCTION 7 : Paiement CB commande marketplace
+// Sécurité (C6) : commande vérifiée AVANT le débit, montant recalculé depuis
+// marketplace_products, verrou anti-double débit, commission 15 % côté serveur,
+// stock et compteur "sold" mis à jour dans la même transaction que le passage en "paid".
 // ========================================
+const MARKETPLACE_COMMISSION_RATE = 0.15;
+
 exports.processMarketplacePayment = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError("unauthenticated", "Authentication required");
   }
 
-  const { orderId, amount, cardNumber, expiryDate, cvv, customerPhone, customerName, customerEmail, items, shippingAddress } = data;
+  // Champs encore envoyés par l'app (items, customerPhone, customerName, customerEmail,
+  // shippingAddress) : acceptés pour compatibilité, mais jamais utilisés pour le débit
+  // ni pour les envois. Seules les données de la commande en base font foi.
+  const { orderId, amount, cardNumber, expiryDate, cvv } = data || {};
 
-  console.log(`📬 customerEmail reçu: "${customerEmail || "VIDE"}"`);
-
-  if (!orderId || !amount || !cardNumber || !expiryDate || !cvv) {
+  if (!orderId || !cardNumber || !expiryDate || !cvv) {
     throw new functions.https.HttpsError("invalid-argument", "Missing payment fields");
   }
 
+  const uid = context.auth.uid;
+  const db = admin.firestore();
+  const orderRef = db.collection("marketplace_orders").doc(String(orderId));
+
+  // 1. Vérification de la commande + recalcul du montant + verrou (une seule transaction)
+  const verified = await db.runTransaction(async (tx) => {
+    const orderSnap = await tx.get(orderRef);
+    if (!orderSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "order_not_found");
+    }
+    const order = orderSnap.data() || {};
+    if (order.customerId !== uid) {
+      throw new functions.https.HttpsError("permission-denied", "order_not_owned");
+    }
+    if (order.status !== "pending") {
+      throw new functions.https.HttpsError("failed-precondition", "order_not_pending");
+    }
+
+    const submittedItems = Array.isArray(order.items) ? order.items : [];
+    if (submittedItems.length === 0 || submittedItems.length > 50) {
+      throw new functions.https.HttpsError("invalid-argument", "order_empty");
+    }
+
+    // Quantités par produit (un même produit peut apparaître deux fois)
+    const qtyByProduct = {};
+    for (const item of submittedItems) {
+      const productId = typeof item.productId === "string" ? item.productId.trim() : "";
+      const quantity = Number(item.quantity);
+      if (!productId || productId.includes("/")) {
+        throw new functions.https.HttpsError("invalid-argument", "invalid_product");
+      }
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+        throw new functions.https.HttpsError("invalid-argument", "invalid_quantity");
+      }
+      qtyByProduct[productId] = (qtyByProduct[productId] || 0) + quantity;
+    }
+
+    const productIds = Object.keys(qtyByProduct);
+    const productSnaps = await tx.getAll(...productIds.map((id) => db.collection("marketplace_products").doc(id)));
+    const products = {};
+    productSnaps.forEach((snap) => {
+      if (snap.exists) products[snap.id] = snap.data() || {};
+    });
+
+    for (const productId of productIds) {
+      const product = products[productId];
+      const unitPrice = product ? Number(product.price) : NaN;
+      if (!product || product.status !== "active" || !Number.isFinite(unitPrice) || unitPrice <= 0) {
+        throw new functions.https.HttpsError("failed-precondition", "product_unavailable");
+      }
+      if (typeof product.stock === "number" && qtyByProduct[productId] > product.stock) {
+        throw new functions.https.HttpsError("failed-precondition", "out_of_stock");
+      }
+    }
+
+    // Articles recalculés : prix, nom et vendeur lus en base
+    const items = submittedItems.map((item) => {
+      const productId = item.productId.trim();
+      const product = products[productId];
+      const unitPrice = roundMoney(product.price);
+      const commission = roundMoney(unitPrice * MARKETPLACE_COMMISSION_RATE);
+      return {
+        productId,
+        sellerId: product.sellerId || null,
+        sellerName: cleanText(product.sellerName || item.sellerName || "", 80) || null,
+        productName: cleanText(product.name || item.productName || "", 120),
+        price: unitPrice,
+        quantity: Number(item.quantity),
+        commission,
+        sellerPayout: roundMoney(unitPrice - commission),
+      };
+    });
+
+    const total = roundMoney(items.reduce((sum, i) => sum + i.price * i.quantity, 0));
+    const totalCommission = roundMoney(items.reduce((sum, i) => sum + i.commission * i.quantity, 0));
+    if (!(total > 0)) {
+      throw new functions.https.HttpsError("failed-precondition", "invalid_total");
+    }
+
+    // Ne jamais débiter plus que le montant affiché au client
+    const displayedAmount = amount === undefined || amount === null ? null : Number(amount);
+    if (displayedAmount !== null && (!Number.isFinite(displayedAmount) || displayedAmount + 0.005 < total)) {
+      throw new functions.https.HttpsError("failed-precondition", "price_changed");
+    }
+
+    tx.update(orderRef, {
+      status: "payment_processing",
+      paymentAttemptAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { order, items, total, totalCommission, displayedAmount, qtyByProduct };
+  });
+
+  // Remet la commande en "pending" pour permettre un nouvel essai (refus certain de Tranzila)
+  const releaseOrder = async (reason) => {
+    await orderRef.update({
+      status: "pending",
+      lastPaymentError: reason,
+      lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  };
+
   const tranzilaPrivateKey = process.env.TRANZILA_PRIVATE_KEY;
-  const ccno = cardNumber.replace(/\s/g, "");
-  const expdate = expiryDate.replace("/", "");
+  if (!tranzilaPrivateKey && process.env.TRANZILA_TEST_MODE !== "true") {
+    await releaseOrder("missing_tranzila_key");
+    throw new functions.https.HttpsError("failed-precondition", "payment_not_configured");
+  }
+
+  const ccno = String(cardNumber).replace(/\s/g, "");
+  const expdate = String(expiryDate).replace("/", "");
 
   const params = new URLSearchParams({
     supplier: "cupidog",
     TranzilaTK: "cupidogtok",
-    apikey: tranzilaPrivateKey,
-    sum: amount.toString(),
+    apikey: tranzilaPrivateKey || "",
+    sum: String(verified.total),
     currency: "1",
     ccno,
     expdate,
@@ -1042,6 +1325,7 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
     response_return_format: "json",
   });
 
+  // 2. Débit du montant recalculé
   let tranzilaData;
   if (process.env.TRANZILA_TEST_MODE === "true") {
     console.log("⚠️ TRANZILA_TEST_MODE actif — paiement marketplace simulé");
@@ -1057,56 +1341,143 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
         ? Object.fromEntries(new URLSearchParams(response.data))
         : response.data;
     } catch (err) {
-      console.error("Tranzila HTTP error:", err.message);
+      // On ne sait pas si le débit a eu lieu : la commande reste en "payment_processing"
+      // (pas de nouvel essai possible => pas de double débit) et l'admin est prévenu.
+      console.error(`Tranzila HTTP error (commande ${orderId}):`, err.message);
+      await orderRef.update({ paymentError: "gateway_unreachable" }).catch(() => {});
+      await sendAdminAlert("⚠️ CupiDog : commande bloquée (Tranzila injoignable)", [
+        `Commande : ${orderId}`,
+        `Montant : ₪${verified.total}`,
+        "Tranzila n'a pas répondu : vérifier dans l'interface Tranzila si le débit a eu lieu, puis passer la commande en 'paid' ou la remettre en 'pending'.",
+      ]);
       throw new functions.https.HttpsError("unavailable", "Payment gateway unreachable");
     }
   }
 
   const responseCode = tranzilaData.Response || tranzilaData.response;
+  console.log(`Tranzila marketplace (commande ${orderId}) : code ${responseCode}`);
   if (responseCode !== "000") {
+    await releaseOrder(`declined_${responseCode}`);
     throw new functions.https.HttpsError("aborted", `payment_declined:${responseCode}`);
   }
 
   const confirmation = tranzilaData.ConfirmationCode || tranzilaData.Confirmationcode || "";
-  const db = admin.firestore();
 
-  // Marquer la commande comme payée
-  await db.collection("marketplace_orders").doc(orderId).update({
-    status: "paid",
-    paymentMethod: "credit_card",
-    paidAt: admin.firestore.FieldValue.serverTimestamp(),
-    tranzilaConfirmation: confirmation,
-    lastFourDigits: ccno.slice(-4),
-  });
+  // 3. Passage en "paid" + stock + compteur "sold" dans la même transaction
+  let stockConflict = false;
+  try {
+    await db.runTransaction(async (tx) => {
+      stockConflict = false; // une transaction peut être rejouée
+      const orderSnap = await tx.get(orderRef);
+      const current = orderSnap.exists ? orderSnap.data() || {} : {};
+      if (current.status !== "payment_processing") {
+        throw new Error(`statut inattendu : ${current.status}`);
+      }
 
-  // Adresse livraison (réutilisée dans WhatsApp + email client)
-  const addressLine = shippingAddress
-    ? `${shippingAddress.street || ""}, ${shippingAddress.city || ""}${shippingAddress.zip ? " " + shippingAddress.zip : ""}`.trim().replace(/^,\s*/, "")
-    : "Non renseignée";
+      const productIds = Object.keys(verified.qtyByProduct);
+      const productRefs = productIds.map((id) => db.collection("marketplace_products").doc(id));
+      const productSnaps = await tx.getAll(...productRefs);
+
+      productSnaps.forEach((snap, index) => {
+        if (!snap.exists) return;
+        const product = snap.data() || {};
+        const quantity = verified.qtyByProduct[productIds[index]];
+        const update = {
+          sold: admin.firestore.FieldValue.increment(quantity),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        if (typeof product.stock === "number") {
+          if (product.stock < quantity) stockConflict = true;
+          const newStock = Math.max(0, product.stock - quantity);
+          update.stock = newStock;
+          if (newStock === 0) update.status = "out_of_stock";
+        }
+        tx.update(productRefs[index], update);
+      });
+
+      tx.update(orderRef, {
+        status: "paid",
+        paymentMethod: "credit_card",
+        paidAt: admin.firestore.FieldValue.serverTimestamp(),
+        tranzilaConfirmation: confirmation,
+        lastFourDigits: ccno.slice(-4),
+        amountCharged: verified.total,
+        amountDisplayed: verified.displayedAmount,
+        itemsAsSubmitted: verified.order.items || [],
+        items: verified.items,
+        subtotal: verified.total,
+        total: verified.total,
+        totalCommission: verified.totalCommission,
+        commissionRate: MARKETPLACE_COMMISSION_RATE,
+        sellerIds: [...new Set(verified.items.map((i) => i.sellerId).filter(Boolean))],
+        stockConflict,
+      });
+    });
+  } catch (err) {
+    // Débit effectué mais commande non enregistrée : l'admin doit intervenir
+    console.error(`❌ Commande ${orderId} débitée mais non enregistrée :`, err.message);
+    await sendAdminAlert("🚨 CupiDog : commande débitée mais non enregistrée", [
+      `Commande : ${orderId}`,
+      `Montant débité : ₪${verified.total}`,
+      `Confirmation Tranzila : ${confirmation}`,
+      "La commande est restée en 'payment_processing'. À passer en 'paid' manuellement (stock à vérifier).",
+    ]);
+    return { success: true, orderId, confirmation, recorded: false };
+  }
+
+  if (stockConflict) {
+    await sendAdminAlert("⚠️ CupiDog : stock insuffisant après paiement", [
+      `Commande : ${orderId}`,
+      "Le stock d'au moins un produit était inférieur à la quantité payée (stock mis à 0). À vérifier avec le vendeur.",
+    ]);
+  }
+
+  // 4. Envois : uniquement aux coordonnées de la commande vérifiée, textes échappés
+  const order = verified.order;
+  const items = verified.items;
+  const shipping = order.shippingAddress || {};
+  const zip = shipping.postalCode || shipping.zip || "";
+  const addressText = cleanText(
+    [shipping.street, shipping.city].filter(Boolean).join(", ") + (zip ? " " + zip : ""),
+    200
+  ) || "Non renseignée";
+  const customerName = cleanText(order.customerName || "", 80);
+  const customerPhone = normalizePhone(order.customerPhone);
+  const customerEmail = typeof order.customerEmail === "string" && EMAIL_REGEX.test(order.customerEmail.trim())
+    ? order.customerEmail.trim()
+    : null;
+
+  const itemRowsHtml = (list) => list
+    .map((i) => `<tr>
+      <td style="padding:6px 8px;border-bottom:1px solid #eee;">${escapeHtml(i.productName)}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center;">${i.quantity}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;">₪${(i.price * i.quantity).toFixed(0)}</td>
+    </tr>`)
+    .join("");
 
   // WhatsApp de confirmation client via Twilio
   if (client && customerPhone) {
     try {
-      const normalizedPhone = customerPhone.startsWith("+")
-        ? customerPhone
-        : `+972${customerPhone.replace(/^0/, "")}`;
-
+      const body = cleanText(
+        `✅ Commande CupiDog confirmée ! Réf: ${orderId} — Total: ₪${verified.total.toFixed(0)} — Livraison : ${addressText}`,
+        300
+      );
       await client.messages.create({
         from: twilioFrom,
-        to: `whatsapp:${normalizedPhone}`,
-        body: `✅ Commande CupiDog confirmée !\nRéf: ${orderId}\nTotal: ₪${Number(amount).toFixed(0)}\nVous serez livré à ${addressLine}`,
+        to: `whatsapp:${customerPhone}`,
+        body,
       });
-      console.log(`📱 WhatsApp client envoyé à ${normalizedPhone}`);
+      console.log(`📱 WhatsApp client envoyé (commande ${orderId}, ${maskPhone(customerPhone)})`);
     } catch (smsErr) {
-      console.error("❌ Erreur WhatsApp Twilio:", smsErr.message);
+      console.error(`❌ Erreur WhatsApp Twilio (commande ${orderId}):`, smsErr.message);
     }
+  } else if (order.customerPhone) {
+    console.warn(`Téléphone client invalide, WhatsApp non envoyé (commande ${orderId})`);
   }
 
-  // Push notifications vendeurs
+  // Push notifications + e-mails vendeurs
   try {
-    const orderSnap = await db.collection("marketplace_orders").doc(orderId).get();
-    const orderItems = orderSnap.exists ? (orderSnap.data().items || []) : [];
-    const sellerIds = [...new Set(orderItems.map(i => i.sellerId).filter(Boolean))];
+    const sellerIds = [...new Set(items.map((i) => i.sellerId).filter(Boolean))];
 
     await Promise.all(sellerIds.map(async (sellerId) => {
       try {
@@ -1116,46 +1487,35 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
         ]);
         const sellerData = sellerDoc.data() || {};
         const sellerProData = sellerProDoc.data() || {};
-        const sellerItems = orderItems.filter(i => i.sellerId === sellerId);
+        const sellerItems = items.filter((i) => i.sellerId === sellerId);
         const sellerTotal = sellerItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
         // Push notification (seulement si pushToken présent)
         const pushToken = sellerData.pushToken;
         if (pushToken) {
           const body = sellerItems.length === 1
-            ? `${sellerItems[0].productName} x${sellerItems[0].quantity} — ₪${sellerTotal.toFixed(0)}`
+            ? `${cleanText(sellerItems[0].productName, 60)} x${sellerItems[0].quantity} — ₪${sellerTotal.toFixed(0)}`
             : `${sellerItems.length} articles — ₪${sellerTotal.toFixed(0)}`;
           await admin.messaging().send({
             token: pushToken,
             notification: { title: "🛒 Nouvelle commande !", body },
-            data: { type: "new_order", orderId },
+            data: { type: "new_order", orderId: String(orderId) },
           });
         }
 
         // Email vendeur — priorité : professional_accounts, fallback : users
         const sellerEmail = sellerProData.email || sellerData.email;
-        if (sellerEmail && gmailEmail) {
-          const itemsHtml = sellerItems
-            .map(i => `<tr>
-              <td style="padding:6px 8px;border-bottom:1px solid #eee;">${i.productName}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center;">${i.quantity}</td>
-              <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;">₪${(i.price * i.quantity).toFixed(0)}</td>
-            </tr>`)
-            .join("");
-          const addressHtml = shippingAddress
-            ? `${shippingAddress.street || ""}, ${shippingAddress.city || ""}${shippingAddress.zip ? " " + shippingAddress.zip : ""}`
-            : "Non renseignée";
-
+        if (sellerEmail && gmailEmail && EMAIL_REGEX.test(String(sellerEmail).trim())) {
           await transporter.sendMail({
             from: "CupiDog <" + gmailEmail + ">",
-            to: sellerEmail,
+            to: String(sellerEmail).trim(),
             subject: `🛒 Nouvelle commande CupiDog - ${orderId}`,
             html: `
               <div style="font-family:sans-serif;line-height:1.6;max-width:560px;">
                 <h1 style="color:#FF6B6B;">🛒 Nouvelle commande !</h1>
                 <p>Bonjour,</p>
                 <p>Vous avez reçu une nouvelle commande sur <strong>CupiDog</strong>.</p>
-                <p><strong>Référence :</strong> ${orderId}</p>
+                <p><strong>Référence :</strong> ${escapeHtml(orderId)}</p>
                 <h3 style="margin-bottom:4px;">Produits commandés</h3>
                 <table style="width:100%;border-collapse:collapse;font-size:14px;">
                   <thead>
@@ -1165,7 +1525,7 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
                       <th style="padding:6px 8px;text-align:right;">Montant</th>
                     </tr>
                   </thead>
-                  <tbody>${itemsHtml}</tbody>
+                  <tbody>${itemRowsHtml(sellerItems)}</tbody>
                   <tfoot>
                     <tr>
                       <td colspan="2" style="padding:8px;font-weight:bold;">Total</td>
@@ -1175,16 +1535,16 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
                 </table>
                 <hr style="margin:16px 0;">
                 <h3 style="margin-bottom:4px;">Adresse de livraison</h3>
-                <p style="margin:0;">${addressHtml}</p>
+                <p style="margin:0;">${escapeHtml(addressText)}</p>
                 <h3 style="margin-bottom:4px;margin-top:16px;">Coordonnées client</h3>
-                <p style="margin:0;"><strong>Nom :</strong> ${customerName || "Non renseigné"}</p>
-                <p style="margin:0;"><strong>Téléphone :</strong> ${customerPhone || "Non renseigné"}</p>
+                <p style="margin:0;"><strong>Nom :</strong> ${escapeHtml(customerName || "Non renseigné")}</p>
+                <p style="margin:0;"><strong>Téléphone :</strong> ${escapeHtml(customerPhone || "Non renseigné")}</p>
                 <hr style="margin:16px 0;">
                 <p><em>Email envoyé automatiquement par CupiDog</em></p>
               </div>
             `,
           });
-          console.log(`📧 Email vendeur envoyé à ${sellerEmail}`);
+          console.log(`📧 Email vendeur envoyé (commande ${orderId}, vendeur ${sellerId})`);
         }
       } catch (sellerErr) {
         console.error(`❌ Erreur notification vendeur ${sellerId}:`, sellerErr.message);
@@ -1197,14 +1557,6 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
   // Email de confirmation client
   if (customerEmail && gmailEmail) {
     try {
-      const allItemsHtml = Array.isArray(items)
-        ? items.map(i => `<tr>
-            <td style="padding:6px 8px;border-bottom:1px solid #eee;">${i.productName}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center;">${i.quantity}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;">₪${(i.price * i.quantity).toFixed(0)}</td>
-          </tr>`).join("")
-        : "";
-
       await transporter.sendMail({
         from: "CupiDog <" + gmailEmail + ">",
         to: customerEmail,
@@ -1212,9 +1564,9 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
         html: `
           <div style="font-family:sans-serif;line-height:1.6;max-width:560px;">
             <h1 style="color:#FF6B6B;">✅ Commande confirmée !</h1>
-            <p>Bonjour <strong>${customerName || ""}</strong>,</p>
+            <p>Bonjour <strong>${escapeHtml(customerName)}</strong>,</p>
             <p>Merci pour votre commande sur <strong>CupiDog</strong>. Elle a bien été enregistrée et sera traitée dans les plus brefs délais.</p>
-            <p><strong>Numéro de commande :</strong> ${orderId}</p>
+            <p><strong>Numéro de commande :</strong> ${escapeHtml(orderId)}</p>
             <h3 style="margin-bottom:4px;">Récapitulatif</h3>
             <table style="width:100%;border-collapse:collapse;font-size:14px;">
               <thead>
@@ -1224,17 +1576,17 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
                   <th style="padding:6px 8px;text-align:right;">Montant</th>
                 </tr>
               </thead>
-              <tbody>${allItemsHtml}</tbody>
+              <tbody>${itemRowsHtml(items)}</tbody>
               <tfoot>
                 <tr>
                   <td colspan="2" style="padding:8px;font-weight:bold;">Total payé</td>
-                  <td style="padding:8px;font-weight:bold;text-align:right;">₪${Number(amount).toFixed(0)}</td>
+                  <td style="padding:8px;font-weight:bold;text-align:right;">₪${verified.total.toFixed(0)}</td>
                 </tr>
               </tfoot>
             </table>
             <hr style="margin:16px 0;">
             <h3 style="margin-bottom:4px;">Adresse de livraison</h3>
-            <p style="margin:0;">${addressLine}</p>
+            <p style="margin:0;">${escapeHtml(addressText)}</p>
             <br>
             <p>À très vite,</p>
             <p>L'équipe CupiDog 🐾</p>
@@ -1243,14 +1595,59 @@ exports.processMarketplacePayment = functions.https.onCall(async (data, context)
           </div>
         `,
       });
-      console.log(`📧 Email confirmation client envoyé à ${customerEmail}`);
+      console.log(`📧 Email confirmation client envoyé (commande ${orderId})`);
     } catch (emailErr) {
-      console.error("❌ Erreur email client:", emailErr.message);
+      console.error(`❌ Erreur email client (commande ${orderId}):`, emailErr.message);
     }
+  } else if (order.customerEmail) {
+    console.warn(`E-mail client invalide, confirmation non envoyée (commande ${orderId})`);
   }
 
-  return { success: true, orderId, confirmation };
+  return { success: true, orderId, confirmation, amount: verified.total };
 });
+
+// ========================================
+// FUNCTION 7b : Alerte admin pour les commandes bloquées en "payment_processing"
+// (plus de 15 minutes, par exemple si la fonction s'est arrêtée pendant le paiement)
+// ========================================
+exports.checkStuckMarketplaceOrders = functions.pubsub
+  .schedule("every 30 minutes")
+  .timeZone("Asia/Jerusalem")
+  .onRun(async () => {
+    try {
+      const db = admin.firestore();
+      const snap = await db.collection("marketplace_orders")
+        .where("status", "==", "payment_processing")
+        .get();
+
+      const limit = Date.now() - 15 * 60 * 1000;
+      const stuck = snap.docs.filter((d) => {
+        const o = d.data() || {};
+        const attempt = o.paymentAttemptAt?.toDate ? o.paymentAttemptAt.toDate().getTime() : 0;
+        return attempt < limit && !o.stuckAlertSentAt;
+      });
+
+      if (stuck.length === 0) return null;
+
+      await sendAdminAlert(`⚠️ CupiDog : ${stuck.length} commande(s) bloquée(s) en paiement`, [
+        "Ces commandes sont en 'payment_processing' depuis plus de 15 minutes :",
+        ...stuck.map((d) => {
+          const o = d.data() || {};
+          const attempt = o.paymentAttemptAt?.toDate ? o.paymentAttemptAt.toDate().toISOString() : "?";
+          return `• ${d.id} — tentative : ${attempt}${o.paymentError ? " — " + o.paymentError : ""}`;
+        }),
+        "Vérifier dans l'interface Tranzila si le débit a eu lieu, puis passer la commande en 'paid' ou la remettre en 'pending'.",
+      ]);
+
+      await Promise.all(stuck.map((d) => d.ref.update({
+        stuckAlertSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      })));
+      return null;
+    } catch (error) {
+      console.error("❌ Erreur checkStuckMarketplaceOrders:", error.message);
+      return null;
+    }
+  });
 
 // ========================================
 // FUNCTION 7 : Génération des factures mensuelles
