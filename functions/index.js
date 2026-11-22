@@ -777,16 +777,19 @@ function invalidTarget() {
   return new functions.https.HttpsError("invalid-argument", "invalid_target");
 }
 
-// "service" (prestataire), "seller" (vendeur) ou null
+// "service" (prestataire), "seller" (vendeur) ou null.
+// Correction C4 (22.11.2026) : seul professional_accounts fait foi ; profiles.providerType
+// est choisi par l'utilisateur à l'inscription et n'est plus utilisé ici.
+// Ancien repli, conservé pour mémoire :
+//   const profileSnap = await db.collection("profiles").doc(uid).get();
+//   const providerType = profileSnap.exists ? String(profileSnap.data().providerType || "").toLowerCase() : "";
+//   if (providerType === "prestataire") return "service";
+//   if (providerType === "vendeur") return "seller";
 async function getBoostAccountKind(db, uid) {
   const proSnap = await db.collection("professional_accounts").doc(uid).get();
   const activity = proSnap.exists ? String(proSnap.data().activityType || "").toLowerCase() : "";
   if (activity === "service_provider") return "service";
   if (activity === "seller" || activity === "vendeur") return "seller";
-  const profileSnap = await db.collection("profiles").doc(uid).get();
-  const providerType = profileSnap.exists ? String(profileSnap.data().providerType || "").toLowerCase() : "";
-  if (providerType === "prestataire") return "service";
-  if (providerType === "vendeur") return "seller";
   return null;
 }
 
